@@ -213,6 +213,8 @@ class ProgramState():
                 "'Already aligned' option is not allowed for the Genbank format.")
         try:
             table = self.input_format.load_table(input_file)
+        except ImportError:
+            raise
         except Exception as e:
             raise ValueError("Can't read the input file.\nPlease check if the correct format is chosen") from e
         self.species_analysis = "species" in table.columns
@@ -511,7 +513,10 @@ class ProgramState():
         self.start_time = time.monotonic()
         if self.input_format_name.get() in {"Genbank", "XLSX"}:
             raise ValueError(f"Comparison with reference database is not implemented for the {self.input_format_name.get()} format")
-        reference_table = self.input_format.load_table(reference_file)
+        try:
+            reference_table = self.input_format.load_table(reference_file)
+        except Exception as e:
+            raise ValueError("Can't read the input file.\nPlease check if the correct format is chosen") from e
         reference_table.set_index("seqid", inplace=True)
         if not self.already_aligned.get():
             reference_table["sequence"] = normalize_sequences(reference_table["sequence"])
