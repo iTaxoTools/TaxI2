@@ -50,8 +50,15 @@ NDISTANCES = 4
 
 
 if BACKEND == "Rust":
-    from library.calculate_distances import seq_distances, seq_distances_aligned
+    if os.name == 'nt':
+        library_name = "calculate_distances.pyd"
+    elif os.name == 'posix':
+        library_name = "calculate_distances.so"
+    if not os.path.exists(os.path.join(resource_path, "library", library_name)):
+        raise ImportError(
+            f"The file library/{library_name} is missing.\nTry running library/copy_rust_lib.py")
     import library.calculate_distances as calc
+    from library.calculate_distances import seq_distances, seq_distances_aligned
 
     def make_aligner() -> Any:
         return calc.make_aligner(MATCH_SCORE, MISMATCH_SCORE, END_GAP_PENALTY,
