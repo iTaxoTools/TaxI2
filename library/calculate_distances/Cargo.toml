@@ -11,7 +11,7 @@ name = "calculate_distances"
 crate-type = ["cdylib", "lib"]
 
 [dependencies]
-ndarray = "0.15.1"
+numpy = "0.13.1"
 
 [dependencies.pyo3]
 version = "0.13.2"

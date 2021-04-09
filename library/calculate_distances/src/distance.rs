@@ -1,7 +1,5 @@
 //! Calculating distances between sequences
 
-use ndarray::{s, Array2, Array3, Zip};
-
 use crate::needle::Aligner;
 
 /// State for the distance calculation
@@ -182,52 +180,35 @@ pub fn seq_distances_aligned(target: &str, query: &str) -> [f64; 4] {
     ]
 }
 
-/// Creates (n, 4) array of distances between `targets` and `queries`.
+/// Creates (n, 4) vector of distances between `targets` and `queries`.
 ///
 /// Outer iteration over `targets`.
 /// Inner iteration over `queries`.
 /// Performs sequence-to-sequence alignment
-pub fn make_distance_array(aligner: &Aligner, targets: &[&str], queries: &[&str]) -> Array2<f64> {
-    use std::mem::MaybeUninit;
-
-    let mut distance_table = Array3::<f64>::uninit((targets.len(), queries.len(), 4));
-
-    targets.iter().enumerate().for_each(|(i, target)| {
-        queries.iter().enumerate().for_each(|(j, query)| {
-            Zip::from(distance_table.slice_mut(s![i, j, ..]))
-                .and(&seq_distances(aligner, target, query)[..])
-                .for_each(|slot, &distance| *slot = MaybeUninit::new(distance))
+pub fn make_distance_array(aligner: &Aligner, targets: &[&str], queries: &[&str]) -> Vec<Vec<f64>> {
+    targets
+        .iter()
+        .flat_map(|target| {
+            queries
+                .iter()
+                .map(move |query| Vec::from(seq_distances(aligner, target, query)))
         })
-    });
-
-    let distance_table = unsafe { distance_table.assume_init() };
-    distance_table
-        .into_shape((targets.len() * queries.len(), 4))
-        .expect("Can't put into the correct shape")
+        .collect()
 }
 
-pub fn make_distance_array_aligned(targets: &[&str], queries: &[&str]) -> Array2<f64> {
-    use std::mem::MaybeUninit;
-
-    let mut distance_table = Array3::<f64>::uninit((targets.len(), queries.len(), 4));
-
-    targets.iter().enumerate().for_each(|(i, target)| {
-        queries.iter().enumerate().for_each(|(j, query)| {
-            Zip::from(distance_table.slice_mut(s![i, j, ..]))
-                .and(&seq_distances_aligned(target, query)[..])
-                .for_each(|slot, &distance| *slot = MaybeUninit::new(distance))
+pub fn make_distance_array_aligned(targets: &[&str], queries: &[&str]) -> Vec<Vec<f64>> {
+    targets
+        .iter()
+        .flat_map(|target| {
+            queries
+                .iter()
+                .map(move |query| Vec::from(seq_distances_aligned(target, query)))
         })
-    });
-
-    let distance_table = unsafe { distance_table.assume_init() };
-    distance_table
-        .into_shape((targets.len() * queries.len(), 4))
-        .expect("Can't put into the correct shape")
+        .collect()
 }
 
 #[cfg(test)]
 mod test_super {
-    use ndarray::array;
 
     use super::*;
 
@@ -251,9 +232,15 @@ mod test_super {
 
         let aligner = Aligner::default();
         let distance_table = make_distance_array(&aligner, &targets, &queries);
-        let pdistances = array![0.0, 1.0, 1.0 / 3.0, 2.0 / 3.0, 0.0, 1.0];
-        assert_eq!(distance_table.column(0), pdistances);
-        let pdistances_gaps = array![0.0, 1.0, 1.0 / 3.0, 2.0 / 3.0, 1.0 / 3.0, 1.0];
-        assert_eq!(distance_table.column(3), pdistances_gaps);
+        let pdistances = vec![0.0, 1.0, 1.0 / 3.0, 2.0 / 3.0, 0.0, 1.0];
+        assert_eq!(
+            distance_table.iter().map(|v| v[0]).collect::<Vec<_>>(),
+            pdistances
+        );
+        let pdistances_gaps = vec![0.0, 1.0, 1.0 / 3.0, 2.0 / 3.0, 1.0 / 3.0, 1.0];
+        assert_eq!(
+            distance_table.into_iter().map(|v| v[3]).collect::<Vec<_>>(),
+            pdistances_gaps
+        );
     }
 }

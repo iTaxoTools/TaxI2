@@ -8,7 +8,7 @@ use pyo3::{
 /// Represents a column of strings.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Column<'s> {
-    strings: Box<[&'s str]>,
+    pub strings: Box<[&'s str]>,
 }
 
 impl<'s> Column<'s> {
