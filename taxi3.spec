@@ -3,7 +3,7 @@
 block_cipher = None
 
 
-a = Analysis(['taxi2.py'],
+a = Analysis(['taxi3.py'],
              binaries=[],
              datas=[('data','data')],
              hiddenimports=[],
@@ -22,7 +22,7 @@ exe = EXE(pyz,
          a.zipfiles,
          a.datas,
          [],
-         name='taxi2',
+         name='taxi3',
          debug=False,
          bootloader_ignore_signals=False,
          strip=False,
