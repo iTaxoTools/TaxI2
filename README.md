@@ -49,7 +49,7 @@ Find out whether your Python interpreter is 32- or 64-bit. For this run:
 ```
 python
 >>> import platform
->>> platfom.architecture
+>>> platform.architecture
 (bits, linkage)
 ```
 The `bits` will contain the required information.
