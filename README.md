@@ -1,4 +1,4 @@
-# TaxI2
+# TaxI3
 Calculates genetic differences between DNA sequences
 
 ## Scores for alignment
