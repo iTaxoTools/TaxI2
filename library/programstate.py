@@ -138,6 +138,26 @@ class GenbankFormat(FileFormat):
         except KeyError as ex:
             raise ValueError(f"{str(ex)} is missing") from ex
 
+class XLSXFormat(FileFormat):
+    """
+    Format for xlsx files
+    """
+
+    def load_table(self, filepath: str) -> pd.DataFrame:
+        return self.process_table(pd.read_excel(filepath, dtype=str, engine='openpyxl'))
+
+    @staticmethod
+    def process_table(table: pd.DataFrame) -> pd.DataFrame:
+        try:
+            return table.rename(
+                    columns=str.casefold).rename(columns=FileFormat.rename_columns)[['seqid', 'specimen_voucher', 'species', 'sequence']].drop_duplicates()
+        except KeyError as ex:
+            raise ValueError(
+                "'seqid', 'specimen_voucher', 'species' or 'organism', or 'sequence' column is missing") from ex
+
+
+
+
 
 class ProgramState():
     """
@@ -149,7 +169,8 @@ class ProgramState():
     formats = dict(
         Tabfile=TabFormat,
         Fasta=FastaFormat,
-        Genbank=GenbankFormat
+        Genbank=GenbankFormat,
+        XLSX=XLSXFormat
     )
 
     def __init__(self, root: tk.Misc, output_dir: str) -> None:
@@ -190,7 +211,12 @@ class ProgramState():
         if self.input_format_name.get() == "Genbank" and self.already_aligned.get():
             raise ValueError(
                 "'Already aligned' option is not allowed for the Genbank format.")
-        table = self.input_format.load_table(input_file)
+        try:
+            table = self.input_format.load_table(input_file)
+        except ImportError:
+            raise
+        except Exception as e:
+            raise ValueError("Can't read the input file.\nPlease check if the correct format is chosen") from e
         self.species_analysis = "species" in table.columns
         table.set_index("seqid", inplace=True)
         if not self.already_aligned.get():
@@ -485,9 +511,12 @@ class ProgramState():
 
     def reference_comparison_process(self, input_file: str, reference_file: str) -> None:
         self.start_time = time.monotonic()
-        if self.input_format_name.get() == "Genbank":
-            raise ValueError(f"Comparison with reference database is not implemented for the Genbank format")
-        reference_table = self.input_format.load_table(reference_file)
+        if self.input_format_name.get() in {"Genbank", "XLSX"}:
+            raise ValueError(f"Comparison with reference database is not implemented for the {self.input_format_name.get()} format")
+        try:
+            reference_table = self.input_format.load_table(reference_file)
+        except Exception as e:
+            raise ValueError("Can't read the input file.\nPlease check if the correct format is chosen") from e
         reference_table.set_index("seqid", inplace=True)
         if not self.already_aligned.get():
             reference_table["sequence"] = normalize_sequences(reference_table["sequence"])
