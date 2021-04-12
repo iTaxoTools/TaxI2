@@ -1,4 +1,4 @@
-# TaxI2
+# TaxI3
 Calculates genetic differences between DNA sequences
 
 ## Scores for alignment
@@ -26,7 +26,7 @@ distance_calculation<Tab>BACKEND
 
 ## Compiling the Rust module
 
-TaxI2 included a module for calculating distances between sequences, which is written in Rust. It might need to be compiled before it can be used.
+TaxI3 includes a module for calculating distances between sequences, which is written in Rust. It might need to be compiled before it can be used.
 
 ### Rust installation
 [Instructions on the Rust site](https://www.rust-lang.org/tools/install).
