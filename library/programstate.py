@@ -68,11 +68,16 @@ class TabFormat(FileFormat):
     @staticmethod
     def process_table(table: pd.DataFrame) -> pd.DataFrame:
         try:
-            return table.rename(
-                    columns=str.casefold).rename(columns=FileFormat.rename_columns)[['seqid', 'specimen_voucher', 'species', 'sequence']].drop_duplicates()
+            table = table.rename(
+                    columns=str.casefold).rename(columns=FileFormat.rename_columns)
+            if 'subspecies' in table.columns:
+                return table[['seqid', 'specimen_voucher', 'species', 'subspecies', 'sequence']].drop_duplicates()
+            else :
+                return table[['seqid', 'specimen_voucher', 'species', 'sequence']].drop_duplicates()
         except KeyError as ex:
             raise ValueError(
                 "'seqid', 'specimen_voucher', 'species' or 'organism', or 'sequence' column is missing") from ex
+
 
     def load_chunks(self, filepath_or_buffer: Union[str, TextIO]) -> Iterator[pd.DataFrame]:
         with open(filepath_or_buffer, errors='replace') as infile:
@@ -149,8 +154,12 @@ class XLSXFormat(FileFormat):
     @staticmethod
     def process_table(table: pd.DataFrame) -> pd.DataFrame:
         try:
-            return table.rename(
-                    columns=str.casefold).rename(columns=FileFormat.rename_columns)[['seqid', 'specimen_voucher', 'species', 'sequence']].drop_duplicates()
+            table = table.rename(
+                    columns=str.casefold).rename(columns=FileFormat.rename_columns)
+            if 'subspecies' in table.columns:
+                return table[['seqid', 'specimen_voucher', 'species', 'subspecies', 'sequence']].drop_duplicates()
+            else :
+                return table[['seqid', 'specimen_voucher', 'species', 'sequence']].drop_duplicates()
         except KeyError as ex:
             raise ValueError(
                 "'seqid', 'specimen_voucher', 'species' or 'organism', or 'sequence' column is missing") from ex
@@ -182,6 +191,7 @@ class ProgramState():
         self.distance_options[PDISTANCE].set(True)
         self.reference_comparison = tk.BooleanVar(root, value=True)
         self.print_alignments = tk.BooleanVar(root, value=False)
+        self.intra_species_lineages = tk.BooleanVar(root, value=False)
         self.perform_clustering = tk.BooleanVar(root, value=False)
         self.cluster_distance = tk.StringVar(root, value=distances_names[PDISTANCE])
         self.cluster_size = tk.StringVar(root, value='0.05')
@@ -215,9 +225,8 @@ class ProgramState():
             table = self.input_format.load_table(input_file)
         except ImportError:
             raise
-        except Exception as e:
-            raise ValueError("Can't read the input file.\nPlease check if the correct format is chosen") from e
         self.species_analysis = "species" in table.columns
+        self.subspecies_analysis = ("subspecies" in table.columns) and self.intra_species_lineages.get()
         table.set_index("seqid", inplace=True)
         if not self.already_aligned.get():
             table["sequence"] = normalize_sequences(table["sequence"])
@@ -364,21 +373,36 @@ class ProgramState():
                 del intra_genus
 
 
-            same_species = distance_table['species (query 1)'] == distance_table['species (query 2)']
-            same_genus = distance_table['genus (query 1)'] == distance_table['genus (query 2)']
+            same_species = (distance_table['species (query 1)'] == distance_table['species (query 2)']).astype('int8')
+            same_genus = (distance_table['genus (query 1)'] == distance_table['genus (query 2)']).astype('int8')
 
-            def comparison_type(same_species: bool, same_genus: bool) -> str:
-                if same_genus:
-                    if same_species:
-                        return 'intra-species'
-                    else:
-                        return 'inter-species'
-                else:
-                    return 'inter-genus'
+            if self.subspecies_analysis:
+                same_subspecies = ((distance_table['subspecies (query 1)'] == distance_table['subspecies (query 2)']) >= same_species).astype('int8')
+                comparison_type = same_genus + same_species + same_subspecies + 1
+            else:
+                comparison_type = same_genus + same_species
+
+            print(comparison_type)
+
+            comparison_type = comparison_type.map({
+                0: 'inter-genus',
+                1: 'inter-species',
+                2: 'intra-species',
+                3: 'intra-species (same intraspecific lineage)',
+                4: 'intra-species (different intraspecific lineages)'
+                })
+
+            # def comparison_type(same_species: bool, same_genus: bool) -> str:
+            #     if same_genus:
+            #         if same_species:
+            #             return 'intra-species'
+            #         else:
+            #             return 'inter-species'
+            #     else:
+            #         return 'inter-genus'
             comparison_type_pos = int((
                 len(distance_table.columns) - NDISTANCES) / 2)
-            distance_table.insert(comparison_type_pos, 'comparison_type', same_species.combine(
-                same_genus, comparison_type))
+            distance_table.insert(comparison_type_pos, 'comparison_type', comparison_type)
 
             distance_table["species (query 1)"] = distance_table["species (query 1)"].str.split(pat=r' |_', n=1, expand=True).iloc[:,1]
             distance_table["species (query 2)"] = distance_table["species (query 2)"].str.split(pat=r' |_', n=1, expand=True).iloc[:,1]
@@ -513,10 +537,7 @@ class ProgramState():
         self.start_time = time.monotonic()
         if self.input_format_name.get() in {"Genbank", "XLSX"}:
             raise ValueError(f"Comparison with reference database is not implemented for the {self.input_format_name.get()} format")
-        try:
-            reference_table = self.input_format.load_table(reference_file)
-        except Exception as e:
-            raise ValueError("Can't read the input file.\nPlease check if the correct format is chosen") from e
+        reference_table = self.input_format.load_table(reference_file)
         reference_table.set_index("seqid", inplace=True)
         if not self.already_aligned.get():
             reference_table["sequence"] = normalize_sequences(reference_table["sequence"])

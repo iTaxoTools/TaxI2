@@ -220,16 +220,19 @@ class TaxiGUI(ttk.Frame):
         ttk.Checkbutton(
             parameters_frame, variable=self.programstate.print_alignments, text="Print alignments").grid(row=4, column=0, sticky='w')
 
+        ttk.Checkbutton(
+            parameters_frame, variable=self.programstate.intra_species_lineages, text="Include 'intraspecific lineage' category").grid(row=5, column=0, sticky='w')
+
         ttk.Checkbutton(parameters_frame, variable=self.programstate.perform_clustering,
-                        text="Perform clustering").grid(row=5, column=0, sticky='w')
+                        text="Perform clustering").grid(row=6, column=0, sticky='w')
         ttk.Label(parameters_frame, text="Clustering by:").grid(
-            row=6, column=0, sticky='w')
+            row=7, column=0, sticky='w')
 
         ttk.Combobox(parameters_frame, textvariable=self.programstate.cluster_distance,
-                     state='readonly', values=list(distances_names), width=30).grid(row=7, column=0, sticky='w')
+                     state='readonly', values=list(distances_names), width=30).grid(row=8, column=0, sticky='w')
 
         cluster_size_frame = ttk.Frame(parameters_frame)
-        cluster_size_frame.grid(row=8, column=0, sticky='w')
+        cluster_size_frame.grid(row=9, column=0, sticky='w')
 
         ttk.Label(cluster_size_frame, text="with distance threshold \n(between 0 and 1)").grid(
             row=0, column=0, sticky='w')
