@@ -1,5 +1,7 @@
 //! Calculating distances between sequences
 
+use rayon::prelude::*;
+
 use crate::needle::Aligner;
 
 /// State for the distance calculation
@@ -187,8 +189,8 @@ pub fn seq_distances_aligned(target: &str, query: &str) -> [f64; 4] {
 /// Performs sequence-to-sequence alignment
 pub fn make_distance_array(aligner: &Aligner, targets: &[&str], queries: &[&str]) -> Vec<Vec<f64>> {
     targets
-        .iter()
-        .flat_map(|target| {
+        .par_iter()
+        .flat_map_iter(|target| {
             queries
                 .iter()
                 .map(move |query| Vec::from(seq_distances(aligner, target, query)))
@@ -198,8 +200,8 @@ pub fn make_distance_array(aligner: &Aligner, targets: &[&str], queries: &[&str]
 
 pub fn make_distance_array_aligned(targets: &[&str], queries: &[&str]) -> Vec<Vec<f64>> {
     targets
-        .iter()
-        .flat_map(|target| {
+        .par_iter()
+        .flat_map_iter(|target| {
             queries
                 .iter()
                 .map(move |query| Vec::from(seq_distances_aligned(target, query)))
