@@ -1,3 +1,4 @@
+mod column;
 mod distance;
 mod needle;
 
@@ -5,8 +6,10 @@ use pyo3::exceptions;
 use pyo3::prelude::*;
 use pyo3::wrap_pyfunction;
 
-pub use crate::distance::AlignmentStats;
-pub use crate::needle::Aligner;
+use numpy::PyArray2;
+
+use crate::column::Column;
+use crate::needle::Aligner;
 
 /// Makes an Aligner with given scores
 #[pyfunction]
@@ -56,33 +59,7 @@ fn show_alignment(aligner: &Aligner, target: &str, query: &str) -> PyResult<Stri
 #[pyfunction]
 #[text_signature = "(aligner, target, query, /)"]
 fn seq_distances(aligner: &Aligner, target: &str, query: &str) -> [f64; 4] {
-    let alignment = aligner.align(target.as_bytes(), query.as_bytes());
-    let mut alignment_stats = AlignmentStats::new();
-    alignment
-        .common_path_iter()
-        .for_each(|pair| alignment_stats.update(pair));
-    [
-        alignment_stats.pdistance(),
-        alignment_stats.jukes_cantor_distance(),
-        alignment_stats.kimura2p_distance(),
-        alignment_stats.pdistance_counting_gaps(),
-    ]
-}
-
-// Returns true if the character is part of a meaningful part of a sequences
-fn is_nucleotide(c: char) -> bool {
-    !matches!(c, '-' | 'n' | 'N' | '?')
-}
-
-// Returns the inclusive boundaries of the common non-gap part of given sequences
-fn common_content(target: &str, query: &str) -> Option<(usize, usize)> {
-    let target_start = target.find(is_nucleotide)?;
-    let query_start = query.find(is_nucleotide)?;
-    let target_end = target.rfind(is_nucleotide)?;
-    let query_end = query.rfind(is_nucleotide)?;
-    let start = usize::max(target_start, query_start);
-    let end = usize::min(target_end, query_end);
-    Some((start, end))
+    crate::distance::seq_distances(aligner, target, query)
 }
 
 /// Returns 4 distances between `target` and `query`.
@@ -91,33 +68,78 @@ fn common_content(target: &str, query: &str) -> Option<(usize, usize)> {
 #[pyfunction]
 #[text_signature = "(target, query, /)"]
 fn seq_distances_aligned(target: &str, query: &str) -> [f64; 4] {
-    let (start, end) = match common_content(target, query) {
-        None => return [f64::NAN; 4],
-        Some(x) => x,
-    };
-    let target = &target[start..=end];
-    let query = &query[start..=end];
-    let mut alignment_stats = AlignmentStats::new();
-    target
-        .bytes()
-        .zip(query.bytes())
-        .for_each(|pair| alignment_stats.update(pair));
-    [
-        alignment_stats.pdistance(),
-        alignment_stats.jukes_cantor_distance(),
-        alignment_stats.kimura2p_distance(),
-        alignment_stats.pdistance_counting_gaps(),
-    ]
+    crate::distance::seq_distances_aligned(target, query)
+}
+
+/// Returns 2D array of distances between `targets` and `queries`.
+///
+/// `targets` and `queries` should be pandas string columns.
+/// Outer iteration over `targets`, inner iteration of `queries`.
+///
+/// Performs alignment.
+#[pyfunction]
+#[text_signature = "(aligner, targets, queries, /)"]
+fn make_distance_array<'py>(
+    py: Python<'py>,
+    aligner: &Aligner,
+    targets: &PyAny,
+    queries: &PyAny,
+) -> PyResult<&'py numpy::PyArray2<f64>> {
+    let is_same = std::ptr::eq(targets, queries);
+    let targets = &Column::new(py, targets)?.strings;
+    if is_same {
+        PyArray2::from_vec2(
+            py,
+            &distance::make_distance_array(aligner, &targets, &targets),
+        )
+    } else {
+        let queries = Column::new(py, queries)?.strings;
+        PyArray2::from_vec2(
+            py,
+            &distance::make_distance_array(aligner, &targets, &queries),
+        )
+    }
+    .map_err(|_| exceptions::PyRuntimeError::new_err("can't convert Vec to numpy array"))
+}
+
+/// Returns 2D array of distances between `targets` and `queries`.
+///
+/// `targets` and `queries` should be pandas string columns.
+/// Outer iteration over `targets`, inner iteration of `queries`.
+#[pyfunction]
+#[text_signature = "(targets, queries, /)"]
+fn make_distance_array_aligned<'py>(
+    py: Python<'py>,
+    targets: &PyAny,
+    queries: &PyAny,
+) -> PyResult<&'py numpy::PyArray2<f64>> {
+    let is_same = std::ptr::eq(targets, queries);
+    let targets = &Column::new(py, targets)?.strings;
+    if is_same {
+        PyArray2::from_vec2(
+            py,
+            &distance::make_distance_array_aligned(&targets, &targets),
+        )
+    } else {
+        let queries = Column::new(py, queries)?.strings;
+        PyArray2::from_vec2(
+            py,
+            &distance::make_distance_array_aligned(&targets, &queries),
+        )
+    }
+    .map_err(|_| exceptions::PyRuntimeError::new_err("can't convert Vec to numpy array"))
 }
 
 /// A Python module implemented in Rust.
 #[pymodule]
-fn calculate_distances(py: Python, m: &PyModule) -> PyResult<()> {
+fn calculate_distances(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(align_to_str, m)?)?;
     m.add_function(wrap_pyfunction!(make_aligner, m)?)?;
     m.add_function(wrap_pyfunction!(seq_distances, m)?)?;
     m.add_function(wrap_pyfunction!(seq_distances_aligned, m)?)?;
     m.add_function(wrap_pyfunction!(show_alignment, m)?)?;
+    m.add_function(wrap_pyfunction!(make_distance_array, m)?)?;
+    m.add_function(wrap_pyfunction!(make_distance_array_aligned, m)?)?;
 
     Ok(())
 }
