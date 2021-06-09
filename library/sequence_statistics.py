@@ -43,6 +43,29 @@ class OnLength:
         return col.str.len().agg(self.agg)
 
 
+class ContigStat:
+    """
+    ContigStat(i).statN calculates N{i} statistic
+    ContigStat(i).statL calculates L{i} statistic
+    """
+
+    def __init__(self, arg: float):
+        self.arg = arg
+
+    def statN(self, col: pd.Series) -> int:
+        col = col.str.len()
+        total_length = col.sum()
+        col = col.sort_values(ascending=False)
+        i_from_end = len(col.loc[col.cumsum() >= total_length * self.arg])
+        return col.iat[-i_from_end]
+
+    def statL(self, col: pd.Series) -> int:
+        col = col.str.len()
+        total_length = col.sum()
+        col = col.sort_values(ascending=False)
+        return len(col.loc[col.cumsum() < total_length * self.arg]) + 1
+
+
 Agg = Union[str, Callable[[pd.Series], int]]
 
 sequence_statistics: List[Agg] = [
@@ -56,4 +79,8 @@ sequence_statistics: List[Agg] = [
     OnLength("mean").apply,
     OnLength("median").apply,
     OnLength("std").apply,
+    ContigStat(0.5).statN,
+    ContigStat(0.5).statL,
+    ContigStat(0.9).statN,
+    ContigStat(0.9).statL,
 ]
