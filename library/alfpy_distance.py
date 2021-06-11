@@ -7,6 +7,13 @@ import alfpy.bbc as bbc
 from alfpy.utils import seqrecords
 import itertools
 
+distances_short_names = [
+    "p-distance",
+    "JC distance",
+    "K2P distance",
+    "p-distance with gaps",
+]
+
 
 def alfpy_distance_array(sequences: pd.Series) -> np.array:
     seqs = seqrecords.SeqRecords(
@@ -34,9 +41,10 @@ def make_alfpy_distance_table(table: pd.DataFrame) -> pd.DataFrame:
         [table.index, table.index], names=["seqid (query 1)", "seqid (query 2)"]
     )
     # create distance table
-    distance_table = pd.DataFrame(
-        distance_array, index=index, columns=["p-distance"]
-    ).reset_index()
+    distance_data = {
+        distance_name: distance_array for distance_name in distances_short_names
+    }
+    distance_table = pd.DataFrame(distance_data, index=index).reset_index()
     distance_table = distance_table[
         distance_table["seqid (query 1)"] != distance_table["seqid (query 2)"]
     ]
