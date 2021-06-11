@@ -14,6 +14,7 @@ import itertools
 from typing import Union, TextIO, Iterator, Tuple, Any, Dict, Optional
 from library.fasta import Fastafile
 from library.genbank import GenbankFile
+from library.sequence_statistics import sequence_statistics
 
 resource_path = getattr(sys, "_MEIPASS", sys.path[0])
 with open(os.path.join(resource_path, "data", "options.tab")) as options_file:
@@ -302,6 +303,8 @@ class ProgramState:
             ) as alignment_file:
                 print_alignments(table["sequence"], alignment_file)
             self.show_progress("Alignment is printed")
+
+        self.simple_sequence_statistics(table)
 
         distance_table = make_distance_table(table, self.already_aligned.get())
         if self.species_analysis:
@@ -940,6 +943,27 @@ class ProgramState:
                 del table
                 gc.collect()
                 self.show_progress(f"{sequences_num} sequences processed")
+
+    def simple_sequence_statistics(self, table: pd.DataFrame) -> None:
+        table = table.copy()
+        table["sequence"] = table["sequence"].str.replace("-", "")
+
+        total_stats = table["sequence"].agg(sequence_statistics)
+        with open(
+            os.path.join(self.output_dir, "Sequence summary statistics.txt"), mode="w"
+        ) as outfile:
+            for stat_name, stat_value in total_stats.items():
+                print(stat_name, f"{stat_value:.4g}", sep=": ", file=outfile)
+
+            print(file=outfile)
+            if self.species_analysis:
+                species_stats = table.groupby("species")["sequence"].agg(
+                    list(sequence_statistics.values())
+                )
+                species_stats.columns = list(sequence_statistics)
+                species_stats.to_csv(
+                    outfile, sep="\t", line_terminator="\n", float_format="%.4g"
+                )
 
 
 def format_float(x: float) -> str:
