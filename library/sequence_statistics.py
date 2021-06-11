@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from typing import Optional, Callable, Union, List
+from typing import Optional, Callable, Union, Dict
 
 import pandas as pd
 
@@ -80,27 +80,27 @@ class Percentage:
 
 Agg = Union[str, Callable[[pd.Series], int], Callable[[pd.Series], float]]
 
-sequence_statistics: List[Agg] = [
-    "count",
-    LenBetween(max=100).count,
-    LenBetween(min=101, max=300).count,
-    LenBetween(min=301, max=1000).count,
-    LenBetween(min=1001).count,
-    OnLength("min").apply,
-    OnLength("max").apply,
-    OnLength("mean").apply,
-    OnLength("median").apply,
-    OnLength("std").apply,
-    ContigStat(0.5).statN,
-    ContigStat(0.5).statL,
-    ContigStat(0.9).statN,
-    ContigStat(0.9).statL,
-    OnLength("sum").apply,
-    Percentage("[Aa]").count,
-    Percentage("[Cc]").count,
-    Percentage("[Gg]").count,
-    Percentage("[Tt]").count,
-    Percentage("[GCgc]").count,
-    Percentage("[N]").count,
-    Percentage("[RYSWKMryswkm]").count,
-]
+sequence_statistics: Dict[str, Agg] = {
+    "Total number of sequences": "count",
+    "Number of sequences of less than 100 bp": LenBetween(max=100).count,
+    "Number of sequences of 101-300 bp": LenBetween(min=101, max=300).count,
+    "Number of sequences of 301-1000 bp": LenBetween(min=301, max=1000).count,
+    "Number of sequences of greater than 1000 bp": LenBetween(min=1001).count,
+    "Minimum of sequence length": OnLength("min").apply,
+    "Maximum of sequence length": OnLength("max").apply,
+    "Mean of sequence length": OnLength("mean").apply,
+    "Median of sequence length": OnLength("median").apply,
+    "Standard deviation of sequence length": OnLength("std").apply,
+    "N50 statistic": ContigStat(0.5).statN,
+    "L50 statistic": ContigStat(0.5).statL,
+    "N90 statistic": ContigStat(0.9).statN,
+    "L90 statistic": ContigStat(0.9).statL,
+    "Total length of all sequences": OnLength("sum").apply,
+    "Percentage of base A": Percentage("[Aa]").count,
+    "Percentage of base C": Percentage("[Cc]").count,
+    "Percentage of base G": Percentage("[Gg]").count,
+    "Percentage of base T": Percentage("[Tt]").count,
+    "GC content": Percentage("[GCgc]").count,
+    "Percentage of missing data": Percentage("[N]").count,
+    "Percentage of ambiguity codes": Percentage("[RYSWKMryswkm]").count,
+}
