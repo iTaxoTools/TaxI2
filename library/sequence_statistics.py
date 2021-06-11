@@ -101,6 +101,10 @@ sequence_statistics: Dict[str, Agg] = {
     "Percentage of base G": Percentage("[Gg]").count,
     "Percentage of base T": Percentage("[Tt]").count,
     "GC content": Percentage("[GCgc]").count,
-    "Percentage of missing data": Percentage("[N]").count,
     "Percentage of ambiguity codes": Percentage("[RYSWKMryswkm]").count,
+    "Percentage of missing data": Percentage("[Nn?]").count,
+}
+
+sequence_statistics_with_gaps: Dict[str, Agg] = {
+    "Percentage of missing data including gaps": Percentage("[Nn?-]").count
 }
