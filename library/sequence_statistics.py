@@ -66,7 +66,19 @@ class ContigStat:
         return len(col.loc[col.cumsum() < total_length * self.arg]) + 1
 
 
-Agg = Union[str, Callable[[pd.Series], int]]
+class Percentage:
+    """Percentage(regexp).count(col) return the percentage of characters matching regexp in col"""
+
+    def __init__(self, regexp: str):
+        self.regexp = regexp
+
+    def count(self, col: pd.Series) -> float:
+        total_length = col.str.len().sum()
+        matches = col.str.count(self.regexp).sum()
+        return matches / total_length
+
+
+Agg = Union[str, Callable[[pd.Series], int], Callable[[pd.Series], float]]
 
 sequence_statistics: List[Agg] = [
     "count",
@@ -83,4 +95,12 @@ sequence_statistics: List[Agg] = [
     ContigStat(0.5).statL,
     ContigStat(0.9).statN,
     ContigStat(0.9).statL,
+    OnLength("sum").apply,
+    Percentage("[Aa]").count,
+    Percentage("[Cc]").count,
+    Percentage("[Gg]").count,
+    Percentage("[Tt]").count,
+    Percentage("[GCgc]").count,
+    Percentage("[N]").count,
+    Percentage("[RYSWKMryswkm]").count,
 ]
