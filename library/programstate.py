@@ -14,7 +14,10 @@ import itertools
 from typing import Union, TextIO, Iterator, Tuple, Any, Dict, Optional
 from library.fasta import Fastafile
 from library.genbank import GenbankFile
-from library.sequence_statistics import sequence_statistics
+from library.sequence_statistics import (
+    sequence_statistics,
+    sequence_statistics_with_gaps,
+)
 
 resource_path = getattr(sys, "_MEIPASS", sys.path[0])
 with open(os.path.join(resource_path, "data", "options.tab")) as options_file:
@@ -945,22 +948,28 @@ class ProgramState:
                 self.show_progress(f"{sequences_num} sequences processed")
 
     def simple_sequence_statistics(self, table: pd.DataFrame) -> None:
-        table = table.copy()
-        table["sequence"] = table["sequence"].str.replace("-", "")
+        table_no_dashes = table.copy()
+        table_no_dashes["sequence"] = table_no_dashes["sequence"].str.replace("-", "")
 
-        total_stats = table["sequence"].agg(sequence_statistics)
+        total_stats = table_no_dashes["sequence"].agg(sequence_statistics)
+        total_stats_with_gaps = table["sequence"].agg(sequence_statistics_with_gaps)
         with open(
             os.path.join(self.output_dir, "Sequence summary statistics.txt"), mode="w"
         ) as outfile:
             for stat_name, stat_value in total_stats.items():
                 print(stat_name, f"{stat_value:.4g}", sep=": ", file=outfile)
+            for stat_name, stat_value in total_stats_with_gaps.items():
+                print(stat_name, f"{stat_value:.4g}", sep=": ", file=outfile)
 
             print(file=outfile)
             if self.species_analysis:
-                species_stats = table.groupby("species")["sequence"].agg(
+                species_stats = table_no_dashes.groupby("species")["sequence"].agg(
                     list(sequence_statistics.values())
                 )
                 species_stats.columns = list(sequence_statistics)
+                species_stats[list(sequence_statistics_with_gaps)] = table.groupby(
+                    "species"
+                )["sequence"].agg(list(sequence_statistics_with_gaps.values()))
                 species_stats.to_csv(
                     outfile, sep="\t", line_terminator="\n", float_format="%.4g"
                 )
