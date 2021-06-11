@@ -194,6 +194,19 @@ class TaxiGUI(ttk.Frame):
                         "Warning",
                         'You have selected the "All against all sequence comparison" mode. A reference database is not needed in this mode and the selected reference database file will be ignored.',
                     )
+                if self.programstate.alignment_free.get():
+                    chosen_distances = list(
+                        map(tk.BooleanVar.get, self.programstate.distance_options)
+                    )
+                    only_supported_distance = (
+                        chosen_distances[0] and chosen_distances.count(True) == 1
+                    )
+                    if not only_supported_distance:
+                        tkmessagebox.showerror(
+                            "Error",
+                            "Only pairwise uncorrelated distance is supported for alignment-free distance calculation",
+                        )
+                        return
                 output_dir = self.preview_dir
                 self.programstate.process(input_file)
                 plot_input = os.path.join(
