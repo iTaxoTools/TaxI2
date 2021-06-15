@@ -194,6 +194,19 @@ class TaxiGUI(ttk.Frame):
                         "Warning",
                         'You have selected the "All against all sequence comparison" mode. A reference database is not needed in this mode and the selected reference database file will be ignored.',
                     )
+                if self.programstate.alignment_free.get():
+                    chosen_distances = list(
+                        map(tk.BooleanVar.get, self.programstate.distance_options)
+                    )
+                    only_supported_distance = (
+                        chosen_distances[0] and chosen_distances.count(True) == 1
+                    )
+                    if not only_supported_distance:
+                        tkmessagebox.showerror(
+                            "Error",
+                            "Only pairwise uncorrelated distance is supported for alignment-free distance calculation",
+                        )
+                        return
                 output_dir = self.preview_dir
                 self.programstate.process(input_file)
                 plot_input = os.path.join(
@@ -237,7 +250,7 @@ class TaxiGUI(ttk.Frame):
     def create_parameters_frame(self) -> None:
         parameters_frame = ttk.LabelFrame(self, text="Parameters")
         self.panes.add(parameters_frame, weight=0)
-        parameters_frame.rowconfigure(9, weight=1)
+        parameters_frame.rowconfigure(11, weight=1)
         parameters_frame.columnconfigure(0, weight=1)
 
         ttk.Label(parameters_frame, text="Input file format").grid(
@@ -272,23 +285,28 @@ class TaxiGUI(ttk.Frame):
         ).grid(row=3, column=0, sticky="w")
         ttk.Checkbutton(
             parameters_frame,
+            variable=self.programstate.alignment_free,
+            text="Alignment-free distance calculation",
+        ).grid(row=4, column=0, sticky="w")
+        ttk.Checkbutton(
+            parameters_frame,
             variable=self.programstate.print_alignments,
             text="Print alignments",
-        ).grid(row=4, column=0, sticky="w")
+        ).grid(row=5, column=0, sticky="w")
 
         ttk.Checkbutton(
             parameters_frame,
             variable=self.programstate.intra_species_lineages,
             text="Include 'intraspecific lineage' category",
-        ).grid(row=5, column=0, sticky="w")
+        ).grid(row=6, column=0, sticky="w")
 
         ttk.Checkbutton(
             parameters_frame,
             variable=self.programstate.perform_clustering,
             text="Perform clustering",
-        ).grid(row=6, column=0, sticky="w")
+        ).grid(row=7, column=0, sticky="w")
         ttk.Label(parameters_frame, text="Clustering by:").grid(
-            row=7, column=0, sticky="w"
+            row=8, column=0, sticky="w"
         )
 
         ttk.Combobox(
@@ -297,10 +315,10 @@ class TaxiGUI(ttk.Frame):
             state="readonly",
             values=list(distances_names),
             width=30,
-        ).grid(row=8, column=0, sticky="w")
+        ).grid(row=9, column=0, sticky="w")
 
         cluster_size_frame = ttk.Frame(parameters_frame)
-        cluster_size_frame.grid(row=9, column=0, sticky="w")
+        cluster_size_frame.grid(row=10, column=0, sticky="w")
 
         ttk.Label(
             cluster_size_frame, text="with distance threshold \n(between 0 and 1)"

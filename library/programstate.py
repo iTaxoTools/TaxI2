@@ -18,6 +18,7 @@ from library.sequence_statistics import (
     sequence_statistics,
     sequence_statistics_with_gaps,
 )
+from library.alfpy_distance import make_alfpy_distance_table, make_alfpy_distance_table2
 
 resource_path = getattr(sys, "_MEIPASS", sys.path[0])
 with open(os.path.join(resource_path, "data", "options.tab")) as options_file:
@@ -250,6 +251,7 @@ class ProgramState:
         self.root = root
         self.input_format_name = tk.StringVar(root, value="Tabfile")
         self.already_aligned = tk.BooleanVar(root, value=False)
+        self.alignment_free = tk.BooleanVar(root, value=False)
         self.distance_options = tuple(
             tk.BooleanVar(root, value=False) for _ in range(NDISTANCES)
         )
@@ -309,7 +311,11 @@ class ProgramState:
 
         self.simple_sequence_statistics(table)
 
-        distance_table = make_distance_table(table, self.already_aligned.get())
+        if not self.alignment_free.get():
+            distance_table = make_distance_table(table, self.already_aligned.get())
+        else:
+            distance_table = make_alfpy_distance_table(table)
+
         if self.species_analysis:
             species_table = pd.DataFrame(table["species"])
         else:
@@ -912,9 +918,12 @@ class ProgramState:
                 table.set_index("seqid", inplace=True)
                 if not self.already_aligned.get():
                     table["sequence"] = normalize_sequences(table["sequence"])
-                distance_table = make_distance_table2(
-                    table, reference_table, self.already_aligned.get()
-                )
+                if not self.alignment_free.get():
+                    distance_table = make_distance_table2(
+                        table, reference_table, self.already_aligned.get()
+                    )
+                else:
+                    distance_table = make_alfpy_distance_table2(table, reference_table)
                 pdistance_name = distances_short_names[PDISTANCE]
                 indices_closest = (
                     distance_table[["seqid (query 1)", pdistance_name]]
