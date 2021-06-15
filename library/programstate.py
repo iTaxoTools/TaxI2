@@ -14,51 +14,75 @@ import itertools
 from typing import Union, TextIO, Iterator, Tuple, Any, Dict, Optional
 from library.fasta import Fastafile
 from library.genbank import GenbankFile
+from library.sequence_statistics import (
+    sequence_statistics,
+    sequence_statistics_with_gaps,
+)
 
-resource_path = getattr(sys, '_MEIPASS', sys.path[0])
-with open(os.path.join(resource_path, 'data', 'options.tab')) as options_file:
-    option, _, val = options_file.readline().rstrip().partition('\t')
+resource_path = getattr(sys, "_MEIPASS", sys.path[0])
+with open(os.path.join(resource_path, "data", "options.tab")) as options_file:
+    option, _, val = options_file.readline().rstrip().partition("\t")
     if option == "distance_calculation":
         if val not in {"Rust", "Python"}:
             raise ValueError(
-                'distance_calculation value in data/options.tab should be either "Rust" or "Python"')
+                'distance_calculation value in data/options.tab should be either "Rust" or "Python"'
+            )
         BACKEND = val
     else:
-        raise ValueError(
-            "distance_calculation value is missing in data/options.tab")
+        raise ValueError("distance_calculation value is missing in data/options.tab")
 if BACKEND == "Python":
-    from library.python_backend import make_distance_table, make_distance_table2, make_aligner, PDISTANCE, NDISTANCES, distances_short_names, show_alignment
+    from library.python_backend import (
+        make_distance_table,
+        make_distance_table2,
+        make_aligner,
+        PDISTANCE,
+        NDISTANCES,
+        distances_short_names,
+        show_alignment,
+    )
 elif BACKEND == "Rust":
-    from library.rust_backend import make_distance_table, make_distance_table2, make_aligner, PDISTANCE, NDISTANCES, distances_short_names, show_alignment
+    from library.rust_backend import (
+        make_distance_table,
+        make_distance_table2,
+        make_aligner,
+        PDISTANCE,
+        NDISTANCES,
+        distances_short_names,
+        show_alignment,
+    )
 else:
     raise RuntimeError("Unexpected BACKEND")
 
 
-distances_names = ["pairwise uncorrected distance", "Jukes-Cantor distance",
-                   "Kimura-2-Parameter distance", "pairwise uncorrected distance counting gaps"]
+distances_names = [
+    "pairwise uncorrected distance",
+    "Jukes-Cantor distance",
+    "Kimura-2-Parameter distance",
+    "pairwise uncorrected distance counting gaps",
+]
 
-class FileFormat():
+
+class FileFormat:
     """
     Interface for file formats supported by the program
     """
 
     rename_dict = {
-            'organism': 'species',
-            'specimen_identifier': 'specimen_voucher',
-            'specimen identifier': 'specimen_voucher',
-            'specimen voucher': 'specimen_voucher'
-            }
+        "organism": "species",
+        "specimen_identifier": "specimen_voucher",
+        "specimen identifier": "specimen_voucher",
+        "specimen voucher": "specimen_voucher",
+    }
 
     chunk_size = 100
 
     def load_table(self, filepath_or_buffer: Union[str, TextIO]) -> pd.DataFrame:
         raise NotImplementedError
 
-
     @staticmethod
     def rename_columns(name: str) -> str:
         regex = "([a-zA-Z0-9_-]+)"
-        name = ''.join(re.findall(regex, name))
+        name = "".join(re.findall(regex, name))
         if "sequence" in name:
             return "sequence"
         else:
@@ -67,8 +91,11 @@ class FileFormat():
             except KeyError:
                 return name
 
-    def load_chunks(self, filepath_or_buffer: Union[str, TextIO]) -> Iterator[pd.DataFrame]:
+    def load_chunks(
+        self, filepath_or_buffer: Union[str, TextIO]
+    ) -> Iterator[pd.DataFrame]:
         raise NotImplementedError
+
 
 class TabFormat(FileFormat):
     """
@@ -76,26 +103,35 @@ class TabFormat(FileFormat):
     """
 
     def load_table(self, filepath_or_buffer: Union[str, TextIO]) -> pd.DataFrame:
-        with open(filepath_or_buffer, errors='replace') as infile:
-            return self.process_table(pd.read_csv(infile, sep='\t', dtype=str))
+        with open(filepath_or_buffer, errors="replace") as infile:
+            return self.process_table(pd.read_csv(infile, sep="\t", dtype=str))
 
     @staticmethod
     def process_table(table: pd.DataFrame) -> pd.DataFrame:
         try:
-            table = table.rename(
-                    columns=str.casefold).rename(columns=FileFormat.rename_columns)
-            if 'subspecies' in table.columns:
-                return table[['seqid', 'specimen_voucher', 'species', 'subspecies', 'sequence']].drop_duplicates()
-            else :
-                return table[['seqid', 'specimen_voucher', 'species', 'sequence']].drop_duplicates()
+            table = table.rename(columns=str.casefold).rename(
+                columns=FileFormat.rename_columns
+            )
+            if "subspecies" in table.columns:
+                return table[
+                    ["seqid", "specimen_voucher", "species", "subspecies", "sequence"]
+                ].drop_duplicates()
+            else:
+                return table[
+                    ["seqid", "specimen_voucher", "species", "sequence"]
+                ].drop_duplicates()
         except KeyError as ex:
             raise ValueError(
-                "'seqid', 'specimen_voucher', 'species' or 'organism', or 'sequence' column is missing") from ex
+                "'seqid', 'specimen_voucher', 'species' or 'organism', or 'sequence' column is missing"
+            ) from ex
 
-
-    def load_chunks(self, filepath_or_buffer: Union[str, TextIO]) -> Iterator[pd.DataFrame]:
-        with open(filepath_or_buffer, errors='replace') as infile:
-            tables = pd.read_csv(infile, sep='\t', dtype=str, chunksize=FileFormat.chunk_size)
+    def load_chunks(
+        self, filepath_or_buffer: Union[str, TextIO]
+    ) -> Iterator[pd.DataFrame]:
+        with open(filepath_or_buffer, errors="replace") as infile:
+            tables = pd.read_csv(
+                infile, sep="\t", dtype=str, chunksize=FileFormat.chunk_size
+            )
             for table in tables:
                 yield self.process_table(table)
 
@@ -107,18 +143,23 @@ class FastaFormat(FileFormat):
 
     def load_table(self, filepath_or_buffer: Union[str, TextIO]) -> pd.DataFrame:
         if isinstance(filepath_or_buffer, str):
-            with open(filepath_or_buffer, errors='replace') as infile:
+            with open(filepath_or_buffer, errors="replace") as infile:
                 return self._load_table(infile)
         else:
             return self._load_table(filepath_or_buffer)
 
     def _load_table(self, file: TextIO) -> pd.DataFrame:
         _, records = Fastafile.read(file)
-        return pd.DataFrame(([record['seqid'], record['sequence']] for record in records()), columns=['seqid', 'sequence']).drop_duplicates(subset='seqid')
+        return pd.DataFrame(
+            ([record["seqid"], record["sequence"]] for record in records()),
+            columns=["seqid", "sequence"],
+        ).drop_duplicates(subset="seqid")
 
-    def load_chunks(self, filepath_or_buffer: Union[str, TextIO]) -> Iterator[pd.DataFrame]:
+    def load_chunks(
+        self, filepath_or_buffer: Union[str, TextIO]
+    ) -> Iterator[pd.DataFrame]:
         if isinstance(filepath_or_buffer, str):
-            with open(filepath_or_buffer, errors='replace') as infile:
+            with open(filepath_or_buffer, errors="replace") as infile:
                 for chunk in self._load_chunks(infile):
                     yield chunk
         else:
@@ -130,12 +171,13 @@ class FastaFormat(FileFormat):
         records = records_gen()
         while True:
             chunk = itertools.islice(records, FileFormat.chunk_size)
-            table = pd.DataFrame(([record['seqid'], record['sequence']] for record in chunk), columns=['seqid', 'sequence'])
+            table = pd.DataFrame(
+                ([record["seqid"], record["sequence"]] for record in chunk),
+                columns=["seqid", "sequence"],
+            )
             if len(table) == 0:
                 break
-            yield table.drop_duplicates(subset='seqid').copy()
-
-
+            yield table.drop_duplicates(subset="seqid").copy()
 
 
 class GenbankFormat(FileFormat):
@@ -145,7 +187,7 @@ class GenbankFormat(FileFormat):
 
     def load_table(self, filepath_or_buffer: Union[str, TextIO]) -> pd.DataFrame:
         if isinstance(filepath_or_buffer, str):
-            with open(filepath_or_buffer, errors='replace') as infile:
+            with open(filepath_or_buffer, errors="replace") as infile:
                 return self._load_table(infile)
         else:
             return self._load_table(filepath_or_buffer)
@@ -153,9 +195,17 @@ class GenbankFormat(FileFormat):
     def _load_table(self, file: TextIO) -> pd.DataFrame:
         _, records = GenbankFile.read(file)
         try:
-            return pd.DataFrame((record._fields for record in records())).rename(columns=str.casefold).rename(columns=FileFormat.rename_columns)[['seqid', 'specimen_voucher', 'species', 'sequence']].drop_duplicates()
+            return (
+                pd.DataFrame((record._fields for record in records()))
+                .rename(columns=str.casefold)
+                .rename(columns=FileFormat.rename_columns)[
+                    ["seqid", "specimen_voucher", "species", "sequence"]
+                ]
+                .drop_duplicates()
+            )
         except KeyError as ex:
             raise ValueError(f"{str(ex)} is missing") from ex
+
 
 class XLSXFormat(FileFormat):
     """
@@ -163,26 +213,29 @@ class XLSXFormat(FileFormat):
     """
 
     def load_table(self, filepath: str) -> pd.DataFrame:
-        return self.process_table(pd.read_excel(filepath, dtype=str, engine='openpyxl'))
+        return self.process_table(pd.read_excel(filepath, dtype=str, engine="openpyxl"))
 
     @staticmethod
     def process_table(table: pd.DataFrame) -> pd.DataFrame:
         try:
-            table = table.rename(
-                    columns=str.casefold).rename(columns=FileFormat.rename_columns)
-            if 'subspecies' in table.columns:
-                return table[['seqid', 'specimen_voucher', 'species', 'subspecies', 'sequence']].drop_duplicates()
-            else :
-                return table[['seqid', 'specimen_voucher', 'species', 'sequence']].drop_duplicates()
+            table = table.rename(columns=str.casefold).rename(
+                columns=FileFormat.rename_columns
+            )
+            if "subspecies" in table.columns:
+                return table[
+                    ["seqid", "specimen_voucher", "species", "subspecies", "sequence"]
+                ].drop_duplicates()
+            else:
+                return table[
+                    ["seqid", "specimen_voucher", "species", "sequence"]
+                ].drop_duplicates()
         except KeyError as ex:
             raise ValueError(
-                "'seqid', 'specimen_voucher', 'species' or 'organism', or 'sequence' column is missing") from ex
+                "'seqid', 'specimen_voucher', 'species' or 'organism', or 'sequence' column is missing"
+            ) from ex
 
 
-
-
-
-class ProgramState():
+class ProgramState:
     """
     Encapsulates the state of TaxI2
     """
@@ -190,25 +243,23 @@ class ProgramState():
     SUMMARY_STATISTICS_NAME = "Summary_statistics.txt"
 
     formats = dict(
-        Tabfile=TabFormat,
-        Fasta=FastaFormat,
-        Genbank=GenbankFormat,
-        XLSX=XLSXFormat
+        Tabfile=TabFormat, Fasta=FastaFormat, Genbank=GenbankFormat, XLSX=XLSXFormat
     )
 
     def __init__(self, root: tk.Misc, output_dir: str) -> None:
         self.root = root
         self.input_format_name = tk.StringVar(root, value="Tabfile")
         self.already_aligned = tk.BooleanVar(root, value=False)
-        self.distance_options = tuple(tk.BooleanVar(root, value=False)
-                                      for _ in range(NDISTANCES))
+        self.distance_options = tuple(
+            tk.BooleanVar(root, value=False) for _ in range(NDISTANCES)
+        )
         self.distance_options[PDISTANCE].set(True)
         self.reference_comparison = tk.BooleanVar(root, value=True)
         self.print_alignments = tk.BooleanVar(root, value=False)
         self.intra_species_lineages = tk.BooleanVar(root, value=False)
         self.perform_clustering = tk.BooleanVar(root, value=False)
         self.cluster_distance = tk.StringVar(root, value=distances_names[PDISTANCE])
-        self.cluster_size = tk.StringVar(root, value='0.05')
+        self.cluster_size = tk.StringVar(root, value="0.05")
         self.output_dir = output_dir
 
     def show_progress(self, message: str) -> None:
@@ -225,37 +276,40 @@ class ProgramState():
 
     def output(self, description: str, table: pd.DataFrame, **kwargs) -> None:
         out_name = self.output_name(description)
-        with open(out_name, mode='w') as outfile:
+        with open(out_name, mode="w") as outfile:
             print(description, file=outfile)
             table.to_csv(
-                outfile, sep='\t', line_terminator='\n', float_format="%.4g", **kwargs)
+                outfile, sep="\t", line_terminator="\n", float_format="%.4g", **kwargs
+            )
 
     def process(self, input_file: str) -> None:
         self.start_time = time.monotonic()
         if self.input_format_name.get() == "Genbank" and self.already_aligned.get():
             raise ValueError(
-                "'Already aligned' option is not allowed for the Genbank format.")
+                "'Already aligned' option is not allowed for the Genbank format."
+            )
         try:
             table = self.input_format.load_table(input_file)
         except ImportError:
             raise
         self.species_analysis = "species" in table.columns
-        self.subspecies_analysis = ("subspecies" in table.columns) and self.intra_species_lineages.get()
+        self.subspecies_analysis = (
+            "subspecies" in table.columns
+        ) and self.intra_species_lineages.get()
         table.set_index("seqid", inplace=True)
         if not self.already_aligned.get():
             table["sequence"] = normalize_sequences(table["sequence"])
 
-        if self.reference_comparison.get():
-            self.reference_comparison_process(table, reference_file)
-            return
-
         if self.print_alignments.get():
-            with open(os.path.join(self.output_dir, "taxi2_alignments.txt"), "w") as alignment_file:
+            with open(
+                os.path.join(self.output_dir, "taxi2_alignments.txt"), "w"
+            ) as alignment_file:
                 print_alignments(table["sequence"], alignment_file)
             self.show_progress("Alignment is printed")
 
-        distance_table = make_distance_table(
-            table, self.already_aligned.get())
+        self.simple_sequence_statistics(table)
+
+        distance_table = make_distance_table(table, self.already_aligned.get())
         if self.species_analysis:
             species_table = pd.DataFrame(table["species"])
         else:
@@ -268,117 +322,285 @@ class ProgramState():
         self.show_progress("Table of closest sequence")
 
         # The matrix of distances between seqids (input order)
-        for kind in (kind for kind in range(NDISTANCES) if self.distance_options[kind].get()):
+        for kind in (
+            kind for kind in range(NDISTANCES) if self.distance_options[kind].get()
+        ):
             kind_name = distances_short_names[kind]
-            out_table = distance_table[["seqid (query 1)", "seqid (query 2)", kind_name]].set_index(["seqid (query 1)", "seqid (query 2)"]).squeeze().unstack()
-            out_table.columns.names = [''] * len(out_table.columns.names)
-            self.output(f"{distances_names[kind]} between sequences", out_table, index_label=False)
+            out_table = (
+                distance_table[["seqid (query 1)", "seqid (query 2)", kind_name]]
+                .set_index(["seqid (query 1)", "seqid (query 2)"])
+                .squeeze()
+                .unstack()
+            )
+            out_table.columns.names = [""] * len(out_table.columns.names)
+            self.output(
+                f"{distances_names[kind]} between sequences",
+                out_table,
+                index_label=False,
+            )
             del out_table
 
         self.show_progress("Seqid distance table 1")
 
         # The matrix of distances between seqids (alphabetical order)
-        for kind in (kind for kind in range(NDISTANCES) if self.distance_options[kind].get()):
+        for kind in (
+            kind for kind in range(NDISTANCES) if self.distance_options[kind].get()
+        ):
             kind_name = distances_short_names[kind]
-            out_table = distance_table[["seqid (query 1)", "seqid (query 2)", kind_name]].set_index(["seqid (query 1)", "seqid (query 2)"]).squeeze().unstack().sort_index().sort_index(axis=1)
-            out_table.columns.names = [''] * len(out_table.columns.names)
-            self.output(f"{distances_names[kind]} between sequences (Alphabetical order)", out_table, index_label=False)
+            out_table = (
+                distance_table[["seqid (query 1)", "seqid (query 2)", kind_name]]
+                .set_index(["seqid (query 1)", "seqid (query 2)"])
+                .squeeze()
+                .unstack()
+                .sort_index()
+                .sort_index(axis=1)
+            )
+            out_table.columns.names = [""] * len(out_table.columns.names)
+            self.output(
+                f"{distances_names[kind]} between sequences (Alphabetical order)",
+                out_table,
+                index_label=False,
+            )
             del out_table
 
         self.show_progress("Seqid distance table 2")
 
         # clustering
         if self.perform_clustering.get():
-            self.cluster_analysis(distance_table, species_table, os.path.basename(input_file))
+            self.cluster_analysis(
+                distance_table, species_table, os.path.basename(input_file)
+            )
             self.show_progress("Cluster analysis")
 
         if self.species_analysis:
             # The matrix of distances between seqids (order by species)
-            for kind in (kind for kind in range(NDISTANCES) if self.distance_options[kind].get()):
+            for kind in (
+                kind for kind in range(NDISTANCES) if self.distance_options[kind].get()
+            ):
                 kind_name = distances_short_names[kind]
-                out_table = pd.Series(distance_table[kind_name].array, index=pd.MultiIndex.from_frame(distance_table[["species (query 1)", "species (query 2)", "seqid (query 1)", "seqid (query 2)"]])).squeeze().unstack(level=["species (query 2)", "seqid (query 2)"]).sort_index().sort_index(axis=1)
-                out_table.columns.names = [''] * len(out_table.columns.names)
-                self.output(f"{distances_names[kind]} between sequences (Ordered by species)", out_table, index_label=False)
+                out_table = (
+                    pd.Series(
+                        distance_table[kind_name].array,
+                        index=pd.MultiIndex.from_frame(
+                            distance_table[
+                                [
+                                    "species (query 1)",
+                                    "species (query 2)",
+                                    "seqid (query 1)",
+                                    "seqid (query 2)",
+                                ]
+                            ]
+                        ),
+                    )
+                    .squeeze()
+                    .unstack(level=["species (query 2)", "seqid (query 2)"])
+                    .sort_index()
+                    .sort_index(axis=1)
+                )
+                out_table.columns.names = [""] * len(out_table.columns.names)
+                self.output(
+                    f"{distances_names[kind]} between sequences (Ordered by species)",
+                    out_table,
+                    index_label=False,
+                )
                 del out_table
             self.show_progress("Seqid distance table 3")
 
-            genus1 = distance_table["species (query 1)"].str.split(pat=r' |_', n=1, expand=True).iloc[:,0]
+            genus1 = (
+                distance_table["species (query 1)"]
+                .str.split(pat=r" |_", n=1, expand=True)
+                .iloc[:, 0]
+            )
             species1_index = distance_table.columns.get_loc("species (query 1)")
-            distance_table.insert(loc=species1_index, column="genus (query 1)", value=genus1)
+            distance_table.insert(
+                loc=species1_index, column="genus (query 1)", value=genus1
+            )
 
-            genus2 = distance_table["species (query 2)"].str.split(pat=r' |_', n=1, expand=True).iloc[:,0]
+            genus2 = (
+                distance_table["species (query 2)"]
+                .str.split(pat=r" |_", n=1, expand=True)
+                .iloc[:, 0]
+            )
             species2_index = distance_table.columns.get_loc("species (query 2)")
-            distance_table.insert(loc=species2_index, column="genus (query 2)", value=genus2)
+            distance_table.insert(
+                loc=species2_index, column="genus (query 2)", value=genus2
+            )
 
             # The matrices of distances between species
-            for kind in (kind for kind in range(NDISTANCES) if self.distance_options[kind].get()):
+            for kind in (
+                kind for kind in range(NDISTANCES) if self.distance_options[kind].get()
+            ):
                 self.show_progress(distances_names[kind])
                 kind_name = distances_short_names[kind]
-                species_statistics = distance_table[
-                        ["species (query 1)", "species (query 2)", "genus (query 1)", "genus (query 2)", kind_name]
-                        ].groupby(
-                                ["species (query 1)", "species (query 2)"]
-                                ).agg(
-                                        genus_1 = pd.NamedAgg(column="genus (query 1)", aggfunc="first"),
-                                        genus_2 = pd.NamedAgg(column="genus (query 2)", aggfunc="first"),
-                                        min=pd.NamedAgg(column=kind_name, aggfunc='min'),
-                                        mean=pd.NamedAgg(column=kind_name, aggfunc='mean'),
-                                        max=pd.NamedAgg(column=kind_name, aggfunc='max'))
-                species_statistics['minmax'] = species_statistics['min'].apply(format_float).str.cat(species_statistics['max'].apply(format_float), sep='-')
-                species_statistics['mean_minmax'] = species_statistics['mean'].apply(format_float).str.cat(species_statistics['minmax'] + ")", sep=' (')
+                species_statistics = (
+                    distance_table[
+                        [
+                            "species (query 1)",
+                            "species (query 2)",
+                            "genus (query 1)",
+                            "genus (query 2)",
+                            kind_name,
+                        ]
+                    ]
+                    .groupby(["species (query 1)", "species (query 2)"])
+                    .agg(
+                        genus_1=pd.NamedAgg(column="genus (query 1)", aggfunc="first"),
+                        genus_2=pd.NamedAgg(column="genus (query 2)", aggfunc="first"),
+                        min=pd.NamedAgg(column=kind_name, aggfunc="min"),
+                        mean=pd.NamedAgg(column=kind_name, aggfunc="mean"),
+                        max=pd.NamedAgg(column=kind_name, aggfunc="max"),
+                    )
+                )
+                species_statistics["minmax"] = (
+                    species_statistics["min"]
+                    .apply(format_float)
+                    .str.cat(species_statistics["max"].apply(format_float), sep="-")
+                )
+                species_statistics["mean_minmax"] = (
+                    species_statistics["mean"]
+                    .apply(format_float)
+                    .str.cat(species_statistics["minmax"] + ")", sep=" (")
+                )
 
-                square_species_statistics = species_statistics.unstack("species (query 2)")
+                square_species_statistics = species_statistics.unstack(
+                    "species (query 2)"
+                )
 
-                self.output(f"Mean {distances_names[kind]} between species", square_species_statistics['mean'], index_label=False)
+                self.output(
+                    f"Mean {distances_names[kind]} between species",
+                    square_species_statistics["mean"],
+                    index_label=False,
+                )
                 self.show_progress("Mean distance between species")
 
                 self.output(
-                    f"Minimum and maximum {distances_names[kind]} between species", square_species_statistics['minmax'], index_label=False)
+                    f"Minimum and maximum {distances_names[kind]} between species",
+                    square_species_statistics["minmax"],
+                    index_label=False,
+                )
                 self.show_progress("Minimum and maximum distance between species")
 
-                self.output(f"Mean, minimum and maximum {distances_names[kind]} between species", square_species_statistics['mean_minmax'], index_label=False)
+                self.output(
+                    f"Mean, minimum and maximum {distances_names[kind]} between species",
+                    square_species_statistics["mean_minmax"],
+                    index_label=False,
+                )
                 self.show_progress("Mean, minimum and maximum distance between species")
 
                 del square_species_statistics
 
-                with open(self.output_name(f"Mean, minimum and maximum intra-species {distances_names[kind]}"), mode='w') as outfile:
+                with open(
+                    self.output_name(
+                        f"Mean, minimum and maximum intra-species {distances_names[kind]}"
+                    ),
+                    mode="w",
+                ) as outfile:
                     print(
-                        f"Mean, minimum and maximum intra-species {distances_names[kind]}", file=outfile)
+                        f"Mean, minimum and maximum intra-species {distances_names[kind]}",
+                        file=outfile,
+                    )
                     species_statistics.reset_index(inplace=True)
-                    species_statistics.loc[species_statistics["species (query 1)"] == species_statistics["species (query 2)"]].to_csv(outfile, sep="\t", columns=["species (query 1)", "mean_minmax"], header=False, index=False, line_terminator="\n")
-                    outfile.write('\n')
+                    species_statistics.loc[
+                        species_statistics["species (query 1)"]
+                        == species_statistics["species (query 2)"]
+                    ].to_csv(
+                        outfile,
+                        sep="\t",
+                        columns=["species (query 1)", "mean_minmax"],
+                        header=False,
+                        index=False,
+                        line_terminator="\n",
+                    )
+                    outfile.write("\n")
                 self.show_progress("Mean, minimum and maximum intra-species distance")
 
-                closest_sequence_indices = distance_table.loc[distance_table["species (query 1)"] != distance_table["species (query 2)"], ["species (query 1)", kind_name]].groupby("species (query 1)").idxmin()[kind_name].dropna()
-                closest_sequences = distance_table.loc[closest_sequence_indices, ["species (query 1)", kind_name, "seqid (query 2)"]]
+                closest_sequence_indices = (
+                    distance_table.loc[
+                        distance_table["species (query 1)"]
+                        != distance_table["species (query 2)"],
+                        ["species (query 1)", kind_name],
+                    ]
+                    .groupby("species (query 1)")
+                    .idxmin()[kind_name]
+                    .dropna()
+                )
+                closest_sequences = distance_table.loc[
+                    closest_sequence_indices,
+                    ["species (query 1)", kind_name, "seqid (query 2)"],
+                ]
 
-                with open(self.output_name(f"Closest sequence from different species with {distances_names[kind]}"), mode='w') as outfile:
+                with open(
+                    self.output_name(
+                        f"Closest sequence from different species with {distances_names[kind]}"
+                    ),
+                    mode="w",
+                ) as outfile:
                     print(
-                        f"Closest sequence from different species with {distances_names[kind]}", file=outfile)
+                        f"Closest sequence from different species with {distances_names[kind]}",
+                        file=outfile,
+                    )
                     print(
-                        "species\tdistance (closest sequence of different species)\tseqid (closest sequence of different species)", file=outfile)
-                    closest_sequences.to_csv(outfile, sep='\t', float_format='%.4g', header=False, index=False, line_terminator='\n')
-                    outfile.write('\n')
+                        "species\tdistance (closest sequence of different species)\tseqid (closest sequence of different species)",
+                        file=outfile,
+                    )
+                    closest_sequences.to_csv(
+                        outfile,
+                        sep="\t",
+                        float_format="%.4g",
+                        header=False,
+                        index=False,
+                        line_terminator="\n",
+                    )
+                    outfile.write("\n")
 
                 del closest_sequences
                 del closest_sequence_indices
 
                 self.show_progress("Closest sequences")
 
-                genera_statistics = species_statistics.groupby(["genus_1", "genus_2"]).agg({'min': 'min', 'mean': 'mean', 'max': 'max'})
-                genera_mean_minmax = genera_statistics["mean"].map(format_float) + " (" + genera_statistics["min"].map(format_float) + "-" + genera_statistics["max"].map(format_float) + ")"
+                genera_statistics = species_statistics.groupby(
+                    ["genus_1", "genus_2"]
+                ).agg({"min": "min", "mean": "mean", "max": "max"})
+                genera_mean_minmax = (
+                    genera_statistics["mean"].map(format_float)
+                    + " ("
+                    + genera_statistics["min"].map(format_float)
+                    + "-"
+                    + genera_statistics["max"].map(format_float)
+                    + ")"
+                )
 
-                self.output(f"Mean, minimum and maximum {distances_names[kind]} between genera", genera_mean_minmax.unstack(), index_label=False)
+                self.output(
+                    f"Mean, minimum and maximum {distances_names[kind]} between genera",
+                    genera_mean_minmax.unstack(),
+                    index_label=False,
+                )
                 self.show_progress("Mean, minimum and maximum distances between genera")
 
                 genera_mean_minmax = genera_mean_minmax.reset_index(name="mean_minmax")
-                intra_genus = genera_mean_minmax.loc[genera_mean_minmax["genus_1"] == genera_mean_minmax["genus_2"], ["genus_1", "mean_minmax"]]
+                intra_genus = genera_mean_minmax.loc[
+                    genera_mean_minmax["genus_1"] == genera_mean_minmax["genus_2"],
+                    ["genus_1", "mean_minmax"],
+                ]
 
-                with open(self.output_name(f"Mean, minimum and maximum intra-genus {distances_names[kind]}"), mode='w') as outfile:
+                with open(
+                    self.output_name(
+                        f"Mean, minimum and maximum intra-genus {distances_names[kind]}"
+                    ),
+                    mode="w",
+                ) as outfile:
                     print(
-                        f"Mean, minimum and maximum intra-genus {distances_names[kind]}", file=outfile)
-                    intra_genus.to_csv(outfile, sep="\t", header=False, index=False, line_terminator="\n")
-                    outfile.write('\n')
+                        f"Mean, minimum and maximum intra-genus {distances_names[kind]}",
+                        file=outfile,
+                    )
+                    intra_genus.to_csv(
+                        outfile,
+                        sep="\t",
+                        header=False,
+                        index=False,
+                        line_terminator="\n",
+                    )
+                    outfile.write("\n")
                 self.show_progress("Mean, minimum and maximum intra-genus distance")
 
                 del species_statistics
@@ -386,25 +608,37 @@ class ProgramState():
                 del genera_mean_minmax
                 del intra_genus
 
-
-            same_species = (distance_table['species (query 1)'] == distance_table['species (query 2)']).astype('int8')
-            same_genus = (distance_table['genus (query 1)'] == distance_table['genus (query 2)']).astype('int8')
+            same_species = (
+                distance_table["species (query 1)"]
+                == distance_table["species (query 2)"]
+            ).astype("int8")
+            same_genus = (
+                distance_table["genus (query 1)"] == distance_table["genus (query 2)"]
+            ).astype("int8")
 
             if self.subspecies_analysis:
-                same_subspecies = ((distance_table['subspecies (query 1)'] == distance_table['subspecies (query 2)']) >= same_species).astype('int8')
+                same_subspecies = (
+                    (
+                        distance_table["subspecies (query 1)"]
+                        == distance_table["subspecies (query 2)"]
+                    )
+                    >= same_species
+                ).astype("int8")
                 comparison_type = same_genus + same_species + same_subspecies + 1
             else:
                 comparison_type = same_genus + same_species
 
             print(comparison_type)
 
-            comparison_type = comparison_type.map({
-                0: 'inter-genus',
-                1: 'inter-species',
-                2: 'intra-species',
-                3: 'intra-species (same intraspecific lineage)',
-                4: 'intra-species (different intraspecific lineages)'
-                })
+            comparison_type = comparison_type.map(
+                {
+                    0: "inter-genus",
+                    1: "inter-species",
+                    2: "intra-species",
+                    3: "intra-species (same intraspecific lineage)",
+                    4: "intra-species (different intraspecific lineages)",
+                }
+            )
 
             # def comparison_type(same_species: bool, same_genus: bool) -> str:
             #     if same_genus:
@@ -414,39 +648,65 @@ class ProgramState():
             #             return 'inter-species'
             #     else:
             #         return 'inter-genus'
-            comparison_type_pos = int((
-                len(distance_table.columns) - NDISTANCES) / 2)
-            distance_table.insert(comparison_type_pos, 'comparison_type', comparison_type)
+            comparison_type_pos = int((len(distance_table.columns) - NDISTANCES) / 2)
+            distance_table.insert(
+                comparison_type_pos, "comparison_type", comparison_type
+            )
 
-            distance_table["species (query 1)"] = distance_table["species (query 1)"].str.split(pat=r' |_', n=1, expand=True).iloc[:,1]
-            distance_table["species (query 2)"] = distance_table["species (query 2)"].str.split(pat=r' |_', n=1, expand=True).iloc[:,1]
+            distance_table["species (query 1)"] = (
+                distance_table["species (query 1)"]
+                .str.split(pat=r" |_", n=1, expand=True)
+                .iloc[:, 1]
+            )
+            distance_table["species (query 2)"] = (
+                distance_table["species (query 2)"]
+                .str.split(pat=r" |_", n=1, expand=True)
+                .iloc[:, 1]
+            )
 
         self.output("Summary statistics", distance_table, index=False)
         self.show_progress("Final table")
 
-
-    def cluster_analysis(self, distance_table: pd.DataFrame, species_table: Optional[pd.DataFrame], input_file: str) -> None:
-        with open(self.output_name("Cluster analysis"), mode='w') as output_file:
+    def cluster_analysis(
+        self,
+        distance_table: pd.DataFrame,
+        species_table: Optional[pd.DataFrame],
+        input_file: str,
+    ) -> None:
+        with open(self.output_name("Cluster analysis"), mode="w") as output_file:
             # extracting options
-            distance_kind = distances_short_names[distances_names.index(self.cluster_distance.get())]
+            distance_kind = distances_short_names[
+                distances_names.index(self.cluster_distance.get())
+            ]
             try:
                 cluster_threshold = float(self.cluster_size.get())
             except Exception:
-                warnings.warn(f"Invalid cluster threshold {self.cluster_size.get()}.\nUsing default: 0.3")
+                warnings.warn(
+                    f"Invalid cluster threshold {self.cluster_size.get()}.\nUsing default: 0.3"
+                )
                 cluster_threshold = 0.3
 
             # preparing the table
             nodes = distance_table["seqid (query 1)"].unique()
-            distance_table = distance_table[["seqid (query 1)", "seqid (query 2)", distance_kind]].copy()
+            distance_table = distance_table[
+                ["seqid (query 1)", "seqid (query 2)", distance_kind]
+            ].copy()
             distance_table.columns = ["seqid1", "seqid2", "distance"]
 
             # calculating components
-            connected_table = distance_table.loc[(distance_table['distance'] < cluster_threshold)]
-            graph = nx.from_pandas_edgelist(connected_table, source="seqid1", target="seqid2")
+            connected_table = distance_table.loc[
+                (distance_table["distance"] < cluster_threshold)
+            ]
+            graph = nx.from_pandas_edgelist(
+                connected_table, source="seqid1", target="seqid2"
+            )
             graph.add_nodes_from(nodes)
             components = nx.connected_components(graph)
 
-            print(f"Samples were clustered at a threshold of {cluster_threshold:.3g} ({cluster_threshold*100:.2g}%) uncorrected p-distance", file=output_file)
+            print(
+                f"Samples were clustered at a threshold of {cluster_threshold:.3g} ({cluster_threshold*100:.2g}%) uncorrected p-distance",
+                file=output_file,
+            )
 
             # add cluster classification to the table
             cluster_of: Dict[str, int] = {}
@@ -463,98 +723,187 @@ class ProgramState():
             distance_table["cluster2"] = distance_table["seqid2"].map(cluster_of)
             print("\n", file=output_file)
 
-            max_in_cluster_distances = distance_table.loc[distance_table["cluster1"] == distance_table["cluster2"]][["cluster1", "distance"]].groupby("cluster1").max()["distance"]
+            max_in_cluster_distances = (
+                distance_table.loc[
+                    distance_table["cluster1"] == distance_table["cluster2"]
+                ][["cluster1", "distance"]]
+                .groupby("cluster1")
+                .max()["distance"]
+            )
 
-            print("Maximum intra-sample distance within clusters (marked with # if above specified threshold):", file=output_file)
+            print(
+                "Maximum intra-sample distance within clusters (marked with # if above specified threshold):",
+                file=output_file,
+            )
             big_clusters = 0
             for cluster_i, distance in max_in_cluster_distances.items():
                 if math.isnan(distance):
                     distance = 0
                 if distance > cluster_threshold:
                     big_clusters += 1
-                    print(f'Cluster{cluster_i+1}: {distance:.4g} #', file=output_file)
+                    print(f"Cluster{cluster_i+1}: {distance:.4g} #", file=output_file)
                 else:
-                    print(f'Cluster{cluster_i+1}: {distance:.4g}', file=output_file)
+                    print(f"Cluster{cluster_i+1}: {distance:.4g}", file=output_file)
 
             output_file.write("\n")
 
-            min_between_cluster_distance = distance_table.loc[distance_table["cluster1"] > distance_table["cluster2"]][["cluster1", "cluster2", "distance"]].groupby(["cluster1", "cluster2"]).min()["distance"].unstack()
+            min_between_cluster_distance = (
+                distance_table.loc[
+                    distance_table["cluster1"] > distance_table["cluster2"]
+                ][["cluster1", "cluster2", "distance"]]
+                .groupby(["cluster1", "cluster2"])
+                .min()["distance"]
+                .unstack()
+            )
             for i in range(num_clusters):
                 min_between_cluster_distance.at[(i, i)] = 0
             min_between_cluster_distance.sort_index(axis=0, inplace=True)
-            min_between_cluster_distance.index.name = ''
-            min_between_cluster_distance.rename(index=(lambda i: f"Cluster{i+1}"), columns=(lambda i: f"Cluster{i+1}"), inplace=True)
+            min_between_cluster_distance.index.name = ""
+            min_between_cluster_distance.rename(
+                index=(lambda i: f"Cluster{i+1}"),
+                columns=(lambda i: f"Cluster{i+1}"),
+                inplace=True,
+            )
 
             print("Minimum distance between clusters:\n", file=output_file)
 
             min_between_cluster_distance.to_csv(
-                output_file, sep='\t', line_terminator='\n', float_format="%.4g", index=True)
+                output_file,
+                sep="\t",
+                line_terminator="\n",
+                float_format="%.4g",
+                index=True,
+            )
 
-            output_file.write('\n')
+            output_file.write("\n")
             print("Total number of clusters:", num_clusters, file=output_file)
-            print("Number of clusters violating threshold for intra-cluster distances:", big_clusters, file=output_file)
+            print(
+                "Number of clusters violating threshold for intra-cluster distances:",
+                big_clusters,
+                file=output_file,
+            )
 
-            output_file.write('\n')
-            print(f"A total of {num_clusters} clusters were found, containing between {min_samples} and {max_samples} samples.", file=output_file)
+            output_file.write("\n")
+            print(
+                f"A total of {num_clusters} clusters were found, containing between {min_samples} and {max_samples} samples.",
+                file=output_file,
+            )
 
-            output_file.write('\n')
+            output_file.write("\n")
 
             if species_table is not None:
-                species_table["cluster"] = species_table.index.to_series().map(cluster_of) + 1
+                species_table["cluster"] = (
+                    species_table.index.to_series().map(cluster_of) + 1
+                )
                 species_table.drop_duplicates(inplace=True)
 
-                print("Comparison of cluster assignment with species assignment in the input file:", file=output_file)
+                print(
+                    "Comparison of cluster assignment with species assignment in the input file:",
+                    file=output_file,
+                )
                 exists_multicluster_species = False
                 for (species, clusters) in species_table.groupby("species")["cluster"]:
                     if len(clusters) > 1:
-                        print(f"Sequences of {species} are included in {len(clusters)} clusters:", ", ".join(clusters.astype(str)), file=output_file)
+                        print(
+                            f"Sequences of {species} are included in {len(clusters)} clusters:",
+                            ", ".join(clusters.astype(str)),
+                            file=output_file,
+                        )
                         exists_multicluster_species = True
                 if exists_multicluster_species:
-                    print("Sequences of all other species are included in only one cluster, respectively", file=output_file)
+                    print(
+                        "Sequences of all other species are included in only one cluster, respectively",
+                        file=output_file,
+                    )
                 else:
-                    print("Sequences of all species are included in only one cluster, respectively.", file=output_file)
+                    print(
+                        "Sequences of all species are included in only one cluster, respectively.",
+                        file=output_file,
+                    )
 
-                output_file.write('\n')
+                output_file.write("\n")
 
-                print("List of clusters containing sequences of more than one species (according to species assignment in the input file):", file=output_file)
+                print(
+                    "List of clusters containing sequences of more than one species (according to species assignment in the input file):",
+                    file=output_file,
+                )
                 exists_multispecies_cluster = False
                 for (cluster, species) in species_table.groupby("cluster")["species"]:
                     if len(species) > 1:
-                        print(f"Cluster {cluster} contains sequences of {len(species)} species:", ", ".join(species), file=output_file)
+                        print(
+                            f"Cluster {cluster} contains sequences of {len(species)} species:",
+                            ", ".join(species),
+                            file=output_file,
+                        )
                         exists_multispecies_cluster = True
                 if exists_multispecies_cluster:
-                    print("All other clusters contain sequences of only a single species, respectively.", file=output_file)
+                    print(
+                        "All other clusters contain sequences of only a single species, respectively.",
+                        file=output_file,
+                    )
                 else:
-                    print("All clusters contain sequences of only one species, respectively.", file=output_file)
+                    print(
+                        "All clusters contain sequences of only one species, respectively.",
+                        file=output_file,
+                    )
 
-                output_file.write('\n')
-
+                output_file.write("\n")
 
         time = datetime.datetime.now()
-        with open(os.path.join(self.output_dir, "taxi2_cluster_" + time.strftime("%Y-%m-%dT%H%M%S") + ".spart"), mode='w') as spart_file:
+        with open(
+            os.path.join(
+                self.output_dir,
+                "taxi2_cluster_" + time.strftime("%Y-%m-%dT%H%M%S") + ".spart",
+            ),
+            mode="w",
+        ) as spart_file:
             print("begin spart;", file=spart_file)
             print("project_name = taxi2_clustering;", file=spart_file)
             print("Date = " + time.astimezone().isoformat(), file=spart_file)
-            print("N_spartitions = "+str(num_clusters)+" : "+spart_form(input_file) + ";", file=spart_file)
-            print("N_individuals = "+str(len(cluster_of))+";", file=spart_file)
-            print("N_subsets = "+str(num_clusters) + ";", file=spart_file)
-            print(f"[Generated by a simple {cluster_threshold*100:.2g}% threshold clustering in taxi2]", file=spart_file)
-            print("[WARNING: The sample names below may have been changed to fit SPART specification (only alphanumeric characters and _ )]", file=spart_file)
-            print(f"[The following clusters included sequences differing by a distance above the threshold: {cluster_threshold:.3g}]", file=spart_file)
-            print("Individual_assignment = ", file=spart_file, end='')
+            print(
+                "N_spartitions = "
+                + str(num_clusters)
+                + " : "
+                + spart_form(input_file)
+                + ";",
+                file=spart_file,
+            )
+            print("N_individuals = " + str(len(cluster_of)) + ";", file=spart_file)
+            print("N_subsets = " + str(num_clusters) + ";", file=spart_file)
+            print(
+                f"[Generated by a simple {cluster_threshold*100:.2g}% threshold clustering in taxi2]",
+                file=spart_file,
+            )
+            print(
+                "[WARNING: The sample names below may have been changed to fit SPART specification (only alphanumeric characters and _ )]",
+                file=spart_file,
+            )
+            print(
+                f"[The following clusters included sequences differing by a distance above the threshold: {cluster_threshold:.3g}]",
+                file=spart_file,
+            )
+            print("Individual_assignment = ", file=spart_file, end="")
             for specimen, cluster in cluster_of.items():
-                print(f"\n{spart_form(specimen)}: {cluster + 1}", file=spart_file, end='')
+                print(
+                    f"\n{spart_form(specimen)}: {cluster + 1}", file=spart_file, end=""
+                )
             print(";\n", file=spart_file)
             print("end;", file=spart_file)
 
-    def reference_comparison_process(self, input_file: str, reference_file: str) -> None:
+    def reference_comparison_process(
+        self, input_file: str, reference_file: str
+    ) -> None:
         self.start_time = time.monotonic()
         if self.input_format_name.get() in {"Genbank", "XLSX"}:
-            raise ValueError(f"Comparison with reference database is not implemented for the {self.input_format_name.get()} format")
+            raise ValueError(
+                f"Comparison with reference database is not implemented for the {self.input_format_name.get()} format"
+            )
         reference_table = self.input_format.load_table(reference_file)
         reference_table.set_index("seqid", inplace=True)
         if not self.already_aligned.get():
-            reference_table["sequence"] = normalize_sequences(reference_table["sequence"])
+            reference_table["sequence"] = normalize_sequences(
+                reference_table["sequence"]
+            )
 
         with open(self.output_name("Closest reference sequences"), mode="w") as outfile:
             header = True
@@ -563,13 +912,33 @@ class ProgramState():
                 table.set_index("seqid", inplace=True)
                 if not self.already_aligned.get():
                     table["sequence"] = normalize_sequences(table["sequence"])
-                distance_table = make_distance_table2(table, reference_table, self.already_aligned.get())
+                distance_table = make_distance_table2(
+                    table, reference_table, self.already_aligned.get()
+                )
                 pdistance_name = distances_short_names[PDISTANCE]
-                indices_closest = distance_table[["seqid (query 1)", pdistance_name]].groupby("seqid (query 1)").idxmin()[pdistance_name].squeeze().dropna()
-                closest_table = distance_table.loc[indices_closest].rename(columns=(lambda col: col.replace("query 2", "closest reference sequence")))
-                closest_table = distance_table.loc[indices_closest].rename(columns=(lambda col: col.replace("query 1", "query")))
-                closest_table.to_csv(outfile, sep='\t', line_terminator='\n', float_format="%.4g", header=header)
-                header=False
+                indices_closest = (
+                    distance_table[["seqid (query 1)", pdistance_name]]
+                    .groupby("seqid (query 1)")
+                    .idxmin()[pdistance_name]
+                    .squeeze()
+                    .dropna()
+                )
+                closest_table = distance_table.loc[indices_closest].rename(
+                    columns=(
+                        lambda col: col.replace("query 2", "closest reference sequence")
+                    )
+                )
+                closest_table = distance_table.loc[indices_closest].rename(
+                    columns=(lambda col: col.replace("query 1", "query"))
+                )
+                closest_table.to_csv(
+                    outfile,
+                    sep="\t",
+                    line_terminator="\n",
+                    float_format="%.4g",
+                    header=header,
+                )
+                header = False
                 sequences_num += self.input_format.chunk_size
                 outfile.flush()
                 del closest_table
@@ -578,7 +947,32 @@ class ProgramState():
                 gc.collect()
                 self.show_progress(f"{sequences_num} sequences processed")
 
+    def simple_sequence_statistics(self, table: pd.DataFrame) -> None:
+        table_no_dashes = table.copy()
+        table_no_dashes["sequence"] = table_no_dashes["sequence"].str.replace("-", "")
 
+        total_stats = table_no_dashes["sequence"].agg(sequence_statistics)
+        total_stats_with_gaps = table["sequence"].agg(sequence_statistics_with_gaps)
+        with open(
+            os.path.join(self.output_dir, "Sequence summary statistics.txt"), mode="w"
+        ) as outfile:
+            for stat_name, stat_value in total_stats.items():
+                print(stat_name, f"{stat_value:.4g}", sep=": ", file=outfile)
+            for stat_name, stat_value in total_stats_with_gaps.items():
+                print(stat_name, f"{stat_value:.4g}", sep=": ", file=outfile)
+
+            print(file=outfile)
+            if self.species_analysis:
+                species_stats = table_no_dashes.groupby("species")["sequence"].agg(
+                    list(sequence_statistics.values())
+                )
+                species_stats.columns = list(sequence_statistics)
+                species_stats[list(sequence_statistics_with_gaps)] = table.groupby(
+                    "species"
+                )["sequence"].agg(list(sequence_statistics_with_gaps.values()))
+                species_stats.to_csv(
+                    outfile, sep="\t", line_terminator="\n", float_format="%.4g"
+                )
 
 
 def format_float(x: float) -> str:
@@ -587,9 +981,6 @@ def format_float(x: float) -> str:
 
 def spart_form(s: str) -> str:
     return "_".join(re.compile("[A-Za-z0-9_]+").findall(s))
-
-
-
 
 
 def select_distance(distance_table: pd.DataFrame, kind: int) -> pd.DataFrame:
@@ -608,8 +999,8 @@ def seqid_distance_table(distance_table: pd.DataFrame) -> pd.DataFrame:
     Changes the index of the table to only seqid
     """
     result = distance_table.copy()
-    result.index = distance_table.index.get_level_values('seqid')
-    result.columns = distance_table.columns.get_level_values('seqid')
+    result.index = distance_table.index.get_level_values("seqid")
+    result.columns = distance_table.columns.get_level_values("seqid")
     return result
 
 
@@ -618,8 +1009,9 @@ def species_distance_table(distance_table: pd.DataFrame) -> pd.DataFrame:
     Changes the index of the table to seqid and species
     """
     result = distance_table.copy()
-    to_drop = [level for level in result.index.names if level not in {
-        'seqid', 'species'}]
+    to_drop = [
+        level for level in result.index.names if level not in {"seqid", "species"}
+    ]
     result.index = result.index.droplevel(to_drop)
     result.columns = result.columns.droplevel(to_drop)
     return result
@@ -636,7 +1028,7 @@ def alignment_file_name(output_file: str) -> str:
 
 def print_alignments(sequences: pd.Series, alignment_file: TextIO) -> None:
     sequences = sequences.copy()
-    sequences.index = sequences.index.get_level_values('seqid')
+    sequences.index = sequences.index.get_level_values("seqid")
     aligner = make_aligner()
     for (seqid_target, target) in sequences.items():
         for (seqid_query, query) in sequences.items():
@@ -646,9 +1038,20 @@ def print_alignments(sequences: pd.Series, alignment_file: TextIO) -> None:
 
 def table_closest(distance_table: pd.DataFrame) -> pd.DataFrame:
     pdistance_name = distances_short_names[PDISTANCE]
-    indices_closest = distance_table[["seqid (query 1)", pdistance_name]].groupby("seqid (query 1)").idxmin()[pdistance_name].squeeze().dropna()
-    closest_table = distance_table.loc[indices_closest].rename(columns=(lambda col: col.replace("query 2", "most similar sequence in the dataset")))
+    indices_closest = (
+        distance_table[["seqid (query 1)", pdistance_name]]
+        .groupby("seqid (query 1)")
+        .idxmin()[pdistance_name]
+        .squeeze()
+        .dropna()
+    )
+    closest_table = distance_table.loc[indices_closest].rename(
+        columns=(
+            lambda col: col.replace("query 2", "most similar sequence in the dataset")
+        )
+    )
     return closest_table
+
 
 def series_append(series_tuple: pd.Series, series_elem: pd.Series) -> pd.Series:
     """
@@ -683,5 +1086,5 @@ def find_closest_from_another(table: pd.DataFrame) -> pd.Series:
 
 
 def select_genus(species: str) -> str:
-    genus, _ = re.split(r'[ _]', species, maxsplit=1)
+    genus, _ = re.split(r"[ _]", species, maxsplit=1)
     return genus
