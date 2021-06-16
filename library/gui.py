@@ -2,6 +2,7 @@ import os
 import sys
 import shutil
 from typing import Any, Callable, Iterator
+import logging
 
 import tkinter as tk
 import tkinter.ttk as ttk
@@ -14,6 +15,29 @@ from library.gui_utils import display_errors_and_warnings
 from library.plot_taxi import Plot
 
 resource_path = getattr(sys, "_MEIPASS", sys.path[0])
+
+
+class TkLogger(logging.Handler):
+    """docstring for TkWarnLogger."""
+
+    def __init__(self, level=logging.NOTSET):
+        logging.Handler.__init__(self, level)
+        self.addFilter(
+            lambda record: record.levelno == logging.WARNING
+            or record.levelno == logging.ERROR
+        )
+
+    def emit(self, record: logging.LogRecord) -> None:
+        if record.levelno == logging.WARNING:
+            tkmessagebox.showwarning("Warning", record.getMessage())
+        else:
+            tkmessagebox.showerror("Error", record.getMessage())
+        print(record.pathname, record.lineno, sep=": ")
+        print(record.stack_info)
+        if record.levelno == logging.WARNING:
+            print("Warning:", record.getMessage(), "\n")
+        else:
+            print("Error:", record.getMessage(), "\n")
 
 
 class TaxiGUI(ttk.Frame):
@@ -66,6 +90,9 @@ class TaxiGUI(ttk.Frame):
         self.rowconfigure(8, weight=1)
         self.columnconfigure(0, weight=1)
         self.grid(row=0, column=0, sticky="nsew")
+        logger = logging.getLogger()
+        logger.addHandler(TkLogger())
+        logger.setLevel(logging.WARNING)
 
     def load_images(self, image_dict: Dict[str, str]) -> None:
         for key, file in image_dict.items():
@@ -79,7 +106,7 @@ class TaxiGUI(ttk.Frame):
         top_frame.rowconfigure(0, weight=1)
         top_frame.grid(row=0, column=0, sticky="nsew")
 
-        ttk.Label(top_frame, text="TaxI2", font=tkfont.Font(size=20), padding=5).grid(
+        ttk.Label(top_frame, text="TaxI3", font=tkfont.Font(size=20), padding=5).grid(
             row=0, column=0
         )
         ttk.Label(top_frame, text="Taxonomic identifications\nfrom DNA barcodes").grid(
@@ -169,44 +196,73 @@ class TaxiGUI(ttk.Frame):
         self.preview.insert("end", message)
         self.update()
 
+    def only_pairwise_distance(
+        self,
+    ) -> bool:
+        chosen_distances = list(
+            map(tk.BooleanVar.get, self.programstate.distance_options)
+        )
+        return chosen_distances[0] and chosen_distances.count(True) == 1
+
+    def show_incompatible_options_error(
+        self,
+    ) -> bool:
+        errors = [
+            (
+                self.programstate.alignment_free.get()
+                and not self.only_pairwise_distance(),
+                "Only pairwise uncorrelated distance is supported for alignment-free distance calculation",
+            ),
+            (
+                self.programstate.alignment_free.get()
+                and self.programstate.print_alignments.get(),
+                "The Print alignments option cannot be selected with Alignment-free distance calculation",
+            ),
+        ]
+        for condition, msg in errors:
+            if condition:
+                logging.log(logging.ERROR, msg)
+                return True
+        else:
+            return False
+
+    def show_incompatible_options_warnings(
+        self,
+    ) -> None:
+        warnings = [
+            (
+                self.programstate.reference_comparison.get()
+                and self.programstate.perform_clustering.get(),
+                'Clustering is not performed in the "Compare against reference" mode',
+            ),
+            (
+                self.programstate.reference_comparison.get()
+                and self.programstate.print_alignments.get(),
+                'Printing alignments is not implemented for "Compare against reference" mode',
+            ),
+            (
+                not self.programstate.reference_comparison.get()
+                and self.reference_file.get(),
+                'You have selected the "All against all sequence comparison" mode. A reference database is not needed in this mode and the selected reference database file will be ignored.',
+            ),
+        ]
+        for condition, msg in warnings:
+            if condition:
+                logging.log(logging.WARNING, msg)
+
     def run_command(self) -> None:
         self.clear_command()
         self.update()
         with display_errors_and_warnings(debug=True):
             input_file = self.input_file.get()
+            if self.show_incompatible_options_error():
+                return
+            self.show_incompatible_options_warnings()
             if self.programstate.reference_comparison.get():
-                if self.programstate.perform_clustering.get():
-                    tkmessagebox.showwarning(
-                        "Warning",
-                        'Clustering is not performed in the "Compare against reference" mode',
-                    )
-                if self.programstate.print_alignments.get():
-                    tkmessagebox.showwarning(
-                        "Warning",
-                        'Printing alignments is not implemented for "Compare against reference" mode',
-                    )
                 self.programstate.reference_comparison_process(
                     input_file, self.reference_file.get()
                 )
             else:
-                if self.reference_file.get():
-                    tkmessagebox.showwarning(
-                        "Warning",
-                        'You have selected the "All against all sequence comparison" mode. A reference database is not needed in this mode and the selected reference database file will be ignored.',
-                    )
-                if self.programstate.alignment_free.get():
-                    chosen_distances = list(
-                        map(tk.BooleanVar.get, self.programstate.distance_options)
-                    )
-                    only_supported_distance = (
-                        chosen_distances[0] and chosen_distances.count(True) == 1
-                    )
-                    if not only_supported_distance:
-                        tkmessagebox.showerror(
-                            "Error",
-                            "Only pairwise uncorrelated distance is supported for alignment-free distance calculation",
-                        )
-                        return
                 output_dir = self.preview_dir
                 self.programstate.process(input_file)
                 plot_input = os.path.join(
@@ -220,9 +276,9 @@ class TaxiGUI(ttk.Frame):
                     if is_chosen.get()
                 ]
                 if self.programstate.species_analysis:
-                    self.show_progress("Starting plotting")
+                    self.show_progress("Starting plotting\n")
                     Plot(plot_input, output_dir, distance_name)
-                    self.show_progress("Plotting complete")
+                    self.show_progress("Plotting complete\n")
             self.fill_file_list()
             tkmessagebox.showinfo("Done", "Calculation complete.")
 
