@@ -220,9 +220,9 @@ class TaxiGUI(ttk.Frame):
                     if is_chosen.get()
                 ]
                 if self.programstate.species_analysis:
-                    self.show_progress("Starting plotting")
+                    self.show_progress("Starting plotting\n")
                     Plot(plot_input, output_dir, distance_name)
-                    self.show_progress("Plotting complete")
+                    self.show_progress("Plotting complete\n")
             self.fill_file_list()
             tkmessagebox.showinfo("Done", "Calculation complete.")
 

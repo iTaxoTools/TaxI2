@@ -321,7 +321,7 @@ class ProgramState:
         else:
             species_table = None
         del table
-        self.show_progress("Distance calcution")
+        self.show_progress("Distance calculation")
 
         # The table of most similar sequences
         self.output(f"Most similar sequences", table_closest(distance_table))
