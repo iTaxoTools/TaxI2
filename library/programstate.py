@@ -6,7 +6,7 @@ import os
 import sys
 import math
 import re
-import warnings
+import logging
 import datetime
 import time
 import gc
@@ -687,7 +687,7 @@ class ProgramState:
             try:
                 cluster_threshold = float(self.cluster_size.get())
             except Exception:
-                warnings.warn(
+                logging.warning(
                     f"Invalid cluster threshold {self.cluster_size.get()}.\nUsing default: 0.3"
                 )
                 cluster_threshold = 0.3

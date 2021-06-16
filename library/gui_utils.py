@@ -18,12 +18,19 @@ def try_relpath(path: str) -> str:
         return os.path.abspath(path)
 
 
-class FileChooser():
+class FileChooser:
     """
     Creates a frame with a label, entry and browse button for choosing files
     """
 
-    def __init__(self, parent: Any, *, label: str, mode: str, file_var: Optional[tk.StringVar] = None):
+    def __init__(
+        self,
+        parent: Any,
+        *,
+        label: str,
+        mode: str,
+        file_var: Optional[tk.StringVar] = None
+    ):
         self.frame = ttk.Frame(parent)
         self.frame.columnconfigure([0, 1], weight=1)
         self.label = ttk.Label(self.frame, text=label)
@@ -49,18 +56,20 @@ class FileChooser():
 
         self.button = ttk.Button(self.frame, text="Browse", command=browse)
 
-        self.label.grid(row=0, column=0, sticky='nws')
-        self.entry.grid(row=1, column=0, sticky='nwse')
+        self.label.grid(row=0, column=0, sticky="nws")
+        self.entry.grid(row=1, column=0, sticky="nwse")
         self.button.grid(row=1, column=1)
         self.grid = self.frame.grid
 
 
-class LabeledEntry():
+class LabeledEntry:
     """
     Group of a label, entry and a string variable
     """
 
-    def __init__(self, parent: tk.Misc, *, label: str, var: Optional[tk.StringVar] = None):
+    def __init__(
+        self, parent: tk.Misc, *, label: str, var: Optional[tk.StringVar] = None
+    ):
         self.frame = ttk.Frame(parent)
         self.label = ttk.Label(self.frame, text=label)
         self.var = var if var else tk.StringVar()
@@ -71,19 +80,26 @@ class LabeledEntry():
         self.grid = self.frame.grid
 
 
-class LabeledCombobox():
+class LabeledCombobox:
     """
     Group of a label, Combobox and a string variable
     """
 
-    def __init__(self, parent: tk.Misc, *, label: str, values: List[str], readonly: bool, var: Optional[tk.StringVar] = None):
+    def __init__(
+        self,
+        parent: tk.Misc,
+        *,
+        label: str,
+        values: List[str],
+        readonly: bool,
+        var: Optional[tk.StringVar] = None
+    ):
         self.frame = ttk.Frame(parent)
         self.label = ttk.Label(self.frame, text=label)
         self.var = var if var else tk.StringVar()
-        self.combobox = ttk.Combobox(
-            self.frame, textvariable=self.var, values=values)
+        self.combobox = ttk.Combobox(self.frame, textvariable=self.var, values=values)
         if readonly:
-            self.combobox.configure(state='readonly')
+            self.combobox.configure(state="readonly")
             if values:
                 self.combobox.current(0)
         self.frame.columnconfigure(1, weight=1)
@@ -92,15 +108,21 @@ class LabeledCombobox():
         self.grid = self.frame.grid
 
 
-class Listbox():
+class Listbox:
     """
     Wrapper for a read-only tk.Listbox with a method that returns the selection
     """
 
-    def __init__(self, parent: tk.Misc, *, height: int, selectmode: str, values: List[str]) -> None:
+    def __init__(
+        self, parent: tk.Misc, *, height: int, selectmode: str, values: List[str]
+    ) -> None:
         self.list = values
         self.listbox = tk.Listbox(
-            parent, height=height, selectmode=selectmode, listvariable=tk.StringVar(value=" ".join(values)))
+            parent,
+            height=height,
+            selectmode=selectmode,
+            listvariable=tk.StringVar(value=" ".join(values)),
+        )
         self.grid = self.listbox.grid
 
     def selection(self) -> List[str]:
@@ -110,8 +132,7 @@ class Listbox():
         return [self.list[i] for i in self.listbox.curselection()]
 
 
-class ColumnSelector():
-
+class ColumnSelector:
     def __init__(self, parent: tk.Misc) -> None:
         self.notebook = ttk.Notebook(parent)
         self.lists: List[Listbox] = []
@@ -122,8 +143,14 @@ class ColumnSelector():
             self.notebook.forget(i)
         self.lists = []
         for column_name in columns:
-            self.lists.append(Listbox(self.notebook, height=10,
-                                      values=columns[column_name], selectmode="extended"))
+            self.lists.append(
+                Listbox(
+                    self.notebook,
+                    height=10,
+                    values=columns[column_name],
+                    selectmode="extended",
+                )
+            )
             self.notebook.add(self.lists[-1].listbox, text=column_name)
 
     def selection(self) -> Optional[Tuple[str, List[str]]]:
@@ -133,7 +160,7 @@ class ColumnSelector():
         return (self.notebook.tab(i)["text"], self.lists[i].selection())
 
 
-class FileListChooser():
+class FileListChooser:
     """
     Contains a listbox with file names and "Add Files", "Add Directory" and "Remove Files" buttons
     """
@@ -143,16 +170,20 @@ class FileListChooser():
         self.frame.rowconfigure(4, weight=1)
         self.frame.columnconfigure(0, weight=1)
         self.label = ttk.Label(self.frame, text=label)
-        self.listbox = tk.Listbox(self.frame, height=10, selectmode='extended')
+        self.listbox = tk.Listbox(self.frame, height=10, selectmode="extended")
         self.yscroll = ttk.Scrollbar(
-            self.frame, orient='vertical', command=self.listbox.yview)
+            self.frame, orient="vertical", command=self.listbox.yview
+        )
         self.listbox.configure(yscrollcommand=self.yscroll.set)
         self.add_files_btn = ttk.Button(
-            self.frame, text="Add Files", command=self.add_files)
+            self.frame, text="Add Files", command=self.add_files
+        )
         self.add_directory_btn = ttk.Button(
-            self.frame, text="Add Directory", command=self.add_directory)
+            self.frame, text="Add Directory", command=self.add_directory
+        )
         self.remove_files_btn = ttk.Button(
-            self.frame, text="Remove Files", command=self.remove_files)
+            self.frame, text="Remove Files", command=self.remove_files
+        )
 
         self.label.grid(row=0, column=0)
         self.listbox.grid(row=1, column=0, rowspan=4, sticky="nsew")
@@ -164,37 +195,29 @@ class FileListChooser():
         self.grid = self.frame.grid
 
     def add_files(self) -> None:
-        self.listbox.insert('end', *map(
-            try_relpath, tkfiledialog.askopenfilenames()))
+        self.listbox.insert("end", *map(try_relpath, tkfiledialog.askopenfilenames()))
 
     def add_directory(self) -> None:
         dirname: Optional[str] = tkfiledialog.askdirectory()
         if not dirname:
             return
-        self.listbox.insert('end', *map(try_relpath, os.listdir(dirname)))
+        self.listbox.insert("end", *map(try_relpath, os.listdir(dirname)))
 
     def remove_files(self) -> None:
         for i in reversed(self.listbox.curselection()):
             self.listbox.delete(i)
 
     def file_list(self) -> List[str]:
-        return self.listbox.get(0, 'end')
+        return self.listbox.get(0, "end")
 
 
 @contextmanager
 def display_errors_and_warnings(debug: bool) -> Any:
     try:
-        with warnings.catch_warnings(record=True) as warns:
-            yield
-            for w in warns:
-                if "displot" in str(w.message):
-                    continue
-                tkmessagebox.showwarning("Warning", str(w.message))
+        yield
     except FileNotFoundError as ex:
         tkmessagebox.showerror("Error", ex.strerror)
-        if debug:
-            raise
+        raise
     except Exception as ex:
         tkmessagebox.showerror("Error", str(ex))
-        if debug:
-            raise
+        raise
