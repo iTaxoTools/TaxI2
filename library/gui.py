@@ -207,6 +207,12 @@ class TaxiGUI(ttk.Frame):
                             "Only pairwise uncorrelated distance is supported for alignment-free distance calculation",
                         )
                         return
+                    if self.programstate.print_alignments.get():
+                        tkmessagebox.showerror(
+                            "Error",
+                            "The Print alignments option cannot be selected with Alignment-free distance calculation",
+                        )
+                        return
                 output_dir = self.preview_dir
                 self.programstate.process(input_file)
                 plot_input = os.path.join(
