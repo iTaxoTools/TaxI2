@@ -79,7 +79,7 @@ class TaxiGUI(ttk.Frame):
         top_frame.rowconfigure(0, weight=1)
         top_frame.grid(row=0, column=0, sticky="nsew")
 
-        ttk.Label(top_frame, text="TaxI2", font=tkfont.Font(size=20), padding=5).grid(
+        ttk.Label(top_frame, text="TaxI3", font=tkfont.Font(size=20), padding=5).grid(
             row=0, column=0
         )
         ttk.Label(top_frame, text="Taxonomic identifications\nfrom DNA barcodes").grid(
