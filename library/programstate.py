@@ -11,7 +11,7 @@ import datetime
 import time
 import gc
 import itertools
-from typing import Union, TextIO, Iterator, Tuple, Any, Dict, Optional
+from typing import Union, TextIO, Iterator, Tuple, Any, Dict, Optional, List
 from library.fasta import Fastafile
 from library.genbank import GenbankFile
 from library.sequence_statistics import (
@@ -236,6 +236,19 @@ class XLSXFormat(FileFormat):
             ) from ex
 
 
+class DereplicateSettings:
+    """
+    Settings for ProgramState.dereplicate
+    """
+
+    def __init__(self, root: tk.Misc) -> None:
+        self.root = root
+        self.similarity = tk.StringVar(root, value="100")
+        self.length_threshold = tk.StringVar(root)
+        self.keep_most_complete = tk.BooleanVar(root, value=False)
+        self.save_excluded_replicates = tk.BooleanVar(root, value=False)
+
+
 class ProgramState:
     """
     Encapsulates the state of TaxI2
@@ -262,6 +275,7 @@ class ProgramState:
         self.perform_clustering = tk.BooleanVar(root, value=False)
         self.cluster_distance = tk.StringVar(root, value=distances_names[PDISTANCE])
         self.cluster_size = tk.StringVar(root, value="0.05")
+        self.dereplicate_settings = DereplicateSettings(root)
         self.output_dir = output_dir
 
     def show_progress(self, message: str) -> None:
@@ -678,6 +692,78 @@ class ProgramState:
 
         self.output("Summary statistics", distance_table, index=False)
         self.show_progress("Final table")
+
+    def dereplicate(self, input_file: str) -> None:
+        try:
+            table = self.input_format.load_table(input_file)
+        except ImportError:
+            raise
+        try:
+            if self.dereplicate_settings.length_threshold.get():
+                length_threshold: Optional[int] = int(
+                    self.dereplicate_settings.length_threshold.get())
+        except ValueError:
+            logging.warning(
+                "Can't parse length threshold for 'dereplicate'."
+                " No filtering will be performed")
+            length_threshold = None
+        try:
+            if self.dereplicate_settings.similarity.get():
+                similarity_threshold = float(self.dereplicate_settings.similarity.get())
+            else:
+                similarity_threshold = 100.0
+        except ValueError:
+            logging.warning(
+                "Can't parse requested similarity percentage for 'dereplicate'."
+                "100% similarity will be used"
+            )
+        filename, ext = os.path.splitext(input_file)
+        dereplicated_file = filename + "_dereplicated" + ext
+        excluded_replicates_file = filename + "_excluded_replicates" + ext
+        self.dereplicate_table(table, length_threshold, similarity_threshold,
+                               dereplicated_file, excluded_replicates_file)
+
+    def dereplicate_table(self, table: pd.DataFrame,
+                          length_threshold: Optional[int], similarity_threshold: float,
+                          dereplicated_file: str, excluded_replicates_file: str) -> None:
+        if length_threshold:
+            table = table.loc[table['sequence'].str.len() >= length_threshold]
+        table.set_index("seqid", inplace=True)
+        distance_table = make_alfpy_distance_table(table[['sequence']].copy())
+
+        # preparing the table
+        nodes = distance_table["seqid (query 1)"].unique()
+        distance_table = distance_table[
+            ["seqid (query 1)", "seqid (query 2)", distances_short_names[0]]
+        ].copy()
+        distance_table.columns = ["seqid1", "seqid2", "distance"]
+
+        distance_threshold = 1 - similarity_threshold / 100
+
+        # calculating components
+        connected_table = distance_table.loc[
+            (distance_table["distance"] <= distance_threshold)
+        ]
+        graph = nx.from_pandas_edgelist(
+            connected_table, source="seqid1", target="seqid2"
+        )
+        graph.add_nodes_from(nodes)
+        components = nx.connected_components(graph)
+
+        seqids_dereplicated: List[str] = []
+
+        for component in components:
+            chosen_seqid = table.loc[component, 'sequence'].str.len().idxmax()
+            seqids_dereplicated.append(chosen_seqid)
+
+        with open(dereplicated_file, mode='a', newline='') as outfile:
+            table.loc[seqids_dereplicated].to_csv(outfile, header=(outfile.tell() == 0))
+
+        table = table.drop(seqids_dereplicated)
+
+        if self.dereplicate_settings.save_excluded_replicates:
+            with open(excluded_replicates_file, mode='a', newline='') as outfile:
+                table.to_csv(outfile, header=(outfile.tell() == 0))
 
     def cluster_analysis(
         self,
