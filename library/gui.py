@@ -310,7 +310,7 @@ class TaxiGUI(ttk.Frame):
         parameters_container = tk.Canvas(parameters_frame_scroll)
         parameters_frame = ttk.Frame(parameters_container)
         self.panes.add(parameters_frame_scroll, weight=0)
-        parameters_frame.rowconfigure(11, weight=1)
+        parameters_frame.rowconfigure(12, weight=1)
         parameters_frame.columnconfigure(0, weight=1)
         parameters_frame.grid(row=0, column=0, sticky="nsew")
         parameters_container.grid(row=0, column=0, sticky="nsew")
@@ -392,6 +392,33 @@ class TaxiGUI(ttk.Frame):
         ttk.Entry(cluster_size_frame, textvariable=self.programstate.cluster_size).grid(
             row=0, column=1, sticky="w"
         )
+
+        dereplicate_frame = ttk.LabelFrame(
+            parameters_frame, text="Dereplicate parameters")
+        dereplicate_frame.grid(row=11, column=0, sticky="w")
+
+        similarity_frame = ttk.Frame(dereplicate_frame)
+        similarity_frame.grid(row=0, column=0, sticky="w")
+        ttk.Label(similarity_frame, text="Distance similarity threshold").grid(
+            row=0, column=0, sticky="w")
+        ttk.Combobox(similarity_frame, values=[
+                     "0.07", "0.10", "0.25", "0.31"],
+                     textvariable=self.programstate.dereplicate_settings.similarity
+                     ).grid(row=0, column=1, sticky="w")
+
+        length_threshold_frame = ttk.Frame(dereplicate_frame)
+        length_threshold_frame.grid(row=1, column=0, sticky="w")
+        ttk.Label(length_threshold_frame, text="Remove sequences shorter than: ").grid(
+            row=0, column=0, sticky="w")
+        ttk.Entry(length_threshold_frame,
+                  textvariable=self.programstate.dereplicate_settings.length_threshold).grid(
+            row=0, column=1, sticky="w")
+
+        ttk.Radiobutton(dereplicate_frame, variable=self.programstate.dereplicate_settings.keep_most_complete,
+                        text="Keep sequences with smallest amount of missing data").grid(row=2, column=0, sticky="w")
+
+        ttk.Radiobutton(dereplicate_frame, variable=self.programstate.dereplicate_settings.save_excluded_replicates,
+                        text="Save excluded replicates to separate file").grid(row=3, column=0, sticky="w")
 
     def create_filelist_frame(self) -> None:
         filelist_frame = ttk.Labelframe(self, text="Files")
