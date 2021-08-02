@@ -243,7 +243,7 @@ class DereplicateSettings:
 
     def __init__(self, root: tk.Misc) -> None:
         self.root = root
-        self.similarity = tk.StringVar(root, value="100")
+        self.similarity = tk.StringVar(root, value="0.07")
         self.length_threshold = tk.StringVar(root)
         self.keep_most_complete = tk.BooleanVar(root, value=False)
         self.save_excluded_replicates = tk.BooleanVar(root, value=False)
@@ -707,16 +707,10 @@ class ProgramState:
                 "Can't parse length threshold for 'dereplicate'."
                 " No filtering will be performed")
             length_threshold = None
-        try:
-            if self.dereplicate_settings.similarity.get():
-                similarity_threshold = float(self.dereplicate_settings.similarity.get())
-            else:
-                similarity_threshold = 100.0
-        except ValueError:
-            logging.warning(
-                "Can't parse requested similarity percentage for 'dereplicate'."
-                "100% similarity will be used"
-            )
+        if self.dereplicate_settings.similarity.get():
+            similarity_threshold = float(self.dereplicate_settings.similarity.get())
+        else:
+            similarity_threshold = 0.07
         filename, ext = os.path.splitext(input_file)
         dereplicated_file = filename + "_dereplicated" + ext
         excluded_replicates_file = filename + "_excluded_replicates" + ext
@@ -738,7 +732,7 @@ class ProgramState:
         ].copy()
         distance_table.columns = ["seqid1", "seqid2", "distance"]
 
-        distance_threshold = 1 - similarity_threshold / 100
+        distance_threshold = similarity_threshold
 
         # calculating components
         connected_table = distance_table.loc[
