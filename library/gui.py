@@ -117,14 +117,14 @@ class TaxiGUI(ttk.Frame):
         ttk.Radiobutton(
             top_frame,
             text="Compare sequences\nagainst reference\ndatabase",
-            variable=self.programstate.reference_comparison,
-            value=True,
+            variable=self.programstate.mode,
+            value=ProgramState.COMPARE_REFERENCE,
         ).grid(row=0, column=3, sticky="nsew")
         ttk.Radiobutton(
             top_frame,
             text="All-against-all\nsequence comparison\nwith genetic distance\nanalysis and clustering",
-            variable=self.programstate.reference_comparison,
-            value=False,
+            variable=self.programstate.mode,
+            value=ProgramState.COMPARE_ALL,
         ).grid(row=0, column=4, sticky="nsew")
 
         for image_key, text, column, command in (
@@ -231,19 +231,19 @@ class TaxiGUI(ttk.Frame):
     ) -> None:
         warnings = [
             (
-                self.programstate.reference_comparison.get()
+                self.programstate.mode.get() == ProgramState.COMPARE_REFERENCE
                 and self.programstate.perform_clustering.get(),
                 'Clustering is not performed in the "Compare against reference" mode',
             ),
             (
-                self.programstate.reference_comparison.get()
+                self.programstate.mode.get() == ProgramState.COMPARE_REFERENCE
                 and self.programstate.print_alignments.get(),
                 'Printing alignments is not implemented for "Compare against reference" mode',
             ),
             (
-                not self.programstate.reference_comparison.get()
+                self.programstate.mode.get() != ProgramState.COMPARE_REFERENCE
                 and self.reference_file.get(),
-                'You have selected the "All against all sequence comparison" mode. A reference database is not needed in this mode and the selected reference database file will be ignored.',
+                'A reference database is not needed in the selected mode and the selected reference database file will be ignored.',
             ),
         ]
         for condition, msg in warnings:
@@ -258,11 +258,11 @@ class TaxiGUI(ttk.Frame):
             if self.show_incompatible_options_error():
                 return
             self.show_incompatible_options_warnings()
-            if self.programstate.reference_comparison.get():
+            if self.programstate.mode.get() == ProgramState.COMPARE_REFERENCE:
                 self.programstate.reference_comparison_process(
                     input_file, self.reference_file.get()
                 )
-            else:
+            elif self.programstate.mode.get() == ProgramState.COMPARE_ALL:
                 output_dir = self.preview_dir
                 self.programstate.process(input_file)
                 plot_input = os.path.join(

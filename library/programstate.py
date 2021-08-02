@@ -256,6 +256,10 @@ class ProgramState:
 
     SUMMARY_STATISTICS_NAME = "Summary_statistics.txt"
 
+    COMPARE_REFERENCE = 0
+    COMPARE_ALL = 1
+    DEREPLICATE = 2
+
     formats = dict(
         Tabfile=TabFormat, Fasta=FastaFormat, Genbank=GenbankFormat, XLSX=XLSXFormat
     )
@@ -269,7 +273,7 @@ class ProgramState:
             tk.BooleanVar(root, value=False) for _ in range(NDISTANCES)
         )
         self.distance_options[PDISTANCE].set(True)
-        self.reference_comparison = tk.BooleanVar(root, value=True)
+        self.mode = tk.IntVar(root, value=0)
         self.print_alignments = tk.BooleanVar(root, value=False)
         self.intra_species_lineages = tk.BooleanVar(root, value=False)
         self.perform_clustering = tk.BooleanVar(root, value=False)
