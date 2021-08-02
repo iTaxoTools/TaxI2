@@ -304,10 +304,20 @@ class TaxiGUI(ttk.Frame):
             yield self.filelist.item(index, option="text")
 
     def create_parameters_frame(self) -> None:
-        parameters_frame = ttk.LabelFrame(self, text="Parameters")
-        self.panes.add(parameters_frame, weight=0)
+        parameters_frame_scroll = ttk.LabelFrame(self, text="Parameters")
+        parameters_frame_scroll.rowconfigure(0, weight=1)
+        parameters_frame_scroll.columnconfigure(0, weight=1)
+        parameters_container = tk.Canvas(parameters_frame_scroll)
+        parameters_frame = ttk.Frame(parameters_container)
+        self.panes.add(parameters_frame_scroll, weight=0)
         parameters_frame.rowconfigure(11, weight=1)
         parameters_frame.columnconfigure(0, weight=1)
+        parameters_frame.grid(row=0, column=0, sticky="nsew")
+        parameters_container.grid(row=0, column=0, sticky="nsew")
+        parameters_scroll = ttk.Scrollbar(
+            parameters_frame_scroll, orient='vertical', command=parameters_container.yview)
+        parameters_container.configure(yscrollcommand=parameters_scroll.set)
+        parameters_scroll.grid(row=0, column=1, sticky="nsew")
 
         ttk.Label(parameters_frame, text="Input file format").grid(
             row=0, column=0, sticky="w"
