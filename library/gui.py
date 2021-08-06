@@ -106,39 +106,46 @@ class TaxiGUI(ttk.Frame):
         top_frame.rowconfigure(0, weight=1)
         top_frame.grid(row=0, column=0, sticky="nsew")
 
+        current_column = 0
+
         ttk.Label(top_frame, text="TaxI3", font=tkfont.Font(size=20), padding=5).grid(
-            row=0, column=0
+            row=0, column=current_column
         )
+        current_column += 1
         ttk.Label(top_frame, text="Taxonomic identifications\nfrom DNA barcodes").grid(
-            row=0, column=1
+            row=0, column=current_column
         )
-        ttk.Separator(top_frame, orient="vertical").grid(row=0, column=2, sticky="nsew")
+        current_column += 1
+        ttk.Separator(top_frame, orient="vertical").grid(
+            row=0, column=current_column, sticky="nsew")
+        current_column += 1
 
         ttk.Radiobutton(
             top_frame,
             text="Compare sequences\nagainst reference\ndatabase",
             variable=self.programstate.mode,
             value=ProgramState.COMPARE_REFERENCE,
-        ).grid(row=0, column=3, sticky="nsew")
+        ).grid(row=0, column=current_column, sticky="nsew")
+        current_column += 1
         ttk.Radiobutton(
             top_frame,
             text="All-against-all\nsequence comparison\nwith genetic distance\nanalysis and clustering",
             variable=self.programstate.mode,
             value=ProgramState.COMPARE_ALL,
-        ).grid(row=0, column=4, sticky="nsew")
+        ).grid(row=0, column=current_column, sticky="nsew")
+        current_column += 1
 
-        for image_key, text, column, command in (
+        for image_key, text, command in (
             (
                 "open_button",
                 "open reference\nsequence database",
-                5,
                 self.open_reference_command,
             ),
-            ("open_button", "open input file\n(query sequences)", 6, self.open_command),
-            ("save_button", "save", 7, self.save_command("selected")),
-            ("save_all_button", "save_all", 8, self.save_command("all")),
-            ("run_button", "run", 9, self.run_command),
-            ("clear_button", "clear", 10, self.clear_command),
+            ("open_button", "open input file\n(query sequences)", self.open_command),
+            ("save_button", "save", self.save_command("selected")),
+            ("save_all_button", "save_all", self.save_command("all")),
+            ("run_button", "run", self.run_command),
+            ("clear_button", "clear", self.clear_command),
         ):
             ttk.Button(
                 top_frame,
@@ -148,19 +155,22 @@ class TaxiGUI(ttk.Frame):
                 style="Toolbutton",
                 padding=(10, 0),
                 command=command,
-            ).grid(row=0, column=column, sticky="w")
+            ).grid(row=0, column=current_column, sticky="w")
+            current_column += 1
 
         ttk.Separator(top_frame, orient="vertical").grid(
-            row=0, column=11, sticky="nsew"
+            row=0, column=current_column, sticky="nsew"
         )
+        current_column += 1
         self.images["logo"] = tk.PhotoImage(
             file=os.path.join(
                 resource_path, "data", "iTaxoTools Digital linneaeus MICROLOGO.png"
             )
         )
         ttk.Label(top_frame, image=self.images["logo"]).grid(
-            row=0, column=12, sticky="nse"
+            row=0, column=current_column, sticky="nse"
         )
+        current_column += 1
 
     def open_command(self) -> None:
         path = tkfiledialog.askopenfilename()
@@ -393,32 +403,32 @@ class TaxiGUI(ttk.Frame):
             row=0, column=1, sticky="w"
         )
 
-        dereplicate_frame = ttk.LabelFrame(
-            parameters_frame, text="Dereplicate parameters")
-        dereplicate_frame.grid(row=11, column=0, sticky="w")
+        # dereplicate_frame = ttk.LabelFrame(
+        #     parameters_frame, text="Dereplicate parameters")
+        # dereplicate_frame.grid(row=11, column=0, sticky="w")
 
-        similarity_frame = ttk.Frame(dereplicate_frame)
-        similarity_frame.grid(row=0, column=0, sticky="w")
-        ttk.Label(similarity_frame, text="Distance similarity threshold").grid(
-            row=0, column=0, sticky="w")
-        ttk.Combobox(similarity_frame, values=[
-                     "0.07", "0.10", "0.25", "0.31"],
-                     textvariable=self.programstate.dereplicate_settings.similarity
-                     ).grid(row=0, column=1, sticky="w")
+        # similarity_frame = ttk.Frame(dereplicate_frame)
+        # similarity_frame.grid(row=0, column=0, sticky="w")
+        # ttk.Label(similarity_frame, text="Distance similarity threshold").grid(
+        #     row=0, column=0, sticky="w")
+        # ttk.Combobox(similarity_frame, values=[
+        #              "0.07", "0.10", "0.25", "0.31"],
+        #              textvariable=self.programstate.dereplicate_settings.similarity
+        #              ).grid(row=0, column=1, sticky="w")
 
-        length_threshold_frame = ttk.Frame(dereplicate_frame)
-        length_threshold_frame.grid(row=1, column=0, sticky="w")
-        ttk.Label(length_threshold_frame, text="Remove sequences shorter than: ").grid(
-            row=0, column=0, sticky="w")
-        ttk.Entry(length_threshold_frame,
-                  textvariable=self.programstate.dereplicate_settings.length_threshold).grid(
-            row=0, column=1, sticky="w")
+        # length_threshold_frame = ttk.Frame(dereplicate_frame)
+        # length_threshold_frame.grid(row=1, column=0, sticky="w")
+        # ttk.Label(length_threshold_frame, text="Remove sequences shorter than: ").grid(
+        #     row=0, column=0, sticky="w")
+        # ttk.Entry(length_threshold_frame,
+        #           textvariable=self.programstate.dereplicate_settings.length_threshold).grid(
+        #     row=0, column=1, sticky="w")
 
-        ttk.Radiobutton(dereplicate_frame, variable=self.programstate.dereplicate_settings.keep_most_complete,
-                        text="Keep sequences with smallest amount of missing data").grid(row=2, column=0, sticky="w")
+        # ttk.Radiobutton(dereplicate_frame, variable=self.programstate.dereplicate_settings.keep_most_complete,
+        #                 text="Keep sequences with smallest amount of missing data").grid(row=2, column=0, sticky="w")
 
-        ttk.Radiobutton(dereplicate_frame, variable=self.programstate.dereplicate_settings.save_excluded_replicates,
-                        text="Save excluded replicates to separate file").grid(row=3, column=0, sticky="w")
+        # ttk.Radiobutton(dereplicate_frame, variable=self.programstate.dereplicate_settings.save_excluded_replicates,
+        #                 text="Save excluded replicates to separate file").grid(row=3, column=0, sticky="w")
 
     def create_filelist_frame(self) -> None:
         filelist_frame = ttk.Labelframe(self, text="Files")
