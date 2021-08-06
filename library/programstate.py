@@ -699,7 +699,7 @@ class ProgramState:
 
     def dereplicate(self, input_file: str) -> None:
         try:
-            table = self.input_format.load_table(input_file)
+            tables = self.input_format.load_chunks(input_file)
         except ImportError:
             raise
         try:
@@ -720,8 +720,9 @@ class ProgramState:
         filename, ext = os.path.splitext(input_file)
         dereplicated_file = filename + "_dereplicated" + ext
         excluded_replicates_file = filename + "_excluded_replicates" + ext
-        self.dereplicate_table(table, length_threshold, similarity_threshold,
-                               dereplicated_file, excluded_replicates_file)
+        for table in tables:
+            self.dereplicate_table(table, length_threshold, similarity_threshold,
+                                   dereplicated_file, excluded_replicates_file)
 
     def dereplicate_table(self, table: pd.DataFrame,
                           length_threshold: Optional[int], similarity_threshold: float,
