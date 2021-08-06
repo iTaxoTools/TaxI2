@@ -706,6 +706,8 @@ class ProgramState:
             if self.dereplicate_settings.length_threshold.get():
                 length_threshold: Optional[int] = int(
                     self.dereplicate_settings.length_threshold.get())
+            else:
+                length_threshold = 0
         except ValueError:
             logging.warning(
                 "Can't parse length threshold for 'dereplicate'."

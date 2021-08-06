@@ -102,7 +102,6 @@ class TaxiGUI(ttk.Frame):
 
     def create_top_frame(self) -> None:
         top_frame = ttk.Frame(self, relief="sunken", padding=4)
-        top_frame.columnconfigure(10, weight=1)
         top_frame.rowconfigure(0, weight=1)
         top_frame.grid(row=0, column=0, sticky="nsew")
 
@@ -132,6 +131,13 @@ class TaxiGUI(ttk.Frame):
             text="All-against-all\nsequence comparison\nwith genetic distance\nanalysis and clustering",
             variable=self.programstate.mode,
             value=ProgramState.COMPARE_ALL,
+        ).grid(row=0, column=current_column, sticky="nsew")
+        current_column += 1
+        ttk.Radiobutton(
+            top_frame,
+            text="DEREP",
+            variable=self.programstate.mode,
+            value=ProgramState.DEREPLICATE,
         ).grid(row=0, column=current_column, sticky="nsew")
         current_column += 1
 
@@ -171,6 +177,8 @@ class TaxiGUI(ttk.Frame):
             row=0, column=current_column, sticky="nse"
         )
         current_column += 1
+
+        top_frame.columnconfigure(current_column - 3, weight=1)
 
     def open_command(self) -> None:
         path = tkfiledialog.askopenfilename()
@@ -289,6 +297,8 @@ class TaxiGUI(ttk.Frame):
                     self.show_progress("Starting plotting\n")
                     Plot(plot_input, output_dir, distance_name)
                     self.show_progress("Plotting complete\n")
+            elif self.programstate.mode.get() == ProgramState.DEREPLICATE:
+                self.programstate.dereplicate(input_file)
             self.fill_file_list()
             tkmessagebox.showinfo("Done", "Calculation complete.")
 
