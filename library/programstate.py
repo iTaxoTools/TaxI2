@@ -93,7 +93,7 @@ class FileFormat:
                 return name
 
     def load_chunks(
-        self, filepath_or_buffer: Union[str, TextIO]
+            self, filepath_or_buffer: Union[str, TextIO], chunk_size: int
     ) -> Iterator[pd.DataFrame]:
         raise NotImplementedError
 
@@ -127,11 +127,11 @@ class TabFormat(FileFormat):
             ) from ex
 
     def load_chunks(
-        self, filepath_or_buffer: Union[str, TextIO]
+            self, filepath_or_buffer: Union[str, TextIO], chunk_size: int
     ) -> Iterator[pd.DataFrame]:
         with open(filepath_or_buffer, errors="replace") as infile:
             tables = pd.read_csv(
-                infile, sep="\t", dtype=str, chunksize=FileFormat.chunk_size
+                infile, sep="\t", dtype=str, chunksize=chunk_size
             )
             for table in tables:
                 yield self.process_table(table)
@@ -157,21 +157,21 @@ class FastaFormat(FileFormat):
         ).drop_duplicates(subset="seqid")
 
     def load_chunks(
-        self, filepath_or_buffer: Union[str, TextIO]
+            self, filepath_or_buffer: Union[str, TextIO], chunk_size: int
     ) -> Iterator[pd.DataFrame]:
         if isinstance(filepath_or_buffer, str):
             with open(filepath_or_buffer, errors="replace") as infile:
-                for chunk in self._load_chunks(infile):
+                for chunk in self._load_chunks(infile, chunk_size):
                     yield chunk
         else:
-            for chunk in self._load_chunks(filepath_or_buffer):
+            for chunk in self._load_chunks(filepath_or_buffer, chunk_size):
                 yield chunk
 
-    def _load_chunks(self, file: TextIO) -> Iterator[pd.DataFrame]:
+    def _load_chunks(self, file: TextIO, chunk_size: int) -> Iterator[pd.DataFrame]:
         _, records_gen = Fastafile.read(file)
         records = records_gen()
         while True:
-            chunk = itertools.islice(records, FileFormat.chunk_size)
+            chunk = itertools.islice(records, chunk_size)
             table = pd.DataFrame(
                 ([record["seqid"], record["sequence"]] for record in chunk),
                 columns=["seqid", "sequence"],
@@ -699,7 +699,7 @@ class ProgramState:
 
     def dereplicate(self, input_file: str) -> None:
         try:
-            tables = self.input_format.load_chunks(input_file)
+            tables = self.input_format.load_chunks(input_file, chunk_size=1000)
         except ImportError:
             raise
         try:
@@ -1008,7 +1008,7 @@ class ProgramState:
         with open(self.output_name("Closest reference sequences"), mode="w") as outfile:
             header = True
             sequences_num = 0
-            for table in self.input_format.load_chunks(input_file):
+            for table in self.input_format.load_chunks(input_file, chunk_size=100):
                 table.set_index("seqid", inplace=True)
                 if not self.already_aligned.get():
                     table["sequence"] = normalize_sequences(table["sequence"])
