@@ -757,13 +757,14 @@ class ProgramState:
             seqids_dereplicated.append(chosen_seqid)
 
         with open(dereplicated_file, mode='a', newline='') as outfile:
-            table.loc[seqids_dereplicated].to_csv(outfile, header=(outfile.tell() == 0))
+            table.loc[seqids_dereplicated].to_csv(
+                outfile, header=(outfile.tell() == 0), sep='\t')
 
         table = table.drop(seqids_dereplicated)
 
         if self.dereplicate_settings.save_excluded_replicates:
             with open(excluded_replicates_file, mode='a', newline='') as outfile:
-                table.to_csv(outfile, header=(outfile.tell() == 0))
+                table.to_csv(outfile, header=(outfile.tell() == 0), sep='\t')
 
     def cluster_analysis(
         self,
