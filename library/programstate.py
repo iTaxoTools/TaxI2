@@ -269,6 +269,7 @@ class ProgramState:
     COMPARE_REFERENCE = 0
     COMPARE_ALL = 1
     DEREPLICATE = 2
+    DECONTAMINATE = 3
 
     formats = dict(
         Tabfile=TabFormat, Fasta=FastaFormat, Genbank=GenbankFormat, XLSX=XLSXFormat
@@ -1089,7 +1090,7 @@ class ProgramState:
         with open(self.output_name("Contaminates_marked"), mode="w") as outfile:
             header = True
             sequences_num = 0
-            for table in self.input_format.load_chunks(input_file, chunk_size=100):
+            for table in self.input_format.load_chunks(input_file, chunk_size=1000):
                 table.set_index("seqid", inplace=True)
                 if not self.already_aligned.get():
                     table["sequence"] = normalize_sequences(table["sequence"])
@@ -1112,8 +1113,8 @@ class ProgramState:
                     columns=(lambda col: col.replace("query 1", "query"))
                 )
                 closest_table["is_contaminant"] = ""
-                closest_table[closest_table[pdistance_name] <=
-                              similarity_threshold]["is_contaminant"] = "contaminant"
+                closest_table.loc[closest_table[pdistance_name] <=
+                                  similarity_threshold, "is_contaminant"] = "contaminant"
                 closest_table.to_csv(
                     outfile,
                     sep="\t",
@@ -1122,7 +1123,7 @@ class ProgramState:
                     header=header,
                 )
                 header = False
-                sequences_num += self.input_format.chunk_size
+                sequences_num += 1000
                 outfile.flush()
                 del closest_table
                 del distance_table
