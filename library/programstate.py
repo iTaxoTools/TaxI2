@@ -11,7 +11,7 @@ import datetime
 import time
 import gc
 import itertools
-from typing import Union, TextIO, Iterator, Tuple, Any, Dict, Optional
+from typing import Union, TextIO, Iterator, Tuple, Any, Dict, Optional, List
 from library.fasta import Fastafile
 from library.genbank import GenbankFile
 from library.sequence_statistics import (
@@ -93,7 +93,7 @@ class FileFormat:
                 return name
 
     def load_chunks(
-        self, filepath_or_buffer: Union[str, TextIO]
+            self, filepath_or_buffer: Union[str, TextIO], chunk_size: int
     ) -> Iterator[pd.DataFrame]:
         raise NotImplementedError
 
@@ -127,11 +127,11 @@ class TabFormat(FileFormat):
             ) from ex
 
     def load_chunks(
-        self, filepath_or_buffer: Union[str, TextIO]
+            self, filepath_or_buffer: Union[str, TextIO], chunk_size: int
     ) -> Iterator[pd.DataFrame]:
         with open(filepath_or_buffer, errors="replace") as infile:
             tables = pd.read_csv(
-                infile, sep="\t", dtype=str, chunksize=FileFormat.chunk_size
+                infile, sep="\t", dtype=str, chunksize=chunk_size
             )
             for table in tables:
                 yield self.process_table(table)
@@ -157,21 +157,21 @@ class FastaFormat(FileFormat):
         ).drop_duplicates(subset="seqid")
 
     def load_chunks(
-        self, filepath_or_buffer: Union[str, TextIO]
+            self, filepath_or_buffer: Union[str, TextIO], chunk_size: int
     ) -> Iterator[pd.DataFrame]:
         if isinstance(filepath_or_buffer, str):
             with open(filepath_or_buffer, errors="replace") as infile:
-                for chunk in self._load_chunks(infile):
+                for chunk in self._load_chunks(infile, chunk_size):
                     yield chunk
         else:
-            for chunk in self._load_chunks(filepath_or_buffer):
+            for chunk in self._load_chunks(filepath_or_buffer, chunk_size):
                 yield chunk
 
-    def _load_chunks(self, file: TextIO) -> Iterator[pd.DataFrame]:
+    def _load_chunks(self, file: TextIO, chunk_size: int) -> Iterator[pd.DataFrame]:
         _, records_gen = Fastafile.read(file)
         records = records_gen()
         while True:
-            chunk = itertools.islice(records, FileFormat.chunk_size)
+            chunk = itertools.islice(records, chunk_size)
             table = pd.DataFrame(
                 ([record["seqid"], record["sequence"]] for record in chunk),
                 columns=["seqid", "sequence"],
@@ -236,12 +236,29 @@ class XLSXFormat(FileFormat):
             ) from ex
 
 
+class DereplicateSettings:
+    """
+    Settings for ProgramState.dereplicate
+    """
+
+    def __init__(self, root: tk.Misc) -> None:
+        self.root = root
+        self.similarity = tk.StringVar(root, value="0.07")
+        self.length_threshold = tk.StringVar(root)
+        self.keep_most_complete = tk.BooleanVar(root, value=False)
+        self.save_excluded_replicates = tk.BooleanVar(root, value=False)
+
+
 class ProgramState:
     """
     Encapsulates the state of TaxI2
     """
 
     SUMMARY_STATISTICS_NAME = "Summary_statistics.txt"
+
+    COMPARE_REFERENCE = 0
+    COMPARE_ALL = 1
+    DEREPLICATE = 2
 
     formats = dict(
         Tabfile=TabFormat, Fasta=FastaFormat, Genbank=GenbankFormat, XLSX=XLSXFormat
@@ -256,12 +273,13 @@ class ProgramState:
             tk.BooleanVar(root, value=False) for _ in range(NDISTANCES)
         )
         self.distance_options[PDISTANCE].set(True)
-        self.reference_comparison = tk.BooleanVar(root, value=True)
+        self.mode = tk.IntVar(root, value=0)
         self.print_alignments = tk.BooleanVar(root, value=False)
         self.intra_species_lineages = tk.BooleanVar(root, value=False)
         self.perform_clustering = tk.BooleanVar(root, value=False)
         self.cluster_distance = tk.StringVar(root, value=distances_names[PDISTANCE])
         self.cluster_size = tk.StringVar(root, value="0.05")
+        self.dereplicate_settings = DereplicateSettings(root)
         self.output_dir = output_dir
 
     def show_progress(self, message: str) -> None:
@@ -679,6 +697,76 @@ class ProgramState:
         self.output("Summary statistics", distance_table, index=False)
         self.show_progress("Final table")
 
+    def dereplicate(self, input_file: str) -> None:
+        try:
+            tables = self.input_format.load_chunks(input_file, chunk_size=1000)
+        except ImportError:
+            raise
+        try:
+            if self.dereplicate_settings.length_threshold.get():
+                length_threshold: Optional[int] = int(
+                    self.dereplicate_settings.length_threshold.get())
+            else:
+                length_threshold = 0
+        except ValueError:
+            logging.warning(
+                "Can't parse length threshold for 'dereplicate'."
+                " No filtering will be performed")
+            length_threshold = None
+        if self.dereplicate_settings.similarity.get():
+            similarity_threshold = float(self.dereplicate_settings.similarity.get())
+        else:
+            similarity_threshold = 0.07
+        filename, ext = os.path.splitext(input_file)
+        dereplicated_file = filename + "_dereplicated" + ext
+        excluded_replicates_file = filename + "_excluded_replicates" + ext
+        for table in tables:
+            self.dereplicate_table(table, length_threshold, similarity_threshold,
+                                   dereplicated_file, excluded_replicates_file)
+
+    def dereplicate_table(self, table: pd.DataFrame,
+                          length_threshold: Optional[int], similarity_threshold: float,
+                          dereplicated_file: str, excluded_replicates_file: str) -> None:
+        if length_threshold:
+            table = table.loc[table['sequence'].str.len() >= length_threshold]
+        table.set_index("seqid", inplace=True)
+        distance_table = make_alfpy_distance_table(table[['sequence']].copy())
+
+        # preparing the table
+        nodes = distance_table["seqid (query 1)"].unique()
+        distance_table = distance_table[
+            ["seqid (query 1)", "seqid (query 2)", distances_short_names[0]]
+        ].copy()
+        distance_table.columns = ["seqid1", "seqid2", "distance"]
+
+        distance_threshold = similarity_threshold
+
+        # calculating components
+        connected_table = distance_table.loc[
+            (distance_table["distance"] <= distance_threshold)
+        ]
+        graph = nx.from_pandas_edgelist(
+            connected_table, source="seqid1", target="seqid2"
+        )
+        graph.add_nodes_from(nodes)
+        components = nx.connected_components(graph)
+
+        seqids_dereplicated: List[str] = []
+
+        for component in components:
+            chosen_seqid = table.loc[component, 'sequence'].str.len().idxmax()
+            seqids_dereplicated.append(chosen_seqid)
+
+        with open(dereplicated_file, mode='a', newline='') as outfile:
+            table.loc[seqids_dereplicated].to_csv(
+                outfile, header=(outfile.tell() == 0), sep='\t')
+
+        table = table.drop(seqids_dereplicated)
+
+        if self.dereplicate_settings.save_excluded_replicates:
+            with open(excluded_replicates_file, mode='a', newline='') as outfile:
+                table.to_csv(outfile, header=(outfile.tell() == 0), sep='\t')
+
     def cluster_analysis(
         self,
         distance_table: pd.DataFrame,
@@ -920,7 +1008,7 @@ class ProgramState:
         with open(self.output_name("Closest reference sequences"), mode="w") as outfile:
             header = True
             sequences_num = 0
-            for table in self.input_format.load_chunks(input_file):
+            for table in self.input_format.load_chunks(input_file, chunk_size=100):
                 table.set_index("seqid", inplace=True)
                 if not self.already_aligned.get():
                     table["sequence"] = normalize_sequences(table["sequence"])
