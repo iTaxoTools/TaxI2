@@ -659,11 +659,17 @@ class ProgramState:
                 comparison_type_pos, "comparison_type", comparison_type
             )
 
-            distance_table["species (query 1)"] = (
-                distance_table["species (query 1)"]
-                .str.split(pat=r" |_", n=1, expand=True)
-                .iloc[:, 1]
-            )
+            try:
+                distance_table["species (query 1)"] = (
+                    distance_table["species (query 1)"]
+                    .str.split(pat=r" |_", n=1, expand=True)
+                    .iloc[:, 1]
+                )
+            except IndexError as e:
+                raise ValueError(
+                    "The field organism or species must consist"
+                    " of two separate expressions separated by a space or underscore"
+                    " corresponding to genus and species name")
             distance_table["species (query 2)"] = (
                 distance_table["species (query 2)"]
                 .str.split(pat=r" |_", n=1, expand=True)
