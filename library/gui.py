@@ -140,6 +140,13 @@ class TaxiGUI(ttk.Frame):
             value=ProgramState.DEREPLICATE,
         ).grid(row=0, column=current_column, sticky="nsew")
         current_column += 1
+        ttk.Radiobutton(
+            top_frame,
+            text="DECONT",
+            variable=self.programstate.mode,
+            value=ProgramState.DECONTAMINATE,
+        ).grid(row=0, column=current_column, sticky="nsew")
+        current_column += 1
 
         for image_key, text, command in (
             (
@@ -260,6 +267,7 @@ class TaxiGUI(ttk.Frame):
             ),
             (
                 self.programstate.mode.get() != ProgramState.COMPARE_REFERENCE
+                and self.programstate.mode.get() != ProgramState.DECONTAMINATE
                 and self.reference_file.get(),
                 'A reference database is not needed in the selected mode and the selected reference database file will be ignored.',
             ),
@@ -299,6 +307,8 @@ class TaxiGUI(ttk.Frame):
                     self.show_progress("Plotting complete\n")
             elif self.programstate.mode.get() == ProgramState.DEREPLICATE:
                 self.programstate.dereplicate(input_file)
+            elif self.programstate.mode.get() == ProgramState.DECONTAMINATE:
+                self.programstate.decontaminate(input_file, self.reference_file.get())
             self.fill_file_list()
             tkmessagebox.showinfo("Done", "Calculation complete.")
 

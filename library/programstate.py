@@ -249,6 +249,16 @@ class DereplicateSettings:
         self.save_excluded_replicates = tk.BooleanVar(root, value=False)
 
 
+class DecontaminateSetting():
+    """
+    Settings for ProgramState.decontaminate
+    """
+
+    def __init__(self, root: tk.Misc) -> None:
+        self.root = root
+        self.similarity = tk.StringVar(root, value="0.07")
+
+
 class ProgramState:
     """
     Encapsulates the state of TaxI2
@@ -259,6 +269,7 @@ class ProgramState:
     COMPARE_REFERENCE = 0
     COMPARE_ALL = 1
     DEREPLICATE = 2
+    DECONTAMINATE = 3
 
     formats = dict(
         Tabfile=TabFormat, Fasta=FastaFormat, Genbank=GenbankFormat, XLSX=XLSXFormat
@@ -280,6 +291,7 @@ class ProgramState:
         self.cluster_distance = tk.StringVar(root, value=distances_names[PDISTANCE])
         self.cluster_size = tk.StringVar(root, value="0.05")
         self.dereplicate_settings = DereplicateSettings(root)
+        self.decontaminate_settings = DecontaminateSetting(root)
         self.output_dir = output_dir
 
     def show_progress(self, message: str) -> None:
@@ -1049,6 +1061,85 @@ class ProgramState:
                 del table
                 gc.collect()
                 self.show_progress(f"{sequences_num} sequences processed")
+
+    def decontaminate(
+        self, input_file: str, reference_file: str
+    ) -> None:
+        self.start_time = time.monotonic()
+        if self.input_format_name.get() in {"Genbank", "XLSX"}:
+            raise ValueError(
+                f"Decontamination is not implemented for the {self.input_format_name.get()} format"
+            )
+        reference_table = self.input_format.load_table(reference_file)
+        reference_table.set_index("seqid", inplace=True)
+        if not self.already_aligned.get():
+            reference_table["sequence"] = normalize_sequences(
+                reference_table["sequence"]
+            )
+
+        if self.decontaminate_settings.similarity.get():
+            similarity_threshold = float(self.decontaminate_settings.similarity.get())
+        else:
+            similarity_threshold = 0.07
+
+        filename, ext = os.path.splitext(input_file)
+        decontaminated_file = filename + "_decontaminated" + ext
+        contaminates_file = filename + "_contaminates" + ext
+        summary_file = filename + "_decontaminate_summary" + ext
+
+        header = True
+        sequences_num = 0
+        for table in self.input_format.load_chunks(input_file, chunk_size=1000):
+            table.set_index("seqid", inplace=True)
+            if not self.already_aligned.get():
+                table["sequence"] = normalize_sequences(table["sequence"])
+            distance_table = make_alfpy_distance_table2(table.copy(), reference_table)
+            pdistance_name = distances_short_names[PDISTANCE]
+            indices_closest = (
+                distance_table[["seqid (query 1)", pdistance_name]]
+                .groupby("seqid (query 1)")
+                .idxmin()[pdistance_name]
+                .squeeze()
+                .dropna()
+            )
+            closest_table = distance_table.loc[indices_closest].rename(
+                columns=(
+                    lambda col: col.replace(
+                        "query 2", "closest possible contaminant")
+                )
+            )
+            closest_table = closest_table.rename(
+                columns=(lambda col: col.replace("query 1", "query"))
+            )
+            closest_table["is_contaminant"] = ""
+            closest_table.loc[closest_table[pdistance_name] <=
+                              similarity_threshold, "is_contaminant"] = "contaminant"
+            decontaminates_seqids = closest_table.loc[closest_table[pdistance_name]
+                                                      > similarity_threshold, "seqid (query)"]
+            with open(summary_file, mode="a") as outfile:
+                closest_table.to_csv(
+                    outfile,
+                    sep="\t",
+                    line_terminator="\n",
+                    float_format="%.4g",
+                    header=header,
+                )
+            with open(decontaminated_file, mode='a', newline='') as outfile:
+                table.loc[decontaminates_seqids].to_csv(
+                    outfile, header=(outfile.tell() == 0), sep='\t')
+
+            table = table.drop(decontaminates_seqids)
+
+            with open(contaminates_file, mode='a', newline='') as outfile:
+                table.to_csv(outfile, header=(outfile.tell() == 0), sep='\t')
+
+            header = False
+            sequences_num += 1000
+            del closest_table
+            del distance_table
+            del table
+            gc.collect()
+            self.show_progress(f"{sequences_num} sequences processed")
 
     def simple_sequence_statistics(self, table: pd.DataFrame) -> None:
         table_no_dashes = table.copy()
