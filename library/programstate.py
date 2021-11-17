@@ -314,6 +314,17 @@ class ProgramState:
                 outfile, sep="\t", line_terminator="\n", float_format="%.4g", **kwargs
             )
 
+    def output_square(self, description: str, table: pd.DataFrame, **kwargs) -> None:
+        out_name = self.output_name(description)
+        table = table.copy()
+        table.columns.names = [None] * len(table.columns.names)
+        table.index.names = [None] * len(table.index.names)
+        with open(out_name, mode="w") as outfile:
+            print(description, file=outfile)
+            table.to_csv(
+                outfile, sep="\t", line_terminator="\n", float_format="%.4g", **kwargs
+            )
+
     def process(self, input_file: str) -> None:
         self.start_time = time.monotonic()
         if self.input_format_name.get() == "Genbank" and self.already_aligned.get():
@@ -368,11 +379,11 @@ class ProgramState:
                 .squeeze()
                 .unstack()
             )
-            out_table.columns.names = [""] * len(out_table.columns.names)
+            out_table.columns.names = [None] * len(out_table.columns.names)
+            out_table.index.names = [None] * len(out_table.index.names)
             self.output(
                 f"{distances_names[kind]} between sequences",
                 out_table,
-                index_label=False,
             )
             del out_table
 
@@ -391,11 +402,11 @@ class ProgramState:
                 .sort_index()
                 .sort_index(axis=1)
             )
-            out_table.columns.names = [""] * len(out_table.columns.names)
+            out_table.columns.names = [None] * len(out_table.columns.names)
+            out_table.index.names = [None] * len(out_table.index.names)
             self.output(
                 f"{distances_names[kind]} between sequences (Alphabetical order)",
                 out_table,
-                index_label=False,
             )
             del out_table
 
@@ -433,11 +444,11 @@ class ProgramState:
                     .sort_index()
                     .sort_index(axis=1)
                 )
-                out_table.columns.names = [""] * len(out_table.columns.names)
+                out_table.columns.names = [None] * len(out_table.columns.names)
+                out_table.columns.names = [None] * len(out_table.columns.names)
                 self.output(
                     f"{distances_names[kind]} between sequences (Ordered by species)",
                     out_table,
-                    index_label=False,
                 )
                 del out_table
             self.show_progress("Seqid distance table 3")
@@ -502,24 +513,21 @@ class ProgramState:
                     "species (query 2)"
                 )
 
-                self.output(
+                self.output_square(
                     f"Mean {distances_names[kind]} between species",
                     square_species_statistics["mean"],
-                    index_label=False,
                 )
                 self.show_progress("Mean distance between species")
 
-                self.output(
+                self.output_square(
                     f"Minimum and maximum {distances_names[kind]} between species",
                     square_species_statistics["minmax"],
-                    index_label=False,
                 )
                 self.show_progress("Minimum and maximum distance between species")
 
-                self.output(
+                self.output_square(
                     f"Mean, minimum and maximum {distances_names[kind]} between species",
                     square_species_statistics["mean_minmax"],
-                    index_label=False,
                 )
                 self.show_progress("Mean, minimum and maximum distance between species")
 
@@ -606,10 +614,9 @@ class ProgramState:
                     + ")"
                 )
 
-                self.output(
+                self.output_square(
                     f"Mean, minimum and maximum {distances_names[kind]} between genera",
                     genera_mean_minmax.unstack(),
-                    index_label=False,
                 )
                 self.show_progress("Mean, minimum and maximum distances between genera")
 
