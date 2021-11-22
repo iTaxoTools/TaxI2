@@ -85,6 +85,15 @@ class TaxiGUI(ttk.Frame):
         # spacing
         ttk.Label(self, font=tkfont.Font(size=5)).pack(side=tk.TOP, fill=tk.X)
 
+        self.ingroup_reference_file = tk.StringVar()
+        ttk.Label(self, text="DECONT2 ingroup reference file").pack(
+            side=tk.TOP, anchor=tk.W)
+        ttk.Entry(self, textvariable=self.ingroup_reference_file).pack(
+            side=tk.TOP, fill=tk.X)
+
+        # spacing
+        ttk.Label(self, font=tkfont.Font(size=5)).pack(side=tk.TOP, fill=tk.X)
+
         self.panes.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
         self.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
@@ -134,6 +143,12 @@ class TaxiGUI(ttk.Frame):
             variable=self.programstate.mode,
             value=ProgramState.DECONTAMINATE,
         ).pack(side=tk.LEFT)
+        ttk.Radiobutton(
+            top_frame,
+            text="DECONT2",
+            variable=self.programstate.mode,
+            value=ProgramState.DECONT2
+        ).pack(side=tk.LEFT)
 
         ttk.Separator(top_frame, orient="vertical").pack(side=tk.LEFT, fill=tk.Y)
 
@@ -152,6 +167,11 @@ class TaxiGUI(ttk.Frame):
                 self.open_reference_command,
             ),
             ("open_button", "open input file\n(query sequences)", self.open_command),
+            (
+                "open_button",
+                "open ingroup reference\nsequence database",
+                self.open_ingroup_reference_command,
+            ),
             ("save_button", "save", self.save_command("selected")),
             ("save_all_button", "save_all", self.save_command("all")),
             ("run_button", "run", self.run_command),
@@ -180,6 +200,12 @@ class TaxiGUI(ttk.Frame):
         if not path:
             return
         self.reference_file.set(os.path.abspath(path))
+
+    def open_ingroup_reference_command(self) -> None:
+        path = tkfiledialog.askopenfilename()
+        if not path:
+            return
+        self.ingroup_reference_file.set(os.path.abspath(path))
 
     def save_command(self, which: str) -> Callable[[], None]:
         """
@@ -295,6 +321,9 @@ class TaxiGUI(ttk.Frame):
                 self.programstate.dereplicate(input_file)
             elif self.programstate.mode.get() == ProgramState.DECONTAMINATE:
                 self.programstate.decontaminate(input_file, self.reference_file.get())
+            elif self.programstate.mode.get() == ProgramState.DECONT2:
+                self.programstate.decontaminate2(
+                    input_file, self.reference_file.get(), self.ingroup_reference_file.get())
             self.fill_file_list()
             tkmessagebox.showinfo("Done", "Calculation complete.")
 

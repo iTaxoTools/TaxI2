@@ -280,6 +280,7 @@ class ProgramState:
     COMPARE_ALL = 1
     DEREPLICATE = 2
     DECONTAMINATE = 3
+    DECONT2 = 4
 
     formats = dict(
         Tabfile=TabFormat, Fasta=FastaFormat, Genbank=GenbankFormat, XLSX=XLSXFormat
