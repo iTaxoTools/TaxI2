@@ -259,6 +259,16 @@ class DecontaminateSetting():
         self.similarity = tk.StringVar(root, value="0.07")
 
 
+class Decontaminate2Setting():
+    """
+    Settings for ProgramState.decontaminate2
+    """
+
+    def __init__(self, root: tk.Misc) -> None:
+        self.root = root
+        self.alignment_free = tk.BooleanVar(root, value=True)
+
+
 class ProgramState:
     """
     Encapsulates the state of TaxI2
@@ -270,6 +280,7 @@ class ProgramState:
     COMPARE_ALL = 1
     DEREPLICATE = 2
     DECONTAMINATE = 3
+    DECONT2 = 4
 
     formats = dict(
         Tabfile=TabFormat, Fasta=FastaFormat, Genbank=GenbankFormat, XLSX=XLSXFormat
@@ -292,6 +303,7 @@ class ProgramState:
         self.cluster_size = tk.StringVar(root, value="0.05")
         self.dereplicate_settings = DereplicateSettings(root)
         self.decontaminate_settings = DecontaminateSetting(root)
+        self.decontaminate2_settings = Decontaminate2Setting(root)
         self.output_dir = output_dir
 
     def show_progress(self, message: str) -> None:
@@ -1144,6 +1156,96 @@ class ProgramState:
             sequences_num += 1000
             del closest_table
             del distance_table
+            del table
+            gc.collect()
+            self.show_progress(f"{sequences_num} sequences processed")
+
+    def decontaminate2(
+        self, input_file: str, outgroup_reference_file: str,
+        ingroup_reference_file: str
+    ) -> None:
+        self.start_time = time.monotonic()
+        if self.input_format_name.get() in {"Genbank", "XLSX"}:
+            raise ValueError(
+                f"Decontamination is not implemented for the {self.input_format_name.get()} format"
+            )
+        ingroup_table = self.input_format.load_table(ingroup_reference_file)
+        ingroup_table.set_index("seqid", inplace=True)
+        outgroup_table = self.input_format.load_table(outgroup_reference_file)
+        outgroup_table.set_index("seqid", inplace=True)
+        if not self.already_aligned.get():
+            ingroup_table["sequence"] = normalize_sequences(
+                ingroup_table["sequence"]
+            )
+            outgroup_table["sequence"] = normalize_sequences(
+                outgroup_table["sequence"]
+            )
+
+        filename, ext = os.path.splitext(input_file)
+        included_seq_file = filename + "_included_sequences" + ext
+        excluded_seq_file = filename + "_excluded_sequences" + ext
+
+        header = True
+        sequences_num = 0
+        for table in self.input_format.load_chunks(input_file, chunk_size=1000):
+            table.set_index("seqid", inplace=True)
+            if not self.already_aligned.get():
+                table["sequence"] = normalize_sequences(table["sequence"])
+            if self.decontaminate2_settings.alignment_free.get():
+                ingroup_distance_table = make_alfpy_distance_table2(
+                    table.copy(), ingroup_table)
+                outgroup_distance_table = make_alfpy_distance_table2(
+                    table.copy(), outgroup_table)
+            else:
+                ingroup_distance_table = make_distance_table2(
+                    table.copy(), ingroup_table, self.already_aligned.get())
+                outgroup_distance_table = make_distance_table2(
+                    table.copy(), outgroup_table, self.already_aligned.get())
+            pdistance_name = distances_short_names[PDISTANCE]
+            ingroup_closest_distance = (
+                ingroup_distance_table[["seqid (query 1)", pdistance_name]]
+                .groupby("seqid (query 1)")
+                .min()
+                .squeeze()
+                .dropna()
+            )
+            outgroup_closest_distance = (
+                outgroup_distance_table[["seqid (query 1)", pdistance_name]]
+                .groupby("seqid (query 1)")
+                .min()
+                .squeeze()
+                .dropna()
+            )
+            included_sequences = table.loc[
+                ingroup_closest_distance < outgroup_closest_distance]
+            excluded_sequences = table.loc[
+                ingroup_closest_distance >= outgroup_closest_distance]
+            with open(included_seq_file, mode="a") as outfile:
+                included_sequences.to_csv(
+                    outfile,
+                    sep="\t",
+                    line_terminator="\n",
+                    float_format="%.4g",
+                    header=header,
+                )
+
+            with open(excluded_seq_file, mode="a") as outfile:
+                excluded_sequences.to_csv(
+                    outfile,
+                    sep="\t",
+                    line_terminator="\n",
+                    float_format="%.4g",
+                    header=header,
+                )
+
+            header = False
+            sequences_num += 1000
+            del included_sequences
+            del excluded_sequences
+            del ingroup_closest_distance
+            del outgroup_closest_distance
+            del ingroup_distance_table
+            del outgroup_distance_table
             del table
             gc.collect()
             self.show_progress(f"{sequences_num} sequences processed")

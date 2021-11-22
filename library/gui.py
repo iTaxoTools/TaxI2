@@ -18,9 +18,9 @@ resource_path = getattr(sys, "_MEIPASS", sys.path[0])
 
 
 class TkLogger(logging.Handler):
-    """docstring for TkWarnLogger."""
+    """Displays errors and warnings with Tk Messageboxes"""
 
-    def __init__(self, level=logging.NOTSET):
+    def __init__(self, level: int = logging.NOTSET):
         logging.Handler.__init__(self, level)
         self.addFilter(
             lambda record: record.levelno == logging.WARNING
@@ -41,10 +41,10 @@ class TkLogger(logging.Handler):
 
 
 class TaxiGUI(ttk.Frame):
-    def __init__(self, *args: Any, preview_dir, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, preview_dir: str, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
-        self.images = {}
+        self.images: Dict[str, tk.PhotoImage] = {}
         self.load_images(
             {
                 "txt_icon": "file-text.png",
@@ -64,32 +64,39 @@ class TaxiGUI(ttk.Frame):
         os.mkdir(os.path.join(self.preview_dir, "graph_previews"))
 
         self.panes = ttk.Panedwindow(self, orient="horizontal")
-        self.panes.grid(row=8, column=0, sticky="nsew")
-        self.create_top_frame()
+        self.create_top_frame().pack(side=tk.TOP, fill=tk.BOTH)
         self.create_parameters_frame()
         self.create_filelist_frame()
         self.create_preview_frame()
 
-        ttk.Separator(self, orient="horizontal").grid(row=1, column=0, sticky="we")
+        ttk.Separator(self, orient="horizontal").pack(side=tk.TOP, fill=tk.X)
 
         self.input_file = tk.StringVar()
-        ttk.Label(self, text="Input file").grid(row=2, column=0, sticky="w")
-        ttk.Entry(self, textvariable=self.input_file).grid(row=3, column=0, sticky="we")
+        ttk.Label(self, text="Input file").pack(side=tk.TOP, anchor=tk.W)
+        ttk.Entry(self, textvariable=self.input_file).pack(side=tk.TOP, fill=tk.X)
 
         # spacing
-        ttk.Label(self, font=tkfont.Font(size=5)).grid(row=4, column=0)
+        ttk.Label(self, font=tkfont.Font(size=5)).pack(side=tk.TOP, fill=tk.X)
 
         self.reference_file = tk.StringVar()
-        ttk.Label(self, text="Reference").grid(row=5, column=0, sticky="w")
-        ttk.Entry(self, textvariable=self.reference_file).grid(
-            row=6, column=0, sticky="we"
-        )
+        ttk.Label(self, text="Reference").pack(side=tk.TOP, anchor=tk.W)
+        ttk.Entry(self, textvariable=self.reference_file).pack(side=tk.TOP, fill=tk.X)
 
-        ttk.Label(self, font=tkfont.Font(size=5)).grid(row=7, column=0)
+        # spacing
+        ttk.Label(self, font=tkfont.Font(size=5)).pack(side=tk.TOP, fill=tk.X)
 
-        self.rowconfigure(8, weight=1)
-        self.columnconfigure(0, weight=1)
-        self.grid(row=0, column=0, sticky="nsew")
+        self.ingroup_reference_file = tk.StringVar()
+        ttk.Label(self, text="DECONT2 ingroup reference file").pack(
+            side=tk.TOP, anchor=tk.W)
+        ttk.Entry(self, textvariable=self.ingroup_reference_file).pack(
+            side=tk.TOP, fill=tk.X)
+
+        # spacing
+        ttk.Label(self, font=tkfont.Font(size=5)).pack(side=tk.TOP, fill=tk.X)
+
+        self.panes.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
+        self.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         logger = logging.getLogger()
         logger.addHandler(TkLogger())
         logger.setLevel(logging.WARNING)
@@ -100,53 +107,58 @@ class TaxiGUI(ttk.Frame):
                 file=os.path.join(resource_path, "data", file)
             )
 
-    def create_top_frame(self) -> None:
+    def create_top_frame(self) -> ttk.Frame:
         top_frame = ttk.Frame(self, relief="sunken", padding=4)
-        top_frame.rowconfigure(0, weight=1)
-        top_frame.grid(row=0, column=0, sticky="nsew")
 
-        current_column = 0
-
-        ttk.Label(top_frame, text="TaxI3", font=tkfont.Font(size=20), padding=5).grid(
-            row=0, column=current_column
-        )
-        current_column += 1
-        ttk.Label(top_frame, text="Taxonomic identifications\nfrom DNA barcodes").grid(
-            row=0, column=current_column
-        )
-        current_column += 1
-        ttk.Separator(top_frame, orient="vertical").grid(
-            row=0, column=current_column, sticky="nsew")
-        current_column += 1
+        ttk.Label(top_frame, text="TaxI3", font=tkfont.Font(
+            size=20), padding=5).pack(side=tk.LEFT)
+        ttk.Label(top_frame, text="Taxonomic identifications\nfrom DNA barcodes").pack(
+            side=tk.LEFT)
+        ttk.Separator(top_frame, orient="vertical").pack(side=tk.LEFT, fill=tk.Y)
 
         ttk.Radiobutton(
             top_frame,
             text="Compare sequences\nagainst reference\ndatabase",
             variable=self.programstate.mode,
             value=ProgramState.COMPARE_REFERENCE,
-        ).grid(row=0, column=current_column, sticky="nsew")
-        current_column += 1
+        ).pack(side=tk.LEFT)
         ttk.Radiobutton(
             top_frame,
-            text="All-against-all\nsequence comparison\nwith genetic distance\nanalysis and clustering",
+            text="All-against-all\n"
+            "sequence comparison\n"
+            "with genetic distance\n"
+            "analysis and clustering",
             variable=self.programstate.mode,
             value=ProgramState.COMPARE_ALL,
-        ).grid(row=0, column=current_column, sticky="nsew")
-        current_column += 1
+        ).pack(side=tk.LEFT)
         ttk.Radiobutton(
             top_frame,
             text="DEREP",
             variable=self.programstate.mode,
             value=ProgramState.DEREPLICATE,
-        ).grid(row=0, column=current_column, sticky="nsew")
-        current_column += 1
+        ).pack(side=tk.LEFT)
         ttk.Radiobutton(
             top_frame,
             text="DECONT",
             variable=self.programstate.mode,
             value=ProgramState.DECONTAMINATE,
-        ).grid(row=0, column=current_column, sticky="nsew")
-        current_column += 1
+        ).pack(side=tk.LEFT)
+        ttk.Radiobutton(
+            top_frame,
+            text="DECONT2",
+            variable=self.programstate.mode,
+            value=ProgramState.DECONT2
+        ).pack(side=tk.LEFT)
+
+        ttk.Separator(top_frame, orient="vertical").pack(side=tk.LEFT, fill=tk.Y)
+
+        self.images["logo"] = tk.PhotoImage(
+            file=os.path.join(
+                resource_path, "data", "iTaxoTools Digital linneaeus MICROLOGO.png"
+            )
+        )
+        ttk.Label(top_frame, image=self.images["logo"]).pack(side=tk.RIGHT)
+        ttk.Separator(top_frame, orient="vertical").pack(side=tk.RIGHT, fill=tk.Y)
 
         for image_key, text, command in (
             (
@@ -155,6 +167,11 @@ class TaxiGUI(ttk.Frame):
                 self.open_reference_command,
             ),
             ("open_button", "open input file\n(query sequences)", self.open_command),
+            (
+                "open_button",
+                "open ingroup reference\nsequence database",
+                self.open_ingroup_reference_command,
+            ),
             ("save_button", "save", self.save_command("selected")),
             ("save_all_button", "save_all", self.save_command("all")),
             ("run_button", "run", self.run_command),
@@ -168,24 +185,9 @@ class TaxiGUI(ttk.Frame):
                 style="Toolbutton",
                 padding=(10, 0),
                 command=command,
-            ).grid(row=0, column=current_column, sticky="w")
-            current_column += 1
+            ).pack(side=tk.LEFT)
 
-        ttk.Separator(top_frame, orient="vertical").grid(
-            row=0, column=current_column, sticky="nsew"
-        )
-        current_column += 1
-        self.images["logo"] = tk.PhotoImage(
-            file=os.path.join(
-                resource_path, "data", "iTaxoTools Digital linneaeus MICROLOGO.png"
-            )
-        )
-        ttk.Label(top_frame, image=self.images["logo"]).grid(
-            row=0, column=current_column, sticky="nse"
-        )
-        current_column += 1
-
-        top_frame.columnconfigure(current_column - 3, weight=1)
+        return top_frame
 
     def open_command(self) -> None:
         path = tkfiledialog.askopenfilename()
@@ -199,12 +201,18 @@ class TaxiGUI(ttk.Frame):
             return
         self.reference_file.set(os.path.abspath(path))
 
+    def open_ingroup_reference_command(self) -> None:
+        path = tkfiledialog.askopenfilename()
+        if not path:
+            return
+        self.ingroup_reference_file.set(os.path.abspath(path))
+
     def save_command(self, which: str) -> Callable[[], None]:
         """
         which should be either "all" or "selected"
         """
 
-        def command():
+        def command() -> None:
             save_folder = tkfiledialog.askdirectory()
             if not save_folder:
                 return
@@ -236,12 +244,14 @@ class TaxiGUI(ttk.Frame):
             (
                 self.programstate.alignment_free.get()
                 and not self.only_pairwise_distance(),
-                "Only pairwise uncorrelated distance is supported for alignment-free distance calculation",
+                "Only pairwise uncorrelated distance is supported "
+                "for alignment-free distance calculation",
             ),
             (
                 self.programstate.alignment_free.get()
                 and self.programstate.print_alignments.get(),
-                "The Print alignments option cannot be selected with Alignment-free distance calculation",
+                "The Print alignments option cannot be selected "
+                "with Alignment-free distance calculation",
             ),
         ]
         for condition, msg in errors:
@@ -263,13 +273,16 @@ class TaxiGUI(ttk.Frame):
             (
                 self.programstate.mode.get() == ProgramState.COMPARE_REFERENCE
                 and self.programstate.print_alignments.get(),
-                'Printing alignments is not implemented for "Compare against reference" mode',
+                'Printing alignments is not implemented '
+                'for "Compare against reference" mode',
             ),
             (
                 self.programstate.mode.get() != ProgramState.COMPARE_REFERENCE
                 and self.programstate.mode.get() != ProgramState.DECONTAMINATE
+                and self.programstate.mode.get() != ProgramState.DECONT2
                 and self.reference_file.get(),
-                'A reference database is not needed in the selected mode and the selected reference database file will be ignored.',
+                'A reference database is not needed in the selected mode '
+                'and the selected reference database file will be ignored.',
             ),
         ]
         for condition, msg in warnings:
@@ -309,6 +322,9 @@ class TaxiGUI(ttk.Frame):
                 self.programstate.dereplicate(input_file)
             elif self.programstate.mode.get() == ProgramState.DECONTAMINATE:
                 self.programstate.decontaminate(input_file, self.reference_file.get())
+            elif self.programstate.mode.get() == ProgramState.DECONT2:
+                self.programstate.decontaminate2(
+                    input_file, self.reference_file.get(), self.ingroup_reference_file.get())
             self.fill_file_list()
             tkmessagebox.showinfo("Done", "Calculation complete.")
 
@@ -334,24 +350,11 @@ class TaxiGUI(ttk.Frame):
             yield self.filelist.item(index, option="text")
 
     def create_parameters_frame(self) -> None:
-        parameters_frame_scroll = ttk.LabelFrame(self, text="Parameters")
-        parameters_frame_scroll.rowconfigure(0, weight=1)
-        parameters_frame_scroll.columnconfigure(0, weight=1)
-        parameters_container = tk.Canvas(parameters_frame_scroll)
-        parameters_frame = ttk.Frame(parameters_container)
-        self.panes.add(parameters_frame_scroll, weight=0)
-        parameters_frame.rowconfigure(12, weight=1)
-        parameters_frame.columnconfigure(0, weight=1)
-        parameters_frame.grid(row=0, column=0, sticky="nsew")
-        parameters_container.grid(row=0, column=0, sticky="nsew")
-        parameters_scroll = ttk.Scrollbar(
-            parameters_frame_scroll, orient='vertical', command=parameters_container.yview)
-        parameters_container.configure(yscrollcommand=parameters_scroll.set)
-        parameters_scroll.grid(row=0, column=1, sticky="nsew")
+        parameters_frame = ttk.Frame(self)
+        self.panes.add(parameters_frame, weight=0)
 
-        ttk.Label(parameters_frame, text="Input file format").grid(
-            row=0, column=0, sticky="w"
-        )
+        ttk.Label(parameters_frame, text="Input file format").pack(
+            side=tk.TOP, anchor=tk.W)
 
         format_combobox = ttk.Combobox(
             parameters_frame,
@@ -360,50 +363,49 @@ class TaxiGUI(ttk.Frame):
             values=list(ProgramState.formats.keys()),
         )
         format_combobox.current(0)
-        format_combobox.grid(row=1, column=0, sticky="w")
+        format_combobox.pack(side=tk.TOP, anchor=tk.W)
 
         distances_frm = ttk.LabelFrame(
             parameters_frame, text="Distances to calculate", padding=5, relief="sunken"
         )
-        distances_frm.grid(row=2, column=0, sticky="we")
+        distances_frm.pack(side=tk.TOP, fill=tk.X)
 
         for kind in range(NDISTANCES):
             ttk.Checkbutton(
                 distances_frm,
                 variable=self.programstate.distance_options[kind],
                 text=distances_names[kind],
-            ).grid(row=kind, column=0, sticky="w")
+            ).pack(side=tk.TOP, anchor=tk.W)
 
         ttk.Checkbutton(
             parameters_frame,
             variable=self.programstate.already_aligned,
             text="Already aligned",
-        ).grid(row=3, column=0, sticky="w")
+        ).pack(side=tk.TOP, anchor=tk.W)
         ttk.Checkbutton(
             parameters_frame,
             variable=self.programstate.alignment_free,
             text="Alignment-free distance calculation",
-        ).grid(row=4, column=0, sticky="w")
+        ).pack(side=tk.TOP, anchor=tk.W)
         ttk.Checkbutton(
             parameters_frame,
             variable=self.programstate.print_alignments,
             text="Print alignments",
-        ).grid(row=5, column=0, sticky="w")
+        ).pack(side=tk.TOP, anchor=tk.W)
 
         ttk.Checkbutton(
             parameters_frame,
             variable=self.programstate.intra_species_lineages,
             text="Include 'intraspecific lineage' category",
-        ).grid(row=6, column=0, sticky="w")
+        ).pack(side=tk.TOP, anchor=tk.W)
 
         ttk.Checkbutton(
             parameters_frame,
             variable=self.programstate.perform_clustering,
             text="Perform clustering",
-        ).grid(row=7, column=0, sticky="w")
-        ttk.Label(parameters_frame, text="Clustering by:").grid(
-            row=8, column=0, sticky="w"
-        )
+        ).pack(side=tk.TOP, anchor=tk.W)
+        ttk.Label(parameters_frame, text="Clustering by:").pack(
+            side=tk.TOP, anchor=tk.W)
 
         ttk.Combobox(
             parameters_frame,
@@ -411,44 +413,70 @@ class TaxiGUI(ttk.Frame):
             state="readonly",
             values=list(distances_names),
             width=30,
-        ).grid(row=9, column=0, sticky="w")
+        ).pack(side=tk.TOP, anchor=tk.W)
 
         cluster_size_frame = ttk.Frame(parameters_frame)
-        cluster_size_frame.grid(row=10, column=0, sticky="w")
+        cluster_size_frame.pack(side=tk.TOP, anchor=tk.W)
 
         ttk.Label(
             cluster_size_frame, text="with distance threshold \n(between 0 and 1)"
-        ).grid(row=0, column=0, sticky="w")
-        ttk.Entry(cluster_size_frame, textvariable=self.programstate.cluster_size).grid(
-            row=0, column=1, sticky="w"
-        )
+        ).pack(side=tk.TOP, anchor=tk.W)
+        ttk.Entry(cluster_size_frame, textvariable=self.programstate.cluster_size).pack(
+            side=tk.TOP, anchor=tk.W)
 
-        # dereplicate_frame = ttk.LabelFrame(
-        #     parameters_frame, text="Dereplicate parameters")
-        # dereplicate_frame.grid(row=11, column=0, sticky="w")
+        dereplicate_frame = ttk.LabelFrame(
+            parameters_frame, text="Dereplicate parameters", relief=tk.SUNKEN)
+        dereplicate_frame.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
 
-        # similarity_frame = ttk.Frame(dereplicate_frame)
-        # similarity_frame.grid(row=0, column=0, sticky="w")
-        # ttk.Label(similarity_frame, text="Distance similarity threshold").grid(
-        #     row=0, column=0, sticky="w")
-        # ttk.Combobox(similarity_frame, values=[
-        #              "0.07", "0.10", "0.25", "0.31"],
-        #              textvariable=self.programstate.dereplicate_settings.similarity
-        #              ).grid(row=0, column=1, sticky="w")
+        similarity_frame = ttk.Frame(dereplicate_frame)
+        similarity_frame.pack(side=tk.TOP, anchor=tk.W)
+        ttk.Label(similarity_frame, text="Distance similarity threshold").pack(
+            side=tk.TOP, anchor=tk.W)
+        ttk.Combobox(similarity_frame, values=[
+                     "0.07", "0.10", "0.25", "0.31"],
+                     textvariable=self.programstate.dereplicate_settings.similarity
+                     ).pack(side=tk.TOP, anchor=tk.W)
 
-        # length_threshold_frame = ttk.Frame(dereplicate_frame)
-        # length_threshold_frame.grid(row=1, column=0, sticky="w")
-        # ttk.Label(length_threshold_frame, text="Remove sequences shorter than: ").grid(
-        #     row=0, column=0, sticky="w")
-        # ttk.Entry(length_threshold_frame,
-        #           textvariable=self.programstate.dereplicate_settings.length_threshold).grid(
-        #     row=0, column=1, sticky="w")
+        length_threshold_frame = ttk.Frame(dereplicate_frame)
+        length_threshold_frame.pack(side=tk.TOP, anchor=tk.W)
+        ttk.Label(length_threshold_frame, text="Remove sequences shorter than: ").pack(
+            side=tk.TOP, anchor=tk.W)
+        ttk.Entry(length_threshold_frame,
+                  textvariable=self.programstate.dereplicate_settings.length_threshold
+                  ).pack(side=tk.TOP, anchor=tk.W)
 
-        # ttk.Radiobutton(dereplicate_frame, variable=self.programstate.dereplicate_settings.keep_most_complete,
-        #                 text="Keep sequences with smallest amount of missing data").grid(row=2, column=0, sticky="w")
+        ttk.Radiobutton(dereplicate_frame,
+                        variable=self.programstate.
+                        dereplicate_settings.keep_most_complete,
+                        text="Keep sequences with smallest amount of missing data"
+                        ).pack(side=tk.TOP, anchor=tk.W)
 
-        # ttk.Radiobutton(dereplicate_frame, variable=self.programstate.dereplicate_settings.save_excluded_replicates,
-        #                 text="Save excluded replicates to separate file").grid(row=3, column=0, sticky="w")
+        ttk.Radiobutton(dereplicate_frame,
+                        variable=self.programstate
+                        .dereplicate_settings.save_excluded_replicates,
+                        text="Save excluded replicates to separate file"
+                        ).pack(side=tk.TOP, anchor=tk.W)
+
+        decontaminate_frame = ttk.LabelFrame(
+            parameters_frame, text="Decontaminate parameters", relief=tk.SUNKEN)
+        decontaminate_frame.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
+
+        ttk.Label(decontaminate_frame, text="Distance similarity threshold").pack(
+            side=tk.TOP, anchor=tk.W)
+        ttk.Entry(
+            decontaminate_frame,
+            textvariable=self.programstate.decontaminate_settings.similarity).pack(
+            side=tk.TOP, anchor=tk.W)
+
+        decont2_frame = ttk.LabelFrame(
+            parameters_frame, text="DECONT2 parameters", relief=tk.SUNKEN)
+        decont2_frame.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
+
+        ttk.Checkbutton(
+            decont2_frame,
+            text="Use alignment-free distances",
+            variable=self.programstate.decontaminate2_settings.alignment_free).pack(
+            side=tk.TOP, anchor=tk.W)
 
     def create_filelist_frame(self) -> None:
         filelist_frame = ttk.Labelframe(self, text="Files")
@@ -475,7 +503,7 @@ class TaxiGUI(ttk.Frame):
 
         self.filelist.bind("<<TreeviewSelect>>", self.preview_selected)
 
-    def icon_for_file(self, filename) -> tk.PhotoImage:
+    def icon_for_file(self, filename: str) -> tk.PhotoImage:
         TXT_EXTS = {".txt", ".tab", ".tsv", ".csv", ".spart"}
         _, ext = os.path.splitext(filename)
         if ext in TXT_EXTS:
@@ -486,7 +514,7 @@ class TaxiGUI(ttk.Frame):
             return self.images["graph_icon"]
 
     def fill_file_list(self) -> None:
-        def by_ext(name):
+        def by_ext(name: str) -> Tuple[str, str]:
             name, ext = os.path.splitext(name)
             return (ext, name)
 
@@ -521,7 +549,7 @@ class TaxiGUI(ttk.Frame):
         self.preview.config(xscrollcommand=xscroll.set)
         xscroll.grid(row=1, column=0, sticky="nsew")
 
-    def preview_selected(self, _) -> None:
+    def preview_selected(self, _: Any) -> None:
         self.preview.delete("1.0", "end")
         if not self.filelist.selection():
             return
@@ -543,22 +571,22 @@ class TaxiGUI(ttk.Frame):
         else:
             self.no_preview(full_file_to_preview)
 
-    def preview_txt(self, filename) -> None:
+    def preview_txt(self, filename: str) -> None:
         with open(filename) as file:
             self.preview.insert("1.0", file.read())
 
-    def preview_img(self, filename) -> None:
+    def preview_img(self, filename: str) -> None:
         self.images["current"] = tk.PhotoImage(file=filename)
         self.preview.image_create("1.0", image=self.images["current"])
 
-    def preview_pdf(self, filename) -> None:
+    def preview_pdf(self, filename: str) -> None:
         name, _ = os.path.splitext(filename)
         image_path = os.path.join(self.preview_dir, "graph_previews", name + ".png")
         self.images["current"] = tk.PhotoImage(file=image_path)
         self.preview.insert("1.0", "Approximate preview.\n")
         self.preview.image_create("2.0", image=self.images["current"])
 
-    def no_preview(self, _) -> None:
+    def no_preview(self, _: str) -> None:
         self.preview.insert("1.0", "Preview is not possible")
 
 
