@@ -279,6 +279,7 @@ class TaxiGUI(ttk.Frame):
             (
                 self.programstate.mode.get() != ProgramState.COMPARE_REFERENCE
                 and self.programstate.mode.get() != ProgramState.DECONTAMINATE
+                and self.programstate.mode.get() != ProgramState.DECONT2
                 and self.reference_file.get(),
                 'A reference database is not needed in the selected mode '
                 'and the selected reference database file will be ignored.',

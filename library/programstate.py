@@ -1207,14 +1207,14 @@ class ProgramState:
                 .groupby("seqid (query 1)")
                 .min()
                 .squeeze()
-                .dropna
+                .dropna()
             )
             outgroup_closest_distance = (
                 outgroup_distance_table[["seqid (query 1)", pdistance_name]]
                 .groupby("seqid (query 1)")
                 .min()
                 .squeeze()
-                .dropna
+                .dropna()
             )
             included_sequences = table.loc[
                 ingroup_closest_distance < outgroup_closest_distance]
