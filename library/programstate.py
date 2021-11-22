@@ -266,7 +266,7 @@ class Decontaminate2Setting():
 
     def __init__(self, root: tk.Misc) -> None:
         self.root = root
-        self.use_alignment = tk.BooleanVar(root, value=False)
+        self.alignment_free = tk.BooleanVar(root, value=True)
 
 
 class ProgramState:
@@ -1191,16 +1191,16 @@ class ProgramState:
             table.set_index("seqid", inplace=True)
             if not self.already_aligned.get():
                 table["sequence"] = normalize_sequences(table["sequence"])
-            if self.decontaminate2_settings.use_alignment.get():
-                ingroup_distance_table = make_distance_table2(
-                    table.copy(), ingroup_table, self.already_aligned.get())
-                outgroup_distance_table = make_distance_table2(
-                    table.copy(), outgroup_table, self.already_aligned.get())
-            else:
+            if self.decontaminate2_settings.alignment_free.get():
                 ingroup_distance_table = make_alfpy_distance_table2(
                     table.copy(), ingroup_table)
                 outgroup_distance_table = make_alfpy_distance_table2(
                     table.copy(), outgroup_table)
+            else:
+                ingroup_distance_table = make_distance_table2(
+                    table.copy(), ingroup_table, self.already_aligned.get())
+                outgroup_distance_table = make_distance_table2(
+                    table.copy(), outgroup_table, self.already_aligned.get())
             pdistance_name = distances_short_names[PDISTANCE]
             ingroup_closest_distance = (
                 ingroup_distance_table[["seqid (query 1)", pdistance_name]]

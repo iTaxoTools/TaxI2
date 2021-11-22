@@ -425,8 +425,8 @@ class TaxiGUI(ttk.Frame):
             side=tk.TOP, anchor=tk.W)
 
         dereplicate_frame = ttk.LabelFrame(
-            parameters_frame, text="Dereplicate parameters")
-        dereplicate_frame.pack(side=tk.TOP, anchor=tk.W)
+            parameters_frame, text="Dereplicate parameters", relief=tk.SUNKEN)
+        dereplicate_frame.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
 
         similarity_frame = ttk.Frame(dereplicate_frame)
         similarity_frame.pack(side=tk.TOP, anchor=tk.W)
@@ -456,6 +456,27 @@ class TaxiGUI(ttk.Frame):
                         .dereplicate_settings.save_excluded_replicates,
                         text="Save excluded replicates to separate file"
                         ).pack(side=tk.TOP, anchor=tk.W)
+
+        decontaminate_frame = ttk.LabelFrame(
+            parameters_frame, text="Decontaminate parameters", relief=tk.SUNKEN)
+        decontaminate_frame.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
+
+        ttk.Label(decontaminate_frame, text="Distance similarity threshold").pack(
+            side=tk.TOP, anchor=tk.W)
+        ttk.Entry(
+            decontaminate_frame,
+            textvariable=self.programstate.decontaminate_settings.similarity).pack(
+            side=tk.TOP, anchor=tk.W)
+
+        decont2_frame = ttk.LabelFrame(
+            parameters_frame, text="DECONT2 parameters", relief=tk.SUNKEN)
+        decont2_frame.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
+
+        ttk.Checkbutton(
+            decont2_frame,
+            text="Use alignment-free distances",
+            variable=self.programstate.decontaminate2_settings.alignment_free).pack(
+            side=tk.TOP, anchor=tk.W)
 
     def create_filelist_frame(self) -> None:
         filelist_frame = ttk.Labelframe(self, text="Files")
