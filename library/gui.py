@@ -18,9 +18,9 @@ resource_path = getattr(sys, "_MEIPASS", sys.path[0])
 
 
 class TkLogger(logging.Handler):
-    """docstring for TkWarnLogger."""
+    """Displays errors and warnings with Tk Messageboxes"""
 
-    def __init__(self, level=logging.NOTSET):
+    def __init__(self, level: int = logging.NOTSET):
         logging.Handler.__init__(self, level)
         self.addFilter(
             lambda record: record.levelno == logging.WARNING
@@ -41,10 +41,10 @@ class TkLogger(logging.Handler):
 
 
 class TaxiGUI(ttk.Frame):
-    def __init__(self, *args: Any, preview_dir, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, preview_dir: str, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
-        self.images = {}
+        self.images: Dict[str, tk.PhotoImage] = {}
         self.load_images(
             {
                 "txt_icon": "file-text.png",
@@ -128,7 +128,10 @@ class TaxiGUI(ttk.Frame):
         current_column += 1
         ttk.Radiobutton(
             top_frame,
-            text="All-against-all\nsequence comparison\nwith genetic distance\nanalysis and clustering",
+            text="All-against-all\n"
+            "sequence comparison\n"
+            "with genetic distance\n"
+            "analysis and clustering",
             variable=self.programstate.mode,
             value=ProgramState.COMPARE_ALL,
         ).grid(row=0, column=current_column, sticky="nsew")
@@ -204,7 +207,7 @@ class TaxiGUI(ttk.Frame):
         which should be either "all" or "selected"
         """
 
-        def command():
+        def command() -> None:
             save_folder = tkfiledialog.askdirectory()
             if not save_folder:
                 return
@@ -236,12 +239,14 @@ class TaxiGUI(ttk.Frame):
             (
                 self.programstate.alignment_free.get()
                 and not self.only_pairwise_distance(),
-                "Only pairwise uncorrelated distance is supported for alignment-free distance calculation",
+                "Only pairwise uncorrelated distance is supported "
+                "for alignment-free distance calculation",
             ),
             (
                 self.programstate.alignment_free.get()
                 and self.programstate.print_alignments.get(),
-                "The Print alignments option cannot be selected with Alignment-free distance calculation",
+                "The Print alignments option cannot be selected "
+                "with Alignment-free distance calculation",
             ),
         ]
         for condition, msg in errors:
@@ -263,13 +268,15 @@ class TaxiGUI(ttk.Frame):
             (
                 self.programstate.mode.get() == ProgramState.COMPARE_REFERENCE
                 and self.programstate.print_alignments.get(),
-                'Printing alignments is not implemented for "Compare against reference" mode',
+                'Printing alignments is not implemented '
+                'for "Compare against reference" mode',
             ),
             (
                 self.programstate.mode.get() != ProgramState.COMPARE_REFERENCE
                 and self.programstate.mode.get() != ProgramState.DECONTAMINATE
                 and self.reference_file.get(),
-                'A reference database is not needed in the selected mode and the selected reference database file will be ignored.',
+                'A reference database is not needed in the selected mode '
+                'and the selected reference database file will be ignored.',
             ),
         ]
         for condition, msg in warnings:
@@ -345,7 +352,8 @@ class TaxiGUI(ttk.Frame):
         parameters_frame.grid(row=0, column=0, sticky="nsew")
         parameters_container.grid(row=0, column=0, sticky="nsew")
         parameters_scroll = ttk.Scrollbar(
-            parameters_frame_scroll, orient='vertical', command=parameters_container.yview)
+            parameters_frame_scroll, orient='vertical',
+            command=parameters_container.yview)
         parameters_container.configure(yscrollcommand=parameters_scroll.set)
         parameters_scroll.grid(row=0, column=1, sticky="nsew")
 
@@ -475,7 +483,7 @@ class TaxiGUI(ttk.Frame):
 
         self.filelist.bind("<<TreeviewSelect>>", self.preview_selected)
 
-    def icon_for_file(self, filename) -> tk.PhotoImage:
+    def icon_for_file(self, filename: str) -> tk.PhotoImage:
         TXT_EXTS = {".txt", ".tab", ".tsv", ".csv", ".spart"}
         _, ext = os.path.splitext(filename)
         if ext in TXT_EXTS:
@@ -486,7 +494,7 @@ class TaxiGUI(ttk.Frame):
             return self.images["graph_icon"]
 
     def fill_file_list(self) -> None:
-        def by_ext(name):
+        def by_ext(name: str) -> Tuple[str, str]:
             name, ext = os.path.splitext(name)
             return (ext, name)
 
@@ -521,7 +529,7 @@ class TaxiGUI(ttk.Frame):
         self.preview.config(xscrollcommand=xscroll.set)
         xscroll.grid(row=1, column=0, sticky="nsew")
 
-    def preview_selected(self, _) -> None:
+    def preview_selected(self, _: Any) -> None:
         self.preview.delete("1.0", "end")
         if not self.filelist.selection():
             return
@@ -543,22 +551,22 @@ class TaxiGUI(ttk.Frame):
         else:
             self.no_preview(full_file_to_preview)
 
-    def preview_txt(self, filename) -> None:
+    def preview_txt(self, filename: str) -> None:
         with open(filename) as file:
             self.preview.insert("1.0", file.read())
 
-    def preview_img(self, filename) -> None:
+    def preview_img(self, filename: str) -> None:
         self.images["current"] = tk.PhotoImage(file=filename)
         self.preview.image_create("1.0", image=self.images["current"])
 
-    def preview_pdf(self, filename) -> None:
+    def preview_pdf(self, filename: str) -> None:
         name, _ = os.path.splitext(filename)
         image_path = os.path.join(self.preview_dir, "graph_previews", name + ".png")
         self.images["current"] = tk.PhotoImage(file=image_path)
         self.preview.insert("1.0", "Approximate preview.\n")
         self.preview.image_create("2.0", image=self.images["current"])
 
-    def no_preview(self, _) -> None:
+    def no_preview(self, _: str) -> None:
         self.preview.insert("1.0", "Preview is not possible")
 
 
