@@ -1420,6 +1420,6 @@ def convert_percent(table: pd.DataFrame) -> None:
     for column in table.columns:
         try:
             table[column] = table[column].str.replace(
-                num_regex, lambda m: f"{(100 * float(m.group())):4g}", regex=True)
+                num_regex, lambda m: f"{(100 * float(m.group())):.4g}", regex=True)
         except AttributeError:
             pass
