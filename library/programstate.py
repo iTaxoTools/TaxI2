@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import networkx as nx
 import os
+from pathlib import Path
 import sys
 import math
 import re
@@ -325,6 +326,15 @@ class ProgramState:
             table.to_csv(
                 outfile, sep="\t", line_terminator="\n", float_format="%.4g", **kwargs
             )
+        if 'distance' in description:
+            table = table.copy()
+            convert_percent(table)
+            out_name = self.output_name(description + " in percent")
+            with open(out_name, mode="w") as outfile:
+                print(description, file=outfile)
+                table.to_csv(
+                    outfile, sep="\t", line_terminator="\n", float_format="%.4g", **kwargs
+                )
 
     def output_square(self, description: str, table: pd.DataFrame, **kwargs) -> None:
         out_name = self.output_name(description)
@@ -336,6 +346,14 @@ class ProgramState:
             table.to_csv(
                 outfile, sep="\t", line_terminator="\n", float_format="%.4g", **kwargs
             )
+        if 'distance' in description:
+            convert_percent(table)
+            out_name = self.output_name(description + " in percent")
+            with open(out_name, mode="w") as outfile:
+                print(description, file=outfile)
+                table.to_csv(
+                    outfile, sep="\t", line_terminator="\n", float_format="%.4g", **kwargs
+                )
 
     def process(self, input_file: str) -> None:
         self.start_time = time.monotonic()
@@ -1391,3 +1409,17 @@ def find_closest_from_another(table: pd.DataFrame) -> pd.Series:
 def select_genus(species: str) -> str:
     genus, _ = re.split(r"[ _]", species, maxsplit=1)
     return genus
+
+
+def convert_percent(table: pd.DataFrame) -> None:
+    """
+    Multiplies all numbers in table by 100
+    """
+    table[table.select_dtypes(include='number').columns] *= 100
+    num_regex = re.compile(r'(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?')
+    for column in table.columns:
+        try:
+            table[column] = table[column].str.replace(
+                num_regex, lambda m: f"{(100 * float(m.group())):4g}", regex=True)
+        except AttributeError:
+            pass
