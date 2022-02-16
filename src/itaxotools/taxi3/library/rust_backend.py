@@ -12,8 +12,6 @@ import numpy as np
 from .seq import PDISTANCE, NDISTANCES
 from .resources import get_resource
 
-resource_path = getattr(sys, "_MEIPASS", sys.path[0])
-
 
 distances_short_names = [
     "p-distance",

@@ -8,8 +8,6 @@ import re
 
 from .resources import get_resource
 
-resource_path = getattr(sys, "_MEIPASS", sys.path[0])
-
 
 with open(get_resource("scores.tab")) as scores_file:
     scores_dict = {}

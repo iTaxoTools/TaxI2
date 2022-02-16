@@ -22,7 +22,7 @@ from .sequence_statistics import (
 from .alfpy_distance import make_alfpy_distance_table, make_alfpy_distance_table2
 from .resources import get_resource
 
-resource_path = getattr(sys, "_MEIPASS", sys.path[0])
+
 with open(get_resource("options.tab")) as options_file:
     option, _, val = options_file.readline().rstrip().partition("\t")
     if option == "distance_calculation":
