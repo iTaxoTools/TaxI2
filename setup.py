@@ -7,6 +7,7 @@ https://github.com/pypa/sampleproject
 
 # Always prefer setuptools over distutils
 from setuptools import setup, find_namespace_packages
+from setuptools_rust import RustExtension, Binding
 import pathlib
 
 here = pathlib.Path(__file__).parent.resolve()
@@ -40,12 +41,29 @@ setup(
         include=("itaxotools*",),
         where="src",
     ),
+    rust_extensions=[
+        RustExtension(
+            "itaxotools.taxi3.library.calculate_distances",
+            binding=Binding.PyO3,
+            path=str(
+                here
+                / "src"
+                / "itaxotools"
+                / "taxi3"
+                / "library"
+                / "calculate_distances"
+                / "Cargo.toml"
+            ),
+        )
+    ],
     python_requires=">=3.9, <4",
     install_requires=[
         "alfpy",
+        "BioPython",
         "numpy",
-        "pandas",
         "networkx",
+        "pandas",
+        "seaborn",
     ],
     extras_require={
         "dev": ["pyinstaller"],

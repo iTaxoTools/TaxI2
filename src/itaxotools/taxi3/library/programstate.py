@@ -20,9 +20,10 @@ from .sequence_statistics import (
     sequence_statistics_with_gaps,
 )
 from .alfpy_distance import make_alfpy_distance_table, make_alfpy_distance_table2
+from .resources import get_resource
 
 resource_path = getattr(sys, "_MEIPASS", sys.path[0])
-with open(os.path.join(resource_path, "data", "options.tab")) as options_file:
+with open(get_resource("options.tab")) as options_file:
     option, _, val = options_file.readline().rstrip().partition("\t")
     if option == "distance_calculation":
         if val not in {"Rust", "Python"}:
@@ -33,7 +34,7 @@ with open(os.path.join(resource_path, "data", "options.tab")) as options_file:
     else:
         raise ValueError("distance_calculation value is missing in data/options.tab")
 if BACKEND == "Python":
-    from library.python_backend import (
+    from .python_backend import (
         make_distance_table,
         make_distance_table2,
         make_aligner,
@@ -43,7 +44,7 @@ if BACKEND == "Python":
         show_alignment,
     )
 elif BACKEND == "Rust":
-    from library.rust_backend import (
+    from .rust_backend import (
         make_distance_table,
         make_distance_table2,
         make_aligner,

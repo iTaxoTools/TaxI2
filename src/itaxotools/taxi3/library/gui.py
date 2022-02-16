@@ -13,6 +13,7 @@ import tkinter.filedialog as tkfiledialog
 from .programstate import *
 from .gui_utils import display_errors_and_warnings
 from .plot_taxi import Plot
+from .resources import get_resource
 
 resource_path = getattr(sys, "_MEIPASS", sys.path[0])
 
@@ -105,9 +106,7 @@ class TaxiGUI(ttk.Frame):
 
     def load_images(self, image_dict: Dict[str, str]) -> None:
         for key, file in image_dict.items():
-            self.images[key] = tk.PhotoImage(
-                file=os.path.join(resource_path, "data", file)
-            )
+            self.images[key] = tk.PhotoImage(file=get_resource(file))
 
     def create_top_frame(self) -> ttk.Frame:
         top_frame = ttk.Frame(self, relief="sunken", padding=4)
@@ -157,9 +156,7 @@ class TaxiGUI(ttk.Frame):
         ttk.Separator(top_frame, orient="vertical").pack(side=tk.LEFT, fill=tk.Y)
 
         self.images["logo"] = tk.PhotoImage(
-            file=os.path.join(
-                resource_path, "data", "iTaxoTools Digital linneaeus MICROLOGO.png"
-            )
+            file=get_resource("iTaxoTools Digital linneaeus MICROLOGO.png")
         )
         ttk.Label(top_frame, image=self.images["logo"]).pack(side=tk.RIGHT)
         ttk.Separator(top_frame, orient="vertical").pack(side=tk.RIGHT, fill=tk.Y)

@@ -6,26 +6,29 @@ import math
 import numpy as np
 import re
 
-resource_path = getattr(sys, '_MEIPASS', sys.path[0])
+from .resources import get_resource
+
+resource_path = getattr(sys, "_MEIPASS", sys.path[0])
 
 
-with open(os.path.join(resource_path, 'data', 'scores.tab')) as scores_file:
+with open(get_resource("scores.tab")) as scores_file:
     scores_dict = {}
     for line in scores_file:
-        score_name, _, val = line.partition('\t')
+        score_name, _, val = line.partition("\t")
         try:
             scores_dict[score_name] = int(val)
         except ValueError as ex:
             raise ValueError(
-                f"The value for '{score_name}' in data/scores.tab is not a number") from ex
+                f"The value for '{score_name}' in data/scores.tab is not a number"
+            ) from ex
 
 try:
-    GAP_PENALTY = scores_dict['gap penalty']
-    GAP_EXTEND_PENALTY = scores_dict['gap extend penalty']
-    END_GAP_PENALTY = scores_dict['end gap penalty']
-    END_GAP_EXTEND_PENALTY = scores_dict['end gap extend penalty']
-    MATCH_SCORE = scores_dict['match score']
-    MISMATCH_SCORE = scores_dict['mismatch score']
+    GAP_PENALTY = scores_dict["gap penalty"]
+    GAP_EXTEND_PENALTY = scores_dict["gap extend penalty"]
+    END_GAP_PENALTY = scores_dict["end gap penalty"]
+    END_GAP_EXTEND_PENALTY = scores_dict["end gap extend penalty"]
+    MATCH_SCORE = scores_dict["match score"]
+    MISMATCH_SCORE = scores_dict["mismatch score"]
 except KeyError as ex:
     raise ValueError(f"'{ex.args[0]}' is missing in data/scores.tab") from ex
 
@@ -39,11 +42,18 @@ NDISTANCES = 4
 
 
 def make_aligner() -> PairwiseAligner:
-    aligner = PairwiseAligner(match_score=MATCH_SCORE, mismatch_score=MISMATCH_SCORE, end_open_gap_score=END_GAP_PENALTY,
-                              end_extend_gap_score=END_GAP_EXTEND_PENALTY, internal_open_gap_score=GAP_PENALTY, internal_extend_gap_score=GAP_EXTEND_PENALTY)
+    aligner = PairwiseAligner(
+        match_score=MATCH_SCORE,
+        mismatch_score=MISMATCH_SCORE,
+        end_open_gap_score=END_GAP_PENALTY,
+        end_extend_gap_score=END_GAP_EXTEND_PENALTY,
+        internal_open_gap_score=GAP_PENALTY,
+        internal_extend_gap_score=GAP_EXTEND_PENALTY,
+    )
     return aligner
 
-class Seq():
+
+class Seq:
     """
     Wrapper for sequences
     """
@@ -54,34 +64,37 @@ class Seq():
     def __len__(self) -> int:
         return len(self.seq)
 
-    def align(self, other: 'Seq') -> 'Alignment':
+    def align(self, other: "Seq") -> "Alignment":
         aligner = make_aligner()
         alignment = aligner.align(self.seq, other.seq)[0].aligned
         del aligner
         return Alignment(alignment)
 
-class Alignment():
+
+class Alignment:
     """
     Represents the alignment
     """
 
-    content_regex = re.compile(r'[^-nN?].*[^-nN?]')
+    content_regex = re.compile(r"[^-nN?].*[^-nN?]")
 
-    def __init__(self, alignment: Tuple[Tuple[Tuple[int, int], ...], Tuple[Tuple[int, int], ...]]) -> None:
+    def __init__(
+        self, alignment: Tuple[Tuple[Tuple[int, int], ...], Tuple[Tuple[int, int], ...]]
+    ) -> None:
         self.alignment = alignment
 
     @classmethod
-    def already_aligned(cls, target: Seq, query: Seq) -> 'Alignment':
-        (target_start, target_end) = Alignment.content_regex.search(
-            target.seq).span()
+    def already_aligned(cls, target: Seq, query: Seq) -> "Alignment":
+        (target_start, target_end) = Alignment.content_regex.search(target.seq).span()
         (query_start, query_end) = Alignment.content_regex.search(query.seq).span()
-        content_span = (max(target_start, query_start),
-                        min(target_end, query_end))
+        content_span = (max(target_start, query_start), min(target_end, query_end))
         return cls(((content_span,), (content_span,)))
+
 
 Fragment = Tuple[Tuple[int, int], Tuple[int, int]]
 
-class AlignmentStats():
+
+class AlignmentStats:
     """
     Summary of alignment information
     """
@@ -116,17 +129,17 @@ class AlignmentStats():
     def jukes_cantor_distance(self) -> float:
         p = self.substitions / self.common_length
         try:
-            return abs(- (3 / 4) * math.log(1 - (4 / 3) * p))
+            return abs(-(3 / 4) * math.log(1 - (4 / 3) * p))
         except ValueError:
-            return float('inf')
+            return float("inf")
 
     def kimura2p_distance(self) -> float:
         p = self.transitions / self.common_length
         q = self.transversions / self.common_length
         try:
-            return abs(- (1 / 2) * math.log((1 - 2 * p - q) * math.sqrt(1 - 2 * q)))
+            return abs(-(1 / 2) * math.log((1 - 2 * p - q) * math.sqrt(1 - 2 * q)))
         except ValueError:
-            return float('inf')
+            return float("inf")
 
     def update(self, frag: Fragment, target: str, query: str) -> None:
         self.update_total_length(frag)
@@ -138,8 +151,12 @@ class AlignmentStats():
 
     def update_total_length(self, frag: Fragment) -> None:
         ((target_start, target_end), (query_start, _)) = frag
-        self.total_length += target_end - target_start + \
-            self.target_gap(target_start) + self.query_gap(query_start)
+        self.total_length += (
+            target_end
+            - target_start
+            + self.target_gap(target_start)
+            + self.query_gap(query_start)
+        )
 
     def update_common_length(self, frag: Fragment) -> None:
         ((target_start, target_end), _) = frag
@@ -147,20 +164,23 @@ class AlignmentStats():
 
     def update_total_gap_length(self, frag: Fragment) -> None:
         ((target_start, _), (query_start, _)) = frag
-        self.total_gap_length += self.target_gap(
-            target_start) + self.query_gap(query_start)
+        self.total_gap_length += self.target_gap(target_start) + self.query_gap(
+            query_start
+        )
 
-    def update_transitions_and_transversions(self, frag: Fragment, target: str, query: str) -> None:
+    def update_transitions_and_transversions(
+        self, frag: Fragment, target: str, query: str
+    ) -> None:
         (target_frag, query_frag) = frag
         for pair in zip(target[slice(*target_frag)], query[slice(*query_frag)]):
-            is_missing_0 = pair[0] in '-nN?'
-            is_missing_1 = pair[1] in '-nN?'
+            is_missing_0 = pair[0] in "-nN?"
+            is_missing_1 = pair[1] in "-nN?"
             if pair[0] == pair[1]:
                 continue
-            elif (is_missing_0 and is_missing_1):
+            elif is_missing_0 and is_missing_1:
                 self.common_length -= 1
                 self.total_length -= 1
-            elif pair[0] == '-' or pair[1] == '-':
+            elif pair[0] == "-" or pair[1] == "-":
                 self.common_length -= 1
                 self.total_gap_length += 1
             elif is_missing_0 or is_missing_1:
@@ -168,8 +188,7 @@ class AlignmentStats():
                 self.total_length -= 1
             else:
                 self.transitions += AlignmentStats.is_transition(pair)
-                self.transversions += 1 - \
-                    AlignmentStats.is_transition(pair)
+                self.transversions += 1 - AlignmentStats.is_transition(pair)
 
     def _update_previous_target_end(self, frag: Fragment) -> None:
         self._previous_target_end = frag[0][1]
@@ -179,7 +198,7 @@ class AlignmentStats():
 
     @staticmethod
     def is_transition(pair: Tuple[str, str]) -> bool:
-        return pair in {('a', 'g'), ('g', 'a'), ('c', 't'), ('t', 'c')}
+        return pair in {("a", "g"), ("g", "a"), ("c", "t"), ("t", "c")}
 
     def target_gap(self, target_start: int) -> int:
         if self._previous_target_end:
@@ -193,9 +212,11 @@ class AlignmentStats():
         else:
             return 0
 
+
 def show_alignment(aligner, target: str, query: str, file: TextIO) -> None:
     alignment = aligner.align(target, query)[0]
     print(alignment, file=file)
+
 
 def seq_distances(target: str, query: str) -> np.array:
     """
@@ -215,7 +236,15 @@ def seq_distances(target: str, query: str) -> np.array:
     stats = AlignmentStats()
     stats.calculate(alignment, seq_target, seq_query)
     del alignment
-    return np.array([stats.pdistance(), stats.jukes_cantor_distance(), stats.kimura2p_distance(), stats.pdistance_counting_gaps()])
+    return np.array(
+        [
+            stats.pdistance(),
+            stats.jukes_cantor_distance(),
+            stats.kimura2p_distance(),
+            stats.pdistance_counting_gaps(),
+        ]
+    )
+
 
 def seq_distance_aligned(target: str, query: str) -> np.array:
     """
@@ -236,9 +265,15 @@ def seq_distance_aligned(target: str, query: str) -> np.array:
     alignment = Alignment.already_aligned(seq_target, seq_query)
     stats = AlignmentStats()
     stats.calculate(alignment, seq_target, seq_query)
-    return np.array([stats.pdistance(), stats.jukes_cantor_distance(), stats.kimura2p_distance(), stats.pdistance_counting_gaps()])
+    return np.array(
+        [
+            stats.pdistance(),
+            stats.jukes_cantor_distance(),
+            stats.kimura2p_distance(),
+            stats.pdistance_counting_gaps(),
+        ]
+    )
+
 
 seq_distances_ufunc: np.ufunc = np.frompyfunc(seq_distances, 2, 1)
-seq_distances_aligned_ufunc: np.ufunc = np.frompyfunc(
-    seq_distance_aligned, 2, 1)
-
+seq_distances_aligned_ufunc: np.ufunc = np.frompyfunc(seq_distance_aligned, 2, 1)

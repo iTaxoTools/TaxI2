@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import library.calculate_distances as calc
+from . import calculate_distances as calc
 import math
 import gc
 import sys
@@ -10,17 +10,9 @@ import pandas as pd
 import numpy as np
 
 from .seq import PDISTANCE, NDISTANCES
+from .resources import get_resource
 
 resource_path = getattr(sys, "_MEIPASS", sys.path[0])
-
-if os.name == "nt":
-    library_name = "calculate_distances.pyd"
-elif os.name == "posix":
-    library_name = "calculate_distances.so"
-if not os.path.exists(os.path.join(resource_path, "library", library_name)):
-    raise ImportError(
-        f"The file library/{library_name} is missing.\nTry running library/copy_rust_lib.py"
-    )
 
 
 distances_short_names = [
@@ -31,7 +23,7 @@ distances_short_names = [
 ]
 
 
-with open(os.path.join(resource_path, "data", "scores.tab")) as scores_file:
+with open(get_resource("scores.tab")) as scores_file:
     scores_dict = {}
     for line in scores_file:
         score_name, _, val = line.partition("\t")
