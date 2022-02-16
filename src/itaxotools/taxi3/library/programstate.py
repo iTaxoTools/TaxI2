@@ -13,13 +13,13 @@ import time
 import gc
 import itertools
 from typing import Union, TextIO, Iterator, Tuple, Any, Dict, Optional, List
-from library.fasta import Fastafile
-from library.genbank import GenbankFile
-from library.sequence_statistics import (
+from .fasta import Fastafile
+from .genbank import GenbankFile
+from .sequence_statistics import (
     sequence_statistics,
     sequence_statistics_with_gaps,
 )
-from library.alfpy_distance import make_alfpy_distance_table, make_alfpy_distance_table2
+from .alfpy_distance import make_alfpy_distance_table, make_alfpy_distance_table2
 
 resource_path = getattr(sys, "_MEIPASS", sys.path[0])
 with open(os.path.join(resource_path, "data", "options.tab")) as options_file:

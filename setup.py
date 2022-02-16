@@ -42,8 +42,10 @@ setup(
     ),
     python_requires=">=3.9, <4",
     install_requires=[
+        "alfpy",
         "numpy",
         "pandas",
+        "networkx",
     ],
     extras_require={
         "dev": ["pyinstaller"],

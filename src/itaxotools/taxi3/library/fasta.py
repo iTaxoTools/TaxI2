@@ -1,4 +1,4 @@
-from library.record import *
+from .record import *
 from typing import TextIO, Iterator, List, Tuple, Callable
 
 
@@ -8,7 +8,7 @@ def split_file(file: TextIO) -> Iterator[List[str]]:
     """
     # find the beginning of the first record
     line = " "
-    while line[0] != '>':
+    while line[0] != ">":
         line = file.readline()
 
     # chunk contains the already read lines of the current record
@@ -22,7 +22,7 @@ def split_file(file: TextIO) -> Iterator[List[str]]:
             continue
 
         # yield the chunk if the new record has begun
-        if line[0] == '>':
+        if line[0] == ">":
             yield chunk
             chunk = []
 
@@ -34,18 +34,19 @@ def split_file(file: TextIO) -> Iterator[List[str]]:
 
 
 class Fastafile:
-    """ Class for standard FASTA files"""
+    """Class for standard FASTA files"""
 
     @staticmethod
     def read(file: TextIO) -> Tuple[List[str], Callable[[], Iterator[Record]]]:
         """FASTA reader method"""
 
         # FASTA always have the same fields
-        fields = ['seqid', 'sequence']
+        fields = ["seqid", "sequence"]
 
         def record_generator() -> Iterator[Record]:
             for chunk in split_file(file):
                 # 'seqid' is the first line without the initial character
                 # 'sequence' is the concatenation of all the other lines
                 yield Record(seqid=chunk[0][1:], sequence="".join(chunk[1:]))
+
         return fields, record_generator

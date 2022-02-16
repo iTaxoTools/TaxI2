@@ -10,9 +10,9 @@ import tkinter.font as tkfont
 import tkinter.messagebox as tkmessagebox
 import tkinter.filedialog as tkfiledialog
 
-from library.programstate import *
-from library.gui_utils import display_errors_and_warnings
-from library.plot_taxi import Plot
+from .programstate import *
+from .gui_utils import display_errors_and_warnings
+from .plot_taxi import Plot
 
 resource_path = getattr(sys, "_MEIPASS", sys.path[0])
 
@@ -87,9 +87,11 @@ class TaxiGUI(ttk.Frame):
 
         self.ingroup_reference_file = tk.StringVar()
         ttk.Label(self, text="DECONT2 ingroup reference file").pack(
-            side=tk.TOP, anchor=tk.W)
+            side=tk.TOP, anchor=tk.W
+        )
         ttk.Entry(self, textvariable=self.ingroup_reference_file).pack(
-            side=tk.TOP, fill=tk.X)
+            side=tk.TOP, fill=tk.X
+        )
 
         # spacing
         ttk.Label(self, font=tkfont.Font(size=5)).pack(side=tk.TOP, fill=tk.X)
@@ -110,10 +112,12 @@ class TaxiGUI(ttk.Frame):
     def create_top_frame(self) -> ttk.Frame:
         top_frame = ttk.Frame(self, relief="sunken", padding=4)
 
-        ttk.Label(top_frame, text="TaxI3", font=tkfont.Font(
-            size=20), padding=5).pack(side=tk.LEFT)
+        ttk.Label(top_frame, text="TaxI3", font=tkfont.Font(size=20), padding=5).pack(
+            side=tk.LEFT
+        )
         ttk.Label(top_frame, text="Taxonomic identifications\nfrom DNA barcodes").pack(
-            side=tk.LEFT)
+            side=tk.LEFT
+        )
         ttk.Separator(top_frame, orient="vertical").pack(side=tk.LEFT, fill=tk.Y)
 
         ttk.Radiobutton(
@@ -147,7 +151,7 @@ class TaxiGUI(ttk.Frame):
             top_frame,
             text="DECONT2",
             variable=self.programstate.mode,
-            value=ProgramState.DECONT2
+            value=ProgramState.DECONT2,
         ).pack(side=tk.LEFT)
 
         ttk.Separator(top_frame, orient="vertical").pack(side=tk.LEFT, fill=tk.Y)
@@ -273,7 +277,7 @@ class TaxiGUI(ttk.Frame):
             (
                 self.programstate.mode.get() == ProgramState.COMPARE_REFERENCE
                 and self.programstate.print_alignments.get(),
-                'Printing alignments is not implemented '
+                "Printing alignments is not implemented "
                 'for "Compare against reference" mode',
             ),
             (
@@ -281,8 +285,8 @@ class TaxiGUI(ttk.Frame):
                 and self.programstate.mode.get() != ProgramState.DECONTAMINATE
                 and self.programstate.mode.get() != ProgramState.DECONT2
                 and self.reference_file.get(),
-                'A reference database is not needed in the selected mode '
-                'and the selected reference database file will be ignored.',
+                "A reference database is not needed in the selected mode "
+                "and the selected reference database file will be ignored.",
             ),
         ]
         for condition, msg in warnings:
@@ -324,7 +328,10 @@ class TaxiGUI(ttk.Frame):
                 self.programstate.decontaminate(input_file, self.reference_file.get())
             elif self.programstate.mode.get() == ProgramState.DECONT2:
                 self.programstate.decontaminate2(
-                    input_file, self.reference_file.get(), self.ingroup_reference_file.get())
+                    input_file,
+                    self.reference_file.get(),
+                    self.ingroup_reference_file.get(),
+                )
             self.fill_file_list()
             tkmessagebox.showinfo("Done", "Calculation complete.")
 
@@ -354,7 +361,8 @@ class TaxiGUI(ttk.Frame):
         self.panes.add(parameters_frame, weight=0)
 
         ttk.Label(parameters_frame, text="Input file format").pack(
-            side=tk.TOP, anchor=tk.W)
+            side=tk.TOP, anchor=tk.W
+        )
 
         format_combobox = ttk.Combobox(
             parameters_frame,
@@ -405,7 +413,8 @@ class TaxiGUI(ttk.Frame):
             text="Perform clustering",
         ).pack(side=tk.TOP, anchor=tk.W)
         ttk.Label(parameters_frame, text="Clustering by:").pack(
-            side=tk.TOP, anchor=tk.W)
+            side=tk.TOP, anchor=tk.W
+        )
 
         ttk.Combobox(
             parameters_frame,
@@ -422,61 +431,70 @@ class TaxiGUI(ttk.Frame):
             cluster_size_frame, text="with distance threshold \n(between 0 and 1)"
         ).pack(side=tk.TOP, anchor=tk.W)
         ttk.Entry(cluster_size_frame, textvariable=self.programstate.cluster_size).pack(
-            side=tk.TOP, anchor=tk.W)
+            side=tk.TOP, anchor=tk.W
+        )
 
         dereplicate_frame = ttk.LabelFrame(
-            parameters_frame, text="Dereplicate parameters", relief=tk.SUNKEN)
+            parameters_frame, text="Dereplicate parameters", relief=tk.SUNKEN
+        )
         dereplicate_frame.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
 
         similarity_frame = ttk.Frame(dereplicate_frame)
         similarity_frame.pack(side=tk.TOP, anchor=tk.W)
         ttk.Label(similarity_frame, text="Distance similarity threshold").pack(
-            side=tk.TOP, anchor=tk.W)
-        ttk.Combobox(similarity_frame, values=[
-                     "0.07", "0.10", "0.25", "0.31"],
-                     textvariable=self.programstate.dereplicate_settings.similarity
-                     ).pack(side=tk.TOP, anchor=tk.W)
+            side=tk.TOP, anchor=tk.W
+        )
+        ttk.Combobox(
+            similarity_frame,
+            values=["0.07", "0.10", "0.25", "0.31"],
+            textvariable=self.programstate.dereplicate_settings.similarity,
+        ).pack(side=tk.TOP, anchor=tk.W)
 
         length_threshold_frame = ttk.Frame(dereplicate_frame)
         length_threshold_frame.pack(side=tk.TOP, anchor=tk.W)
         ttk.Label(length_threshold_frame, text="Remove sequences shorter than: ").pack(
-            side=tk.TOP, anchor=tk.W)
-        ttk.Entry(length_threshold_frame,
-                  textvariable=self.programstate.dereplicate_settings.length_threshold
-                  ).pack(side=tk.TOP, anchor=tk.W)
+            side=tk.TOP, anchor=tk.W
+        )
+        ttk.Entry(
+            length_threshold_frame,
+            textvariable=self.programstate.dereplicate_settings.length_threshold,
+        ).pack(side=tk.TOP, anchor=tk.W)
 
-        ttk.Radiobutton(dereplicate_frame,
-                        variable=self.programstate.
-                        dereplicate_settings.keep_most_complete,
-                        text="Keep sequences with smallest amount of missing data"
-                        ).pack(side=tk.TOP, anchor=tk.W)
+        ttk.Radiobutton(
+            dereplicate_frame,
+            variable=self.programstate.dereplicate_settings.keep_most_complete,
+            text="Keep sequences with smallest amount of missing data",
+        ).pack(side=tk.TOP, anchor=tk.W)
 
-        ttk.Radiobutton(dereplicate_frame,
-                        variable=self.programstate
-                        .dereplicate_settings.save_excluded_replicates,
-                        text="Save excluded replicates to separate file"
-                        ).pack(side=tk.TOP, anchor=tk.W)
+        ttk.Radiobutton(
+            dereplicate_frame,
+            variable=self.programstate.dereplicate_settings.save_excluded_replicates,
+            text="Save excluded replicates to separate file",
+        ).pack(side=tk.TOP, anchor=tk.W)
 
         decontaminate_frame = ttk.LabelFrame(
-            parameters_frame, text="Decontaminate parameters", relief=tk.SUNKEN)
+            parameters_frame, text="Decontaminate parameters", relief=tk.SUNKEN
+        )
         decontaminate_frame.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
 
         ttk.Label(decontaminate_frame, text="Distance similarity threshold").pack(
-            side=tk.TOP, anchor=tk.W)
+            side=tk.TOP, anchor=tk.W
+        )
         ttk.Entry(
             decontaminate_frame,
-            textvariable=self.programstate.decontaminate_settings.similarity).pack(
-            side=tk.TOP, anchor=tk.W)
+            textvariable=self.programstate.decontaminate_settings.similarity,
+        ).pack(side=tk.TOP, anchor=tk.W)
 
         decont2_frame = ttk.LabelFrame(
-            parameters_frame, text="DECONT2 parameters", relief=tk.SUNKEN)
+            parameters_frame, text="DECONT2 parameters", relief=tk.SUNKEN
+        )
         decont2_frame.pack(side=tk.TOP, anchor=tk.W, fill=tk.X)
 
         ttk.Checkbutton(
             decont2_frame,
             text="Use alignment-free distances",
-            variable=self.programstate.decontaminate2_settings.alignment_free).pack(
-            side=tk.TOP, anchor=tk.W)
+            variable=self.programstate.decontaminate2_settings.alignment_free,
+        ).pack(side=tk.TOP, anchor=tk.W)
 
     def create_filelist_frame(self) -> None:
         filelist_frame = ttk.Labelframe(self, text="Files")

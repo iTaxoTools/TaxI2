@@ -7,7 +7,7 @@ import tempfile
 import tkinter as tk
 import multiprocessing
 
-from library.gui import TaxiGUI
+from .library.gui import TaxiGUI
 
 resource_path = getattr(sys, "_MEIPASS", sys.path[0])
 
