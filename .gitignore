@@ -135,3 +135,6 @@ testing/
 pyrightconfig.json
 library/calculate_distances/target/
 library/calculate_distances/Cargo.lock
+
+# shortcut to source
+tx_src
