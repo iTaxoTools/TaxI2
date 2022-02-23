@@ -62,6 +62,7 @@ setup(
         "BioPython",
         "numpy",
         "networkx",
+        "openpyxl",
         "pandas",
         "seaborn",
     ],
