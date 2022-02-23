@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-from typing import List
+from typing import List, Set
 from abc import ABC, abstractclassmethod
 from pathlib import Path
 from dataclasses import dataclass
@@ -20,7 +20,7 @@ class _Header:
     }
 
     def __init__(self, header: List[str]):
-        self.header = list(map(_Header.rename, map(_Header.to_ascii, header)))
+        self.names = list(map(_Header.rename, map(_Header.to_ascii, header)))
 
     @staticmethod
     def to_ascii(name: str) -> str:
@@ -42,10 +42,20 @@ class DataType(ABC):
     pass
 
 
+class InvalidPath(Exception):
+    pass
+
+
 @dataclass
 class SequenceData(DataType):
-    path: Path
-    protocol: SequenceReader
+    def __init__(self, path: Path, protocol: SequenceReader):
+        """
+        raises `InvalidPath` if `path` does not exists
+        """
+        if not path.exists() or not path.is_file():
+            raise InvalidPath
+        self.path = path
+        self.protocol = protocol
 
     def get_dataframe(self) -> pd.DataFrame:
         return self.protocol.read(self.path, columns=["seqid", "sequence"])
@@ -56,3 +66,28 @@ class SequenceReader(ABC):
     @staticmethod
     def read(path: Path, *, columns: List[str]) -> pd.DataFrame:
         pass
+
+
+class ColumnsNotFound(Exception):
+    def __init__(self, columns: Set[str]):
+        if not isinstance(columns, set):
+            raise TypeError("ColumnsNotFound argument should be a set")
+        self.args = (columns,)
+
+
+class TabfileReader(SequenceReader):
+    @staticmethod
+    def read(path: Path, *, columns: List[str]) -> pd.DataFrame:
+        with open(path, errors="replace") as file:
+            header = _Header(file.readline().rstrip("\n").split("\t"))
+        if not set(columns) in set(header.names):
+            raise ColumnsNotFound(set(columns) - set(header.names))
+        return pd.read_table(
+            path,
+            header=0,
+            names=header.names,
+            usecols=columns,
+            na_filter=False,
+            dtype=str,
+            encoding_errors="replace",
+        )
