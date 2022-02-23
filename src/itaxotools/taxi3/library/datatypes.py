@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import re
 
 import pandas as pd
+import openpyxl
 
 
 class _Header:
@@ -89,5 +90,25 @@ class TabfileReader(SequenceReader):
             usecols=columns,
             na_filter=False,
             dtype=str,
+            encoding_errors="replace",
+        )
+
+
+class XlsxReader(SequenceReader):
+    @staticmethod
+    def read(path: Path, *, columns: List[str]) -> pd.DataFrame:
+        worksheet = openpyxl.load_workbook(path).worksheets[0]
+        header = _Header(list(map(lambda cell: cell.value, next(worksheet.rows))))
+        if not set(columns) in set(header.names):
+            raise ColumnsNotFound(set(columns) - set(header.names))
+        return pd.read_excel(
+            path,
+            sheet_name=0,
+            header=0,
+            names=header.names,
+            usecols=columns,
+            na_filter=False,
+            dtype=str,
+            engine="openpyxl",
             encoding_errors="replace",
         )
