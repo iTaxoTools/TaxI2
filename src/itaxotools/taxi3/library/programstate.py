@@ -13,8 +13,8 @@ import time
 import gc
 import itertools
 from typing import Union, TextIO, Iterator, Tuple, Any, Dict, Optional, List
-from .fasta import Fastafile
-from .genbank import GenbankFile
+from itaxotools.DNAconvert.library.fasta import Fastafile
+from itaxotools.DNAconvert.library.genbank import GenbankFile
 from .sequence_statistics import (
     sequence_statistics,
     sequence_statistics_with_gaps,
