@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-from typing import List, Set, Any
+from typing import List, Set, Any, Optional
 from abc import ABC, abstractclassmethod
 from pathlib import Path
 from dataclasses import dataclass
@@ -62,7 +62,6 @@ class DataType(ABC):
     pass
 
 
-@dataclass
 class SequenceData(DataType):
     def __init__(self, path: ValidFilePath, protocol: SequenceReader):
         """
@@ -70,9 +69,14 @@ class SequenceData(DataType):
         """
         self.path = path
         self.protocol = protocol
+        self.dataframe: Optional[pd.DataFrame] = None
 
     def get_dataframe(self) -> pd.DataFrame:
-        return self.protocol.read(self.path, columns=["seqid", "sequence"])
+        if self.dataframe is None:
+            self.dataframe = self.protocol.read(
+                self.path, columns=["seqid", "sequence"]
+            )
+        return self.dataframe
 
 
 class SequenceReader(ABC):
