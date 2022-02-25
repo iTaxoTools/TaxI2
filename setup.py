@@ -60,6 +60,7 @@ setup(
     install_requires=[
         "alfpy",
         "BioPython",
+        "DNAconvert",
         "numpy",
         "networkx",
         "openpyxl",
