@@ -10,6 +10,10 @@ import re
 import pandas as pd
 import openpyxl
 
+from itaxotools.DNAconvert.library.fasta import Fastafile
+from itaxotools.DNAconvert.library.genbank import GenbankFile
+from itaxotools.DNAconvert.library.record import Record
+
 
 class InvalidPath(Exception):
     pass
@@ -120,4 +124,37 @@ class XlsxReader(SequenceReader):
             dtype=str,
             engine="openpyxl",
             encoding_errors="replace",
+        )
+
+
+class FastaReader(SequenceReader):
+    @staticmethod
+    def read(path: ValidFilePath, *, columns: List[str]) -> pd.DataFrame:
+        if not set(columns) in {"seqid", "sequence"}:
+            raise ColumnsNotFound(set(columns) - {"seqid", "sequence"})
+        with open(path, errors="replace") as file:
+            _, records = Fastafile.read(file)
+            return pd.DataFrame(
+                ([record["seqid"], record["sequence"]] for record in records()),
+                columns=["seqid", "sequence"],
+            )
+
+
+class GenbankReader(SequenceReader):
+    @staticmethod
+    def select_columns(columns: List[str], record: Record) -> List[str]:
+        return list(
+            record[column] if column != "species" else record["organism"]
+            for column in columns
+        )
+
+    @staticmethod
+    def read(path: ValidFilePath, *, columns: List[str]) -> pd.DataFrame:
+        with open(path, errors="replace") as file:
+            names, records = GenbankFile.read(file)
+        if not set(columns) in set(names):
+            raise ColumnsNotFound(set(columns) - set(names))
+        return pd.DataFrame(
+            (GenbankReader.select_columns(columns, record) for record in records()),
+            columns=columns,
         )
