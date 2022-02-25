@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-from typing import List, Set
+from typing import List, Set, Any
 from abc import ABC, abstractclassmethod
 from pathlib import Path
 from dataclasses import dataclass
@@ -9,6 +9,21 @@ import re
 
 import pandas as pd
 import openpyxl
+
+
+class InvalidPath(Exception):
+    pass
+
+
+class ValidFilePath(Path):
+    """
+    Subclass of Path that contains a path to an existing file
+    """
+
+    def __init__(self, *pathsegments: Any):
+        super().__init__(*pathsegments)
+        if not self.exists() or not self.is_file():
+            raise InvalidPath
 
 
 class _Header:
@@ -43,18 +58,12 @@ class DataType(ABC):
     pass
 
 
-class InvalidPath(Exception):
-    pass
-
-
 @dataclass
 class SequenceData(DataType):
-    def __init__(self, path: Path, protocol: SequenceReader):
+    def __init__(self, path: ValidFilePath, protocol: SequenceReader):
         """
         raises `InvalidPath` if `path` does not exists
         """
-        if not path.exists() or not path.is_file():
-            raise InvalidPath
         self.path = path
         self.protocol = protocol
 
@@ -65,7 +74,7 @@ class SequenceData(DataType):
 class SequenceReader(ABC):
     @abstractclassmethod
     @staticmethod
-    def read(path: Path, *, columns: List[str]) -> pd.DataFrame:
+    def read(path: ValidFilePath, *, columns: List[str]) -> pd.DataFrame:
         pass
 
 
@@ -78,7 +87,7 @@ class ColumnsNotFound(Exception):
 
 class TabfileReader(SequenceReader):
     @staticmethod
-    def read(path: Path, *, columns: List[str]) -> pd.DataFrame:
+    def read(path: ValidFilePath, *, columns: List[str]) -> pd.DataFrame:
         with open(path, errors="replace") as file:
             header = _Header(file.readline().rstrip("\n").split("\t"))
         if not set(columns) in set(header.names):
@@ -96,7 +105,7 @@ class TabfileReader(SequenceReader):
 
 class XlsxReader(SequenceReader):
     @staticmethod
-    def read(path: Path, *, columns: List[str]) -> pd.DataFrame:
+    def read(path: ValidFilePath, *, columns: List[str]) -> pd.DataFrame:
         worksheet = openpyxl.load_workbook(path).worksheets[0]
         header = _Header(list(map(lambda cell: cell.value, next(worksheet.rows))))
         if not set(columns) in set(header.names):
