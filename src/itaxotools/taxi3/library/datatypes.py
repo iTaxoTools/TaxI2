@@ -87,6 +87,13 @@ class SequenceReader(ABC):
     def read(path: ValidFilePath, *, columns: List[str]) -> pd.DataFrame:
         pass
 
+    @abstractclassmethod
+    @staticmethod
+    def read_chunks(
+        path: ValidFilePath, *, columns: List[str], chunksize: int = DEFAULT_CHUNK_SIZE
+    ) -> Iterator[pd.DataFrame]:
+        pass
+
 
 class ColumnsNotFound(Exception):
     def __init__(self, columns: Set[str]):
@@ -97,19 +104,43 @@ class ColumnsNotFound(Exception):
 
 class TabfileReader(SequenceReader):
     @staticmethod
-    def read(path: ValidFilePath, *, columns: List[str]) -> pd.DataFrame:
+    def _verify_columns(path: ValidFilePath, *, columns: List[str]) -> List[str]:
         with open(path, errors="replace") as file:
             header = _Header(file.readline().rstrip("\n").split("\t"))
         if not set(columns) in set(header.names):
             raise ColumnsNotFound(set(columns) - set(header.names))
+        return header.names
+
+    @staticmethod
+    def read(path: ValidFilePath, *, columns: List[str]) -> pd.DataFrame:
+        names = TabfileReader._verify_columns(path, columns=columns)
         return pd.read_table(
             path,
             header=0,
-            names=header.names,
+            names=names,
             usecols=columns,
             na_filter=False,
             dtype=str,
             encoding_errors="replace",
+        )
+
+    @staticmethod
+    def read_chunks(
+        path: ValidFilePath,
+        *,
+        columns: List[str],
+        chunksize: int = SequenceReader.DEFAULT_CHUNK_SIZE
+    ) -> Iterator[pd.DataFrame]:
+        names = TabfileReader._verify_columns(path, columns=columns)
+        yield from pd.read_table(
+            path,
+            header=0,
+            names=names,
+            usecols=columns,
+            na_filter=False,
+            dtype=str,
+            encoding_errors="replace",
+            chunksize=chunksize,
         )
 
 
