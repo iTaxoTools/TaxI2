@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-from typing import List, Set, Any, Optional
+from typing import List, Set, Any, Optional, Iterator
 from abc import ABC, abstractclassmethod
 from pathlib import Path
-from dataclasses import dataclass
 import re
+import itertools
 
 import pandas as pd
 import openpyxl
@@ -80,6 +80,8 @@ class SequenceData(DataType):
 
 
 class SequenceReader(ABC):
+    DEFAULT_CHUNK_SIZE: int = 1000
+
     @abstractclassmethod
     @staticmethod
     def read(path: ValidFilePath, *, columns: List[str]) -> pd.DataFrame:
@@ -153,12 +155,41 @@ class GenbankReader(SequenceReader):
         )
 
     @staticmethod
-    def read(path: ValidFilePath, *, columns: List[str]) -> pd.DataFrame:
+    def _verify_columns(path: ValidFilePath, *, columns: List[str]) -> None:
         with open(path, errors="replace") as file:
-            names, records = GenbankFile.read(file)
+            names, _ = GenbankFile.read(file)
         if not set(columns) in set(names):
             raise ColumnsNotFound(set(columns) - set(names))
-        return pd.DataFrame(
-            (GenbankReader.select_columns(columns, record) for record in records()),
-            columns=columns,
-        )
+
+    @staticmethod
+    def read(path: ValidFilePath, *, columns: List[str]) -> pd.DataFrame:
+        GenbankReader._verify_columns(path, columns=columns)
+        with open(path, errors="replace") as file:
+            _, records = GenbankFile.read(file)
+            return pd.DataFrame(
+                (GenbankReader.select_columns(columns, record) for record in records()),
+                columns=columns,
+            )
+
+    @staticmethod
+    def read_chunks(
+        path: ValidFilePath,
+        *,
+        columns: List[str],
+        chunksize: int = SequenceReader.DEFAULT_CHUNK_SIZE
+    ) -> Iterator[pd.DataFrame]:
+        GenbankReader._verify_columns(path, columns=columns)
+        with open(path, errors="replace") as file:
+            _, records = GenbankFile.read(file)
+            records = records()
+            while True:
+                table = pd.DataFrame(
+                    (
+                        GenbankReader.select_columns(columns, record)
+                        for record in itertools.islice(records, chunksize)
+                    ),
+                    columns=columns,
+                )
+                if table.empty:
+                    break
+                yield table
