@@ -62,6 +62,10 @@ class DataType(ABC):
     pass
 
 
+class DuplicatedSeqids(Exception):
+    pass
+
+
 class SequenceData(DataType):
     def __init__(self, path: ValidFilePath, protocol: SequenceReader):
         """
@@ -76,7 +80,20 @@ class SequenceData(DataType):
             self.dataframe = self.protocol.read(
                 self.path, columns=["seqid", "sequence"]
             )
+            try:
+                self.dataframe.set_index("seqid", inplace=True, verify_integrity=True)
+            except ValueError:
+                raise DuplicatedSeqids()
         return self.dataframe
+
+    def get_dataframe_chunks(self) -> Iterator[pd.DataFrame]:
+        for dataframe in self.protocol.read(self.path, columns=["seqid", "sequence"]):
+            try:
+                dataframe.set_index("seqid", inplace=True, verify_integrity=True)
+            except ValueError:
+                raise DuplicatedSeqids()
+            else:
+                yield dataframe
 
 
 class SequenceReader(ABC):
