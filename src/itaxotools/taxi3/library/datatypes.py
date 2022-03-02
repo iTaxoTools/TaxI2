@@ -6,6 +6,7 @@ from abc import ABC, abstractclassmethod
 from pathlib import Path
 import re
 import itertools
+from enum import Enum, auto
 
 import pandas as pd
 import openpyxl
@@ -94,6 +95,29 @@ class SequenceData(DataType):
                 raise DuplicatedSeqids()
             else:
                 yield dataframe
+
+
+class Metric(Enum):
+    Uncorrelated = auto()
+    Kimura2P = auto()
+    JukesCantor = auto()
+    UncorrelatedWithGaps = auto()
+
+    def __str__(self) -> str:
+        return {
+            Metric.Uncorrelated: "pairwise uncorrected distance",
+            Metric.Kimura2P: "Jukes-Cantor distance",
+            Metric.JukesCantor: "Kimura-2-Parameter distance",
+            Metric.UncorrelatedWithGaps: "pairwise uncorrected distance counting gaps",
+        }[self]
+
+
+class SequenceDistanceMatrix(DataType):
+    def __init__(self, distance_matrix: pd.DataFrame):
+        assert list(distance_matrix.index.names) == ["seqid1", "seqid2"]
+        assert list(distance_matrix.columns) in set(Metric)
+        assert distance_matrix.index.is_unique()
+        self.distance_matrix = distance_matrix
 
 
 class SequenceReader(ABC):
