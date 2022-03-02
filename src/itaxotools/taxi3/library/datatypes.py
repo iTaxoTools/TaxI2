@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from typing import List, Set, Any, Optional, Iterator
-from abc import ABC, abstractclassmethod
+from abc import ABC, abstractmethod
 from pathlib import Path
 import re
 import itertools
@@ -60,7 +60,10 @@ class _Header:
 
 
 class DataType(ABC):
-    pass
+    @abstractmethod
+    @classmethod
+    def from_path(cls, path: ValidFilePath, protocol: SequenceReader) -> DataType:
+        pass
 
 
 class DuplicatedSeqids(Exception):
@@ -75,6 +78,10 @@ class SequenceData(DataType):
         self.path = path
         self.protocol = protocol
         self.dataframe: Optional[pd.DataFrame] = None
+
+    @classmethod
+    def from_path(cls, path: ValidFilePath, protocol: SequenceReader) -> SequenceData:
+        return cls(path, protocol)
 
     def get_dataframe(self) -> pd.DataFrame:
         if self.dataframe is None:
@@ -123,12 +130,12 @@ class SequenceDistanceMatrix(DataType):
 class SequenceReader(ABC):
     DEFAULT_CHUNK_SIZE: int = 1000
 
-    @abstractclassmethod
+    @abstractmethod
     @staticmethod
     def read(path: ValidFilePath, *, columns: List[str]) -> pd.DataFrame:
         pass
 
-    @abstractclassmethod
+    @abstractmethod
     @staticmethod
     def read_chunks(
         path: ValidFilePath, *, columns: List[str], chunksize: int = DEFAULT_CHUNK_SIZE
