@@ -66,7 +66,15 @@ class DataType(ABC):
         pass
 
 
-class DuplicatedSeqids(Exception):
+class DuplicatedValues(Exception):
+    pass
+
+
+class DuplicatedSeqids(DuplicatedValues):
+    pass
+
+
+class DuplicatedSpecies(DuplicatedValues):
     pass
 
 
@@ -169,6 +177,46 @@ class SubsubspeciesPartition(DataType):
         except ValueError:
             raise DuplicatedSeqids
         return cls(subspecies_partition)
+
+
+class NonBinomialSpecies(Exception):
+    def __init__(self, args: List[str]):
+        super().__init__()
+        assert isinstance(args, list)
+        self.args = (args,)
+
+
+class GenusPartition(DataType):
+    def __init__(self, genus_partition: pd.DataFrame):
+        assert list(genus_partition.index.names) == ["binomial"]
+        assert list(genus_partition.columns) == ["genus", "species"]
+        assert genus_partition.index.is_unique()
+        self.genus_partition = genus_partition
+
+    @staticmethod
+    def _separate_species(species: pd.DataFrame) -> pd.DataFrame:
+        genus_partition = species["species"].str.split(
+            r" |_", n=1, expand=True, regex=True
+        )
+        genus_partition.columns = ["genus", "species"]
+        genus_partition["binomial"] = species["species"]
+
+    @classmethod
+    def from_path(cls, path: ValidFilePath, protocol: SequenceReader) -> GenusPartition:
+        try:
+            genus_partition = protocol.read(path, columns=["species", "genus"])
+            genus_partition["binomial"] = genus_partition["genus"].str.concat(
+                genus_partition["species"], sep=" "
+            )
+        except ColumnsNotFound:
+            genus_partition = GenusPartition._separate_species(
+                protocol.read(path, columns=["species"])
+            )
+        try:
+            genus_partition.set_index("binomial", inplace=True, verify_integrity=True)
+        except ValueError:
+            raise DuplicatedSpecies
+        return cls(genus_partition)
 
 
 class SequenceReader(ABC):
