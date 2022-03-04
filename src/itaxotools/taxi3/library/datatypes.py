@@ -133,6 +133,44 @@ class SequenceDistanceMatrix(DataType):
         raise NotImplementedError
 
 
+class SpeciesPartition(DataType):
+    def __init__(self, species_partition: pd.DataFrame):
+        assert list(species_partition.index.names) == ["seqid"]
+        assert list(species_partition.columns) == ["species"]
+        assert species_partition.index.is_unique()
+        self.species_partition = species_partition
+
+    @classmethod
+    def from_path(
+        cls, path: ValidFilePath, protocol: SequenceReader
+    ) -> SpeciesPartition:
+        species_partition = protocol.read(path, columns=["seqid", "species"])
+        try:
+            species_partition.set_index("seqid", inplace=True, verify_integrity=True)
+        except ValueError:
+            raise DuplicatedSeqids
+        return cls(species_partition)
+
+
+class SubsubspeciesPartition(DataType):
+    def __init__(self, subspecies_partition: pd.DataFrame):
+        assert list(subspecies_partition.index.names) == ["seqid"]
+        assert list(subspecies_partition.columns) == ["subspecies"]
+        assert subspecies_partition.index.is_unique()
+        self.subspecies_partition = subspecies_partition
+
+    @classmethod
+    def from_path(
+        cls, path: ValidFilePath, protocol: SequenceReader
+    ) -> SubsubspeciesPartition:
+        subspecies_partition = protocol.read(path, columns=["seqid", "subspecies"])
+        try:
+            subspecies_partition.set_index("seqid", inplace=True, verify_integrity=True)
+        except ValueError:
+            raise DuplicatedSeqids
+        return cls(subspecies_partition)
+
+
 class SequenceReader(ABC):
     DEFAULT_CHUNK_SIZE: int = 1000
 
