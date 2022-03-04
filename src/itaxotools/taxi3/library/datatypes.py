@@ -126,6 +126,12 @@ class SequenceDistanceMatrix(DataType):
         assert distance_matrix.index.is_unique()
         self.distance_matrix = distance_matrix
 
+    @classmethod
+    def from_path(
+        cls, path: ValidFilePath, protocol: SequenceReader
+    ) -> SequenceDistanceMatrix:
+        raise NotImplementedError
+
 
 class SequenceReader(ABC):
     DEFAULT_CHUNK_SIZE: int = 1000
