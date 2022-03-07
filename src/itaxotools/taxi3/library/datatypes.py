@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-from typing import List, Set, Any, Optional, Iterator
+from typing import List, Set, Any, Optional, Iterator, Type
 from abc import ABC, abstractmethod
 from pathlib import Path
 import re
@@ -62,7 +62,7 @@ class _Header:
 class DataType(ABC):
     @abstractmethod
     @classmethod
-    def from_path(cls, path: ValidFilePath, protocol: SequenceReader) -> DataType:
+    def from_path(cls, path: ValidFilePath, protocol: FileReader) -> DataType:
         pass
 
 
@@ -79,7 +79,7 @@ class DuplicatedSpecies(DuplicatedValues):
 
 
 class SequenceData(DataType):
-    def __init__(self, path: ValidFilePath, protocol: SequenceReader):
+    def __init__(self, path: ValidFilePath, protocol: FileReader):
         """
         raises `InvalidPath` if `path` does not exists
         """
@@ -88,7 +88,7 @@ class SequenceData(DataType):
         self.dataframe: Optional[pd.DataFrame] = None
 
     @classmethod
-    def from_path(cls, path: ValidFilePath, protocol: SequenceReader) -> SequenceData:
+    def from_path(cls, path: ValidFilePath, protocol: FileReader) -> SequenceData:
         return cls(path, protocol)
 
     def get_dataframe(self) -> pd.DataFrame:
@@ -136,7 +136,7 @@ class SequenceDistanceMatrix(DataType):
 
     @classmethod
     def from_path(
-        cls, path: ValidFilePath, protocol: SequenceReader
+        cls, path: ValidFilePath, protocol: FileReader
     ) -> SequenceDistanceMatrix:
         raise NotImplementedError
 
@@ -149,9 +149,7 @@ class SpeciesPartition(DataType):
         self.species_partition = species_partition
 
     @classmethod
-    def from_path(
-        cls, path: ValidFilePath, protocol: SequenceReader
-    ) -> SpeciesPartition:
+    def from_path(cls, path: ValidFilePath, protocol: FileReader) -> SpeciesPartition:
         species_partition = protocol.read(path, columns=["seqid", "species"])
         try:
             species_partition.set_index("seqid", inplace=True, verify_integrity=True)
@@ -169,7 +167,7 @@ class SubsubspeciesPartition(DataType):
 
     @classmethod
     def from_path(
-        cls, path: ValidFilePath, protocol: SequenceReader
+        cls, path: ValidFilePath, protocol: FileReader
     ) -> SubsubspeciesPartition:
         subspecies_partition = protocol.read(path, columns=["seqid", "subspecies"])
         try:
@@ -202,7 +200,7 @@ class GenusPartition(DataType):
         genus_partition["binomial"] = species["species"]
 
     @classmethod
-    def from_path(cls, path: ValidFilePath, protocol: SequenceReader) -> GenusPartition:
+    def from_path(cls, path: ValidFilePath, protocol: FileReader) -> GenusPartition:
         try:
             genus_partition = protocol.read(path, columns=["species", "genus"])
             genus_partition["binomial"] = genus_partition["genus"].str.concat(
@@ -219,7 +217,7 @@ class GenusPartition(DataType):
         return cls(genus_partition)
 
 
-class SequenceReader(ABC):
+class FileReader(ABC):
     DEFAULT_CHUNK_SIZE: int = 1000
 
     @abstractmethod
@@ -234,6 +232,11 @@ class SequenceReader(ABC):
     ) -> Iterator[pd.DataFrame]:
         pass
 
+    @abstractmethod
+    @staticmethod
+    def read_data(path: ValidFilePath) -> List[DataType]:
+        pass
+
 
 class ColumnsNotFound(Exception):
     def __init__(self, columns: Set[str]):
@@ -242,7 +245,7 @@ class ColumnsNotFound(Exception):
         self.args = (columns,)
 
 
-class TabfileReader(SequenceReader):
+class TabfileReader(FileReader):
     @staticmethod
     def _verify_columns(path: ValidFilePath, *, columns: List[str]) -> List[str]:
         with open(path, errors="replace") as file:
@@ -269,7 +272,7 @@ class TabfileReader(SequenceReader):
         path: ValidFilePath,
         *,
         columns: List[str],
-        chunksize: int = SequenceReader.DEFAULT_CHUNK_SIZE
+        chunksize: int = FileReader.DEFAULT_CHUNK_SIZE
     ) -> Iterator[pd.DataFrame]:
         names = TabfileReader._verify_columns(path, columns=columns)
         yield from pd.read_table(
@@ -283,8 +286,25 @@ class TabfileReader(SequenceReader):
             chunksize=chunksize,
         )
 
+    @staticmethod
+    def read_data(path: ValidFilePath) -> List[DataType]:
+        data: List[DataType] = []
 
-class XlsxReader(SequenceReader):
+        datatypes: List[Type[DataType]] = [
+            SequenceData,
+            SpeciesPartition,
+            SubsubspeciesPartition,
+            GenusPartition,
+        ]
+        for datatype in datatypes:
+            try:
+                data.append(datatype.from_path(path, TabfileReader()))
+            except Exception:
+                pass
+        return data
+
+
+class XlsxReader(FileReader):
     @staticmethod
     def read(path: ValidFilePath, *, columns: List[str]) -> pd.DataFrame:
         worksheet = openpyxl.load_workbook(path).worksheets[0]
@@ -304,7 +324,7 @@ class XlsxReader(SequenceReader):
         )
 
 
-class FastaReader(SequenceReader):
+class FastaReader(FileReader):
     @staticmethod
     def read(path: ValidFilePath, *, columns: List[str]) -> pd.DataFrame:
         if not set(columns) in {"seqid", "sequence"}:
@@ -317,7 +337,7 @@ class FastaReader(SequenceReader):
             )
 
 
-class GenbankReader(SequenceReader):
+class GenbankReader(FileReader):
     @staticmethod
     def select_columns(columns: List[str], record: Record) -> List[str]:
         return list(
@@ -347,7 +367,7 @@ class GenbankReader(SequenceReader):
         path: ValidFilePath,
         *,
         columns: List[str],
-        chunksize: int = SequenceReader.DEFAULT_CHUNK_SIZE
+        chunksize: int = FileReader.DEFAULT_CHUNK_SIZE
     ) -> Iterator[pd.DataFrame]:
         GenbankReader._verify_columns(path, columns=columns)
         with open(path, errors="replace") as file:
