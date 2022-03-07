@@ -455,3 +455,20 @@ class GenbankReader(FileReader):
                 if table.empty:
                     break
                 yield table
+
+    @staticmethod
+    def read_data(path: ValidFilePath) -> List[DataType]:
+        data: List[DataType] = []
+
+        datatypes: List[Type[DataType]] = [
+            SequenceData,
+            SpeciesPartition,
+            SubsubspeciesPartition,
+            GenusPartition,
+        ]
+        for datatype in datatypes:
+            try:
+                data.append(datatype.from_path(path, GenbankReader()))
+            except Exception:
+                pass
+        return data
