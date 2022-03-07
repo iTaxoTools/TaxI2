@@ -306,21 +306,47 @@ class TabfileReader(FileReader):
 
 class XlsxReader(FileReader):
     @staticmethod
-    def read(path: ValidFilePath, *, columns: List[str]) -> pd.DataFrame:
+    def _verify_columns(path: ValidFilePath, *, columns: List[str]) -> List[str]:
         worksheet = openpyxl.load_workbook(path).worksheets[0]
         header = _Header(list(map(lambda cell: cell.value, next(worksheet.rows))))
         if not set(columns) in set(header.names):
             raise ColumnsNotFound(set(columns) - set(header.names))
+        return header.names
+
+    @staticmethod
+    def read(path: ValidFilePath, *, columns: List[str]) -> pd.DataFrame:
+        names = XlsxReader._verify_columns(path, columns=columns)
         return pd.read_excel(
             path,
             sheet_name=0,
             header=0,
-            names=header.names,
+            names=names,
             usecols=columns,
             na_filter=False,
             dtype=str,
             engine="openpyxl",
             encoding_errors="replace",
+        )
+
+    @staticmethod
+    def read_chunks(
+        path: ValidFilePath,
+        *,
+        columns: List[str],
+        chunksize: int = FileReader.DEFAULT_CHUNK_SIZE
+    ) -> Iterator[pd.DataFrame]:
+        names = XlsxReader._verify_columns(path, columns=columns)
+        yield from pd.read_table(
+            path,
+            sheet_name=0,
+            header=0,
+            names=names,
+            usecols=columns,
+            na_filter=False,
+            dtype=str,
+            engine="openpyxl",
+            encoding_errors="replace",
+            chunksize=chunksize,
         )
 
 
