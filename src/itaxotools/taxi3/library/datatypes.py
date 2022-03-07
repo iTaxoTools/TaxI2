@@ -349,6 +349,23 @@ class XlsxReader(FileReader):
             chunksize=chunksize,
         )
 
+    @staticmethod
+    def read_data(path: ValidFilePath) -> List[DataType]:
+        data: List[DataType] = []
+
+        datatypes: List[Type[DataType]] = [
+            SequenceData,
+            SpeciesPartition,
+            SubsubspeciesPartition,
+            GenusPartition,
+        ]
+        for datatype in datatypes:
+            try:
+                data.append(datatype.from_path(path, XlsxReader()))
+            except Exception:
+                pass
+        return data
+
 
 class FastaReader(FileReader):
     @staticmethod
@@ -361,6 +378,34 @@ class FastaReader(FileReader):
                 ([record["seqid"], record["sequence"]] for record in records()),
                 columns=["seqid", "sequence"],
             )
+
+    @staticmethod
+    def read_chunks(
+        path: ValidFilePath,
+        *,
+        columns: List[str],
+        chunksize: int = FileReader.DEFAULT_CHUNK_SIZE
+    ) -> pd.DataFrame:
+        if not set(columns) in {"seqid", "sequence"}:
+            raise ColumnsNotFound(set(columns) - {"seqid", "sequence"})
+        with open(path, errors="replace") as file:
+            _, records = Fastafile.read(file)
+            records = records()
+            while True:
+                table = pd.DataFrame(
+                    (
+                        record["seqid", "sequence"]
+                        for record in itertools.islice(records, chunksize)
+                    ),
+                    columns=["seqid", "sequence"],
+                )
+                if table.empty:
+                    break
+                yield table
+
+    @staticmethod
+    def read_data(path: ValidFilePath) -> List[DataType]:
+        return [SequenceData.from_path(path, FastaReader())]
 
 
 class GenbankReader(FileReader):
