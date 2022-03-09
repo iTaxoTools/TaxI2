@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import List, Set, Any, Optional, Iterator, Type
 from abc import ABC, abstractmethod
 from pathlib import Path
+import os
 import re
 import itertools
 from enum import Enum, auto
@@ -20,15 +21,27 @@ class InvalidPath(Exception):
     pass
 
 
-class ValidFilePath(Path):
+class ValidFilePath:
     """
-    Subclass of Path that contains a path to an existing file
+    PathLike that contains a path to an existing file
     """
 
-    def __init__(self, *pathsegments: Any):
-        super().__init__(*pathsegments)
+    def __init__(self, *args: Any, **kwargs: Any):
+        """
+        raise InvalidPath if the arguments are a path that doesn't exists
+        or doesn't point to a file
+        """
+        self._path = Path(*args, **kwargs)
+        self.exists = self._path.exists
+        self.is_file = self._path.is_file
         if not self.exists() or not self.is_file():
             raise InvalidPath
+
+    def __fspath__(self) -> str:
+        return str(self._path)
+
+
+os.PathLike.register(ValidFilePath)
 
 
 class _Header:
@@ -60,8 +73,8 @@ class _Header:
 
 
 class DataType(ABC):
-    @abstractmethod
     @classmethod
+    @abstractmethod
     def from_path(cls, path: ValidFilePath, protocol: FileReader) -> DataType:
         pass
 
@@ -220,20 +233,20 @@ class GenusPartition(DataType):
 class FileReader(ABC):
     DEFAULT_CHUNK_SIZE: int = 1000
 
-    @abstractmethod
     @staticmethod
+    @abstractmethod
     def read(path: ValidFilePath, *, columns: List[str]) -> pd.DataFrame:
         pass
 
-    @abstractmethod
     @staticmethod
+    @abstractmethod
     def read_chunks(
         path: ValidFilePath, *, columns: List[str], chunksize: int = DEFAULT_CHUNK_SIZE
     ) -> Iterator[pd.DataFrame]:
         pass
 
-    @abstractmethod
     @staticmethod
+    @abstractmethod
     def read_data(path: ValidFilePath) -> List[DataType]:
         pass
 
