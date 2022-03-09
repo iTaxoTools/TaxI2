@@ -277,14 +277,21 @@ class NonBinomialSpecies(Exception):
 
 
 class GenusPartition(DataType):
+    """
+    Represents partition of sequence into species with binomial names
+    """
     def __init__(self, genus_partition: pd.DataFrame):
-        assert list(genus_partition.index.names) == ["binomial"]
+        assert list(genus_partition.index.names) == ["seqid"]
         assert list(genus_partition.columns) == ["genus", "species"]
         assert genus_partition.index.is_unique()
         self.genus_partition = genus_partition
 
     @staticmethod
     def _separate_species(species: pd.DataFrame) -> pd.DataFrame:
+        try:
+            species.set_index("seqid", inplace=True, verify_integrity=True)
+        except ValueError:
+            raise DuplicatedSpecies
         genus_partition = species["species"].str.split(
             r" |_", n=1, expand=True, regex=True
         )
@@ -294,21 +301,24 @@ class GenusPartition(DataType):
     @classmethod
     def from_path(cls, path: ValidFilePath, protocol: FileReader) -> GenusPartition:
         try:
-            genus_partition = protocol.read(path, columns=["species", "genus"])
-            genus_partition["binomial"] = genus_partition["genus"].str.concat(
-                genus_partition["species"], sep=" "
-            )
+            genus_partition = protocol.read(path, columns=["seqid", "species", "genus"])
+            try:
+                genus_partition.set_index("seqid", inplace=True, verify_integrity=True)
+            except ValueError:
+                raise DuplicatedSpecies
         except ColumnsNotFound:
             genus_partition = GenusPartition._separate_species(
-                protocol.read(path, columns=["species"])
+                protocol.read(path, columns=["seqid", "species"])
             )
-        try:
-            genus_partition.set_index("binomial", inplace=True, verify_integrity=True)
-        except ValueError:
-            raise DuplicatedSpecies
         return cls(genus_partition)
 
     def get_dataframe(self) -> GenusPartition:
+        """
+        Returns a pandas DataFrame with indes "seqid" and columns "genus" and "species".
+
+        "genus" contains the generic name of the species.
+        "species" contains the specific epithet of the species.
+        """
         return self.genus_partition
 
 
