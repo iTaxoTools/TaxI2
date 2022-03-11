@@ -2,7 +2,9 @@
 Calculates genetic differences between DNA sequences
 
 ## Scores for alignment
-The file `data/scores.tab` contains the scores used in the sequence alignment.
+The file `TaxI/scores.json` (found in `%APPDATA%\iTaxoTools` or in `$XDG_CONFIG_HOME$/`) 
+contains the scores used in the sequence alignment.
+
 Each line has the format:
 ```
 score_identifier<Tab>value
@@ -17,7 +19,8 @@ The possible scores are:
 * `mismatch score`: Score for non-matching nucleotides
 
 ## Choosing the backend for calculating distances between sequences
-The file `data/options.tab` contains the line
+If the file `TaxI/options.json` (found in `%APPDATA%\iTaxoTools` or in `$XDG_CONFIG_HOME$/`) exists,
+it should contains the line:
 ```
 distance_calculation<Tab>BACKEND
 ```

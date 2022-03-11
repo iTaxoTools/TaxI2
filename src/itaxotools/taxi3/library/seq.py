@@ -1,26 +1,12 @@
 from typing import Tuple, Optional, TextIO
 from Bio.Align import PairwiseAligner
-import os
-import sys
 import math
 import numpy as np
 import re
 
-from .resources import get_resource
+from .config import get_scores
 
-resource_path = getattr(sys, "_MEIPASS", sys.path[0])
-
-
-with open(get_resource("scores.tab")) as scores_file:
-    scores_dict = {}
-    for line in scores_file:
-        score_name, _, val = line.partition("\t")
-        try:
-            scores_dict[score_name] = int(val)
-        except ValueError as ex:
-            raise ValueError(
-                f"The value for '{score_name}' in data/scores.tab is not a number"
-            ) from ex
+scores_dict = get_scores()
 
 try:
     GAP_PENALTY = scores_dict["gap penalty"]

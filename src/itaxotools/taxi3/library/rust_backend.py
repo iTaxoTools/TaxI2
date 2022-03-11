@@ -1,18 +1,13 @@
 #!/usr/bin/env python
 from . import calculate_distances as calc
-import math
 import gc
-import sys
-import os
 from typing import Any, TextIO
 
 import pandas as pd
 import numpy as np
 
+from .config import get_scores
 from .seq import PDISTANCE, NDISTANCES
-from .resources import get_resource
-
-resource_path = getattr(sys, "_MEIPASS", sys.path[0])
 
 
 distances_short_names = [
@@ -23,16 +18,7 @@ distances_short_names = [
 ]
 
 
-with open(get_resource("scores.tab")) as scores_file:
-    scores_dict = {}
-    for line in scores_file:
-        score_name, _, val = line.partition("\t")
-        try:
-            scores_dict[score_name] = int(val)
-        except ValueError as ex:
-            raise ValueError(
-                f"The value for '{score_name}' in data/scores.tab is not a number"
-            ) from ex
+scores_dict = get_scores()
 
 try:
     GAP_PENALTY = scores_dict["gap penalty"]

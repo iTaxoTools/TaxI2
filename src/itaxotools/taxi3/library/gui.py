@@ -15,8 +15,6 @@ from .gui_utils import display_errors_and_warnings
 from .plot_taxi import Plot
 from .resources import get_resource
 
-resource_path = getattr(sys, "_MEIPASS", sys.path[0])
-
 
 class TkLogger(logging.Handler):
     """Displays errors and warnings with Tk Messageboxes"""

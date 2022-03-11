@@ -20,19 +20,16 @@ from .sequence_statistics import (
     sequence_statistics_with_gaps,
 )
 from .alfpy_distance import make_alfpy_distance_table, make_alfpy_distance_table2
-from .resources import get_resource
+from .config import get_config
 
-resource_path = getattr(sys, "_MEIPASS", sys.path[0])
-with open(get_resource("options.tab")) as options_file:
-    option, _, val = options_file.readline().rstrip().partition("\t")
-    if option == "distance_calculation":
-        if val not in {"Rust", "Python"}:
-            raise ValueError(
-                'distance_calculation value in data/options.tab should be either "Rust" or "Python"'
-            )
-        BACKEND = val
-    else:
-        raise ValueError("distance_calculation value is missing in data/options.tab")
+try:
+    BACKEND = (get_config("options.json") or {})["distance_calculation"]
+    if BACKEND not in {"Rust", "Python"}:
+        raise ValueError(
+            'distance_calculation value in options.json should be either "Rust" or "Python"'
+        )
+except:
+    BACKEND = "Rust"
 if BACKEND == "Python":
     from .python_backend import (
         make_distance_table,
