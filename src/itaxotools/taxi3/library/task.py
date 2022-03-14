@@ -7,11 +7,7 @@ from enum import Enum, auto
 import pandas as pd
 
 from .datatypes import SequenceDistanceMatrix, SequenceData, Metric
-from .rust_backend.calc import (
-    make_aligner,
-    make_distance_array_aligned,
-    make_distance_array,
-)
+from .rust_backend import calc, make_aligner
 
 from .alfpy_distance import alfpy_distance_array, alfpy_distance_array2
 
@@ -49,7 +45,7 @@ class VersusAllComparison(Task[SequenceDistanceMatrix]):
         assert self.sequences is not None
         sequences = self.sequences.get_dataframe()
         distances_array = alfpy_distance_array(sequences["sequences"])
-        seqids = sequences["seqid"]
+        seqids = sequences.index
         index = pd.MultiIndex.from_product(
             [seqids.copy(), seqids.copy()], names=["seqid1", "seqid2"]
         )
@@ -63,17 +59,17 @@ class VersusAllComparison(Task[SequenceDistanceMatrix]):
         assert self.metrics
         sequences = self.sequences.get_dataframe()
         if self.alignment is Alignment.AlreadyAligned:
-            distances_array = make_distance_array_aligned(
-                sequences["sequences"], sequences["sequences"]
+            distances_array = calc.make_distance_array_aligned(
+                sequences["sequence"], sequences["sequence"]
             )
         elif self.alignment is Alignment.Pairwise:
             aligner = make_aligner()
-            distances_array = make_distance_array(
-                aligner, sequences["sequences"], sequences["sequences"]
+            distances_array = calc.make_distance_array(
+                aligner, sequences["sequence"], sequences["sequence"]
             )
         else:
             assert self.alignment is not Alignment.AlignmentFree
-        seqids = sequences["seqid"]
+        seqids = sequences.index
         index = pd.MultiIndex.from_product(
             [seqids.copy(), seqids.copy()], names=["seqid1", "seqid2"]
         )
