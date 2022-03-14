@@ -191,8 +191,8 @@ class SequenceDistanceMatrix(DataType):
 
     def __init__(self, distance_matrix: pd.DataFrame):
         assert list(distance_matrix.index.names) == ["seqid1", "seqid2"]
-        assert list(distance_matrix.columns) in set(Metric)
-        assert distance_matrix.index.is_unique()
+        assert set(distance_matrix.columns) <= set(Metric)
+        assert distance_matrix.index.is_unique
         self.distance_matrix = distance_matrix
 
     @classmethod
