@@ -15,7 +15,7 @@ distances_short_names = [
 ]
 
 
-def alfpy_distance_array(sequences: pd.Series) -> np.array:
+def alfpy_distance_array(sequences: pd.Series) -> np.ndarray:
     seqs = seqrecords.SeqRecords(
         id_list=sequences.index.to_list(), seq_list=sequences.to_list()
     )
@@ -30,7 +30,7 @@ def alfpy_distance_array(sequences: pd.Series) -> np.array:
     return arr
 
 
-def alfpy_distance_array2(sequences1: pd.Series, sequences2: pd.Series) -> np.array:
+def alfpy_distance_array2(sequences1: pd.Series, sequences2: pd.Series) -> np.ndarray:
     seqs = seqrecords.SeqRecords(
         id_list=sequences1.index.to_list() + sequences2.index.to_list(),
         seq_list=sequences1.to_list() + sequences2.to_list(),
