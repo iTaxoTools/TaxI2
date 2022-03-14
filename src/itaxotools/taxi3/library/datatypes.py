@@ -280,6 +280,7 @@ class GenusPartition(DataType):
     """
     Represents partition of sequence into species with binomial names
     """
+
     def __init__(self, genus_partition: pd.DataFrame):
         assert list(genus_partition.index.names) == ["seqid"]
         assert list(genus_partition.columns) == ["genus", "species"]
@@ -378,7 +379,7 @@ class TabfileReader(FileReader):
     def _verify_columns(path: ValidFilePath, *, columns: List[str]) -> List[str]:
         with open(path, errors="replace") as file:
             header = _Header(file.readline().rstrip("\n").split("\t"))
-        if not set(columns) in set(header.names):
+        if not set(columns) <= set(header.names):
             raise ColumnsNotFound(set(columns) - set(header.names))
         return header.names
 
@@ -443,7 +444,7 @@ class XlsxReader(FileReader):
     def _verify_columns(path: ValidFilePath, *, columns: List[str]) -> List[str]:
         worksheet = openpyxl.load_workbook(path).worksheets[0]
         header = _Header(list(map(lambda cell: cell.value, next(worksheet.rows))))
-        if not set(columns) in set(header.names):
+        if not set(columns) <= set(header.names):
             raise ColumnsNotFound(set(columns) - set(header.names))
         return header.names
 
@@ -508,7 +509,7 @@ class FastaReader(FileReader):
 
     @staticmethod
     def read(path: ValidFilePath, *, columns: List[str]) -> pd.DataFrame:
-        if not set(columns) in {"seqid", "sequence"}:
+        if not set(columns) <= {"seqid", "sequence"}:
             raise ColumnsNotFound(set(columns) - {"seqid", "sequence"})
         with open(path, errors="replace") as file:
             _, records = Fastafile.read(file)
@@ -524,7 +525,7 @@ class FastaReader(FileReader):
         columns: List[str],
         chunksize: int = FileReader.DEFAULT_CHUNK_SIZE
     ) -> pd.DataFrame:
-        if not set(columns) in {"seqid", "sequence"}:
+        if not set(columns) <= {"seqid", "sequence"}:
             raise ColumnsNotFound(set(columns) - {"seqid", "sequence"})
         with open(path, errors="replace") as file:
             _, records = Fastafile.read(file)
@@ -562,7 +563,7 @@ class GenbankReader(FileReader):
     def _verify_columns(path: ValidFilePath, *, columns: List[str]) -> None:
         with open(path, errors="replace") as file:
             names, _ = GenbankFile.read(file)
-        if not set(columns) in set(names):
+        if not set(columns) <= set(names):
             raise ColumnsNotFound(set(columns) - set(names))
 
     @staticmethod
