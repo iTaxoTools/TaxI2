@@ -139,7 +139,10 @@ class SequenceData(DataType):
     def _normalize_sequences(table: pd.DataFrame) -> None:
         assert "sequence" in table.columns
         table["sequence"] = (
-            table["sequence"].str.upper().str.replace("?", "N").str.replace("-", "")
+            table["sequence"]
+            .str.upper()
+            .str.replace("?", "N", regex=False)
+            .str.replace("-", "", regex=False)
         )
 
     def normalize_sequences(self) -> None:
@@ -207,7 +210,7 @@ class SequenceDistanceMatrix(DataType):
     """
 
     def __init__(self, distance_matrix: pd.DataFrame):
-        assert list(distance_matrix.index.names) == ["seqid1", "seqid2"]
+        assert list(distance_matrix.index.names) == ["seqid_target", "seqid_query"]
         assert set(distance_matrix.columns) <= set(Metric)
         assert distance_matrix.index.is_unique
         self.distance_matrix = distance_matrix
@@ -220,7 +223,7 @@ class SequenceDistanceMatrix(DataType):
 
     def get_dataframe(self) -> pd.DataFrame:
         """
-        Returns a pandas DataFrame with MultiIndex ["seqid1", "seqid2"]
+        Returns a pandas DataFrame with MultiIndex ["seqid_target", "seqid_query"]
         and columns, whose names are a subset of `Metric`
         """
         return self.distance_matrix

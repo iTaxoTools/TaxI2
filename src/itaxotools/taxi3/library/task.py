@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
-from typing import Callable, Generic, TypeVar, Optional, List
+from typing import Callable, Generic, TypeVar, Optional, List, Iterator, Union
 from abc import ABC, abstractmethod
 from enum import Enum, auto
+from dataclasses import dataclass
 
 import pandas as pd
 
@@ -20,6 +21,12 @@ class Alignment(Enum):
     AlreadyAligned = auto()
 
 
+@dataclass(frozen=True)
+class SequencesPair:
+    target: SequenceData
+    query: SequenceData
+
+
 class MissingArgument(Exception):
     pass
 
@@ -34,20 +41,32 @@ class Task(ABC, Generic[_Result]):
         pass
 
 
-class VersusAllComparison(Task[SequenceDistanceMatrix]):
+class CalculateDistances(Task[SequenceDistanceMatrix]):
     def __init__(self, warn: Callable[[Warning], None]):
         super().__init__(warn)
-        self.sequences: Optional[SequenceData] = None
+        self.sequences: Union[None, SequenceData, SequencesPair] = None
         self.alignment: Optional[Alignment] = None
         self.metrics: List[Metric] = []
 
     def _alignment_free_start(self) -> None:
         assert self.sequences is not None
-        sequences = self.sequences.get_dataframe()
-        distances_array = alfpy_distance_array(sequences["sequences"])
-        seqids = sequences.index
+        if isinstance(self.sequences, SequenceData):
+            sequences = self.sequences.get_dataframe()
+            distances_array = alfpy_distance_array(sequences["sequence"])
+            seqids1 = sequences.index.copy()
+            seqids2 = sequences.index.copy()
+        elif isinstance(self.sequences, SequencesPair):
+            reference = self.sequences.target.get_dataframe()
+            sequences = self.sequences.query.get_dataframe()
+            distances_array = alfpy_distance_array2(
+                reference["sequence"], sequences["sequence"]
+            )
+            seqids1 = reference.index.copy()
+            seqids2 = sequences.index.copy()
+        else:
+            assert False
         index = pd.MultiIndex.from_product(
-            [seqids.copy(), seqids.copy()], names=["seqid1", "seqid2"]
+            [seqids1, seqids2], names=["seqid_target", "seqid_query"]
         )
         self.result = SequenceDistanceMatrix(
             pd.DataFrame(distances_array, index=index, columns=[Metric.Uncorrected])
@@ -57,21 +76,31 @@ class VersusAllComparison(Task[SequenceDistanceMatrix]):
         assert self.alignment is not None
         assert self.sequences is not None
         assert self.metrics
-        sequences = self.sequences.get_dataframe()
+        if isinstance(self.sequences, SequenceData):
+            sequences = self.sequences.get_dataframe()
+            reference = sequences
+            seqids1 = sequences.index.copy()
+            seqids2 = sequences.index.copy()
+        elif isinstance(self.sequences, SequencesPair):
+            reference = self.sequences.target.get_dataframe()
+            sequences = self.sequences.query.get_dataframe()
+            seqids1 = reference.index.copy()
+            seqids2 = sequences.index.copy()
+        else:
+            assert False
         if self.alignment is Alignment.AlreadyAligned:
             distances_array = calc.make_distance_array_aligned(
-                sequences["sequence"], sequences["sequence"]
+                reference["sequence"], sequences["sequence"]
             )
         elif self.alignment is Alignment.Pairwise:
             aligner = make_aligner()
             distances_array = calc.make_distance_array(
-                aligner, sequences["sequence"], sequences["sequence"]
+                aligner, reference["sequence"], sequences["sequence"]
             )
         else:
             assert self.alignment is not Alignment.AlignmentFree
-        seqids = sequences.index
         index = pd.MultiIndex.from_product(
-            [seqids.copy(), seqids.copy()], names=["seqid1", "seqid2"]
+            [seqids1, seqids2], names=["seqid_target", "seqid_query"]
         )
         self.result = SequenceDistanceMatrix(
             pd.DataFrame(distances_array, index=index, columns=list(Metric))[

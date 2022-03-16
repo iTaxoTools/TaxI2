@@ -8,13 +8,13 @@ from itaxotools.taxi3.library.datatypes import (
     ValidFilePath,
     Metric,
 )
-from itaxotools.taxi3.library.task import VersusAllComparison, Alignment
+from itaxotools.taxi3.library.task import CalculateDistances, Alignment
 
 
 def test_versus_all():
     input_path = ValidFilePath(Path(__file__).with_name("Scaphio_input_small.txt"))
     sequences = SequenceData.from_path(input_path, TabfileReader())
-    task = VersusAllComparison(print)
+    task = CalculateDistances(print)
     task.sequences = sequences
     task.alignment = Alignment.Pairwise
     task.metrics = list(Metric)
