@@ -128,11 +128,24 @@ class SequenceData(DataType):
     def __init__(self, path: ValidFilePath, protocol: FileReader):
         self.path = path
         self.protocol = protocol
+        self.normalize = False
         self.dataframe: Optional[pd.DataFrame] = None
 
     @classmethod
     def from_path(cls, path: ValidFilePath, protocol: FileReader) -> SequenceData:
         return cls(path, protocol)
+
+    @staticmethod
+    def _normalize_sequences(table: pd.DataFrame) -> None:
+        assert "sequence" in table.columns
+        table["sequence"] = (
+            table["sequence"].str.upper().str.replace("?", "N").str.replace("-", "")
+        )
+
+    def normalize_sequences(self) -> None:
+        self.normalize = True
+        if self.dataframe is not None:
+            self._normalize_sequences(self.dataframe)
 
     def get_dataframe(self) -> pd.DataFrame:
         """
@@ -148,6 +161,8 @@ class SequenceData(DataType):
                 self.dataframe.set_index("seqid", inplace=True, verify_integrity=True)
             except ValueError:
                 raise DuplicatedSeqids()
+            if self.normalize:
+                self._normalize_sequences(self.dataframe)
         return self.dataframe
 
     def get_dataframe_chunks(self) -> Iterator[pd.DataFrame]:
@@ -162,6 +177,8 @@ class SequenceData(DataType):
             except ValueError:
                 raise DuplicatedSeqids()
             else:
+                if self.normalize:
+                    self._normalize_sequences(dataframe)
                 yield dataframe
 
 
