@@ -84,7 +84,9 @@ class VersusAllComparison(Task[SequenceDistanceMatrix]):
             raise MissingArgument("sequences")
         if self.alignment is None:
             raise MissingArgument("alignment")
-        elif self.alignment is Alignment.AlignmentFree:
+        if self.alignment is not Alignment.AlreadyAligned:
+            self.sequences.normalize_sequences()
+        if self.alignment is Alignment.AlignmentFree:
             self._alignment_free_start()
         elif not self.metrics:
             raise MissingArgument("metrics")
