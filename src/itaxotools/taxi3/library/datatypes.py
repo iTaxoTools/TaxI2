@@ -125,7 +125,7 @@ class SequenceData(DataType):
     Only loads data on demand.
     """
 
-    def __init__(self, path: ValidFilePath, protocol: FileReader):
+    def __init__(self, path: Optional[ValidFilePath], protocol: FileReader):
         self.path = path
         self.protocol = protocol
         self.normalize = False
@@ -134,6 +134,14 @@ class SequenceData(DataType):
     @classmethod
     def from_path(cls, path: ValidFilePath, protocol: FileReader) -> SequenceData:
         return cls(path, protocol)
+
+    @classmethod
+    def from_dataframe(cls, dataframe: pd.DataFrame) -> SequenceData:
+        self = cls(None, TabfileReader())
+        assert set(dataframe.columns) == {"sequence"}
+        assert dataframe.index.name == "seqid"
+        self.dataframe = dataframe
+        return self
 
     @staticmethod
     def _normalize_sequences(table: pd.DataFrame) -> None:
@@ -157,6 +165,7 @@ class SequenceData(DataType):
         Returns pandas DataFrame with index "seqid" and column "sequence"
         """
         if self.dataframe is None:
+            assert self.path is not None
             self.dataframe = self.protocol.read(
                 self.path, columns=["seqid", "sequence"]
             )
@@ -174,6 +183,9 @@ class SequenceData(DataType):
 
         Yields pandas DataFrame with index "seqid" and column "sequence"
         """
+        if self.path is None:
+            yield self.dataframe
+            return
         for dataframe in self.protocol.read(self.path, columns=["seqid", "sequence"]):
             try:
                 dataframe.set_index("seqid", inplace=True, verify_integrity=True)
@@ -183,6 +195,97 @@ class SequenceData(DataType):
                 if self.normalize:
                     self._normalize_sequences(dataframe)
                 yield dataframe
+
+
+class CompleteData(DataType):
+    """
+    Represents a collection of sequences with additional data.
+
+    Only loads data on demand.
+    """
+
+    def __init__(self, path: Optional[ValidFilePath], protocol: FileReader):
+        self.path = path
+        self.protocol = protocol
+        self.normalize = False
+        self.dataframe: Optional[pd.DataFrame] = None
+
+    @classmethod
+    def from_path(cls, path: ValidFilePath, protocol: FileReader) -> CompleteData:
+        return cls(path, protocol)
+
+    @classmethod
+    def from_dataframe(cls, dataframe: pd.DataFrame) -> CompleteData:
+        self = cls(None, TabfileReader())
+        assert "sequence" in dataframe.columns
+        assert dataframe.index.name == "seqid"
+        self.dataframe = dataframe
+        return self
+
+    @staticmethod
+    def _normalize_sequences(table: pd.DataFrame) -> None:
+        assert "sequence" in table.columns
+        table["sequence"] = (
+            table["sequence"]
+            .str.upper()
+            .str.replace("?", "N", regex=False)
+            .str.replace("-", "", regex=False)
+        )
+
+    def normalize_sequences(self) -> None:
+        self.normalize = True
+        if self.dataframe is not None:
+            self._normalize_sequences(self.dataframe)
+
+    def get_dataframe(self) -> pd.DataFrame:
+        """
+        Loads the data, if necessary, and returns it.
+
+        Returns pandas DataFrame with index "seqid" and with a column "sequence"
+        """
+        if self.dataframe is None:
+            assert self.path is not None
+            self.dataframe = self.protocol.read(self.path, columns=[])
+            if not {"seqid", "sequence"} in set(self.dataframe.columns):
+                raise ColumnsNotFound({"seqid", "sequence"})
+            try:
+                self.dataframe.set_index("seqid", inplace=True, verify_integrity=True)
+            except ValueError:
+                raise DuplicatedSeqids()
+            if self.normalize:
+                self._normalize_sequences(self.dataframe)
+        return self.dataframe
+
+    def get_dataframe_chunks(self) -> Iterator[pd.DataFrame]:
+        """
+        Loads the data in chunks
+
+        Yields pandas DataFrame with index "seqid" and column "sequence"
+        """
+        if self.path is None:
+            yield self.dataframe
+            return
+        for dataframe in self.protocol.read(self.path, columns=[]):
+            if not {"seqid", "sequence"} in set(dataframe.columns):
+                raise ColumnsNotFound({"seqid", "sequence"})
+            try:
+                dataframe.set_index("seqid", inplace=True, verify_integrity=True)
+            except ValueError:
+                raise DuplicatedSeqids()
+            else:
+                if self.normalize:
+                    self._normalize_sequences(dataframe)
+                yield dataframe
+
+    def get_chunks(self) -> Iterator[CompleteData]:
+        for dataframe in self.get_dataframe_chunks():
+            yield CompleteData.from_dataframe(dataframe)
+
+    def get_sequences(self) -> SequenceData:
+        sequences = SequenceData(self.path, self.protocol)
+        if self.dataframe:
+            sequences.dataframe = self.dataframe[["sequence"]].copy()
+        return sequences
 
 
 class Metric(Enum):
