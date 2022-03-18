@@ -356,6 +356,8 @@ class FileReader(ABC):
         """
         Try to read a pandas DataFrame with columns in `columns` from `path`.
 
+        If `columns` is [], all columns will be loaded.
+
         Can raise `ColumnsNotFound`
         """
         pass
@@ -367,6 +369,8 @@ class FileReader(ABC):
     ) -> Iterator[pd.DataFrame]:
         """
         Try to read a pandas DataFrame with columns in `columns` from `path` in chunks.
+
+        If `columns` is [], all columns will be loaded.
 
         Can raise `ColumnsNotFound`
         """
@@ -410,7 +414,7 @@ class TabfileReader(FileReader):
             path,
             header=0,
             names=names,
-            usecols=columns,
+            usecols=columns or names,
             na_filter=False,
             dtype=str,
             encoding_errors="replace",
@@ -428,7 +432,7 @@ class TabfileReader(FileReader):
             path,
             header=0,
             names=names,
-            usecols=columns,
+            usecols=columns or names,
             na_filter=False,
             dtype=str,
             encoding_errors="replace",
@@ -476,7 +480,7 @@ class XlsxReader(FileReader):
             sheet_name=0,
             header=0,
             names=names,
-            usecols=columns,
+            usecols=columns or names,
             na_filter=False,
             dtype=str,
             engine="openpyxl",
@@ -496,7 +500,7 @@ class XlsxReader(FileReader):
             sheet_name=0,
             header=0,
             names=names,
-            usecols=columns,
+            usecols=columns or names,
             na_filter=False,
             dtype=str,
             engine="openpyxl",
@@ -580,20 +584,22 @@ class GenbankReader(FileReader):
         )
 
     @staticmethod
-    def _verify_columns(path: ValidFilePath, *, columns: List[str]) -> None:
+    def _verify_columns(path: ValidFilePath, *, columns: List[str]) -> List[str]:
         with open(path, errors="replace") as file:
             names, _ = GenbankFile.read(file)
         if not set(columns) <= set(names):
             raise ColumnsNotFound(set(columns) - set(names))
+        return names
 
     @staticmethod
     def read(path: ValidFilePath, *, columns: List[str]) -> pd.DataFrame:
-        GenbankReader._verify_columns(path, columns=columns)
+        names = GenbankReader._verify_columns(path, columns=columns)
+        columns = columns or names
         with open(path, errors="replace") as file:
             _, records = GenbankFile.read(file)
             return pd.DataFrame(
                 (GenbankReader.select_columns(columns, record) for record in records()),
-                columns=columns,
+                columns=columns or names,
             )
 
     @staticmethod
@@ -603,7 +609,8 @@ class GenbankReader(FileReader):
         columns: List[str],
         chunksize: int = FileReader.DEFAULT_CHUNK_SIZE
     ) -> Iterator[pd.DataFrame]:
-        GenbankReader._verify_columns(path, columns=columns)
+        names = GenbankReader._verify_columns(path, columns=columns)
+        columns = columns or names
         with open(path, errors="replace") as file:
             _, records = GenbankFile.read(file)
             records = records()
