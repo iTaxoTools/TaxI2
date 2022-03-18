@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 import pandas as pd
 
-from .datatypes import SequenceDistanceMatrix, SequenceData, Metric
+from .datatypes import SequenceDistanceMatrix, SequenceData, Metric, CompleteData
 from .rust_backend import calc, make_aligner
 
 from .alfpy_distance import alfpy_distance_array, alfpy_distance_array2
@@ -21,18 +21,25 @@ class Alignment(Enum):
     AlreadyAligned = auto()
 
 
-@dataclass(frozen=True)
+@dataclass()
 class SequencesPair:
     target: SequenceData
     query: SequenceData
+
+    def normalize_sequences(self) -> None:
+        self.target.normalize_sequences()
+        self.query.normalize_sequences()
 
 
 class MissingArgument(Exception):
     pass
 
 
+WarningHandler = Callable[[Warning], None]
+
+
 class Task(ABC, Generic[_Result]):
-    def __init__(self, warn: Callable[[Warning], None]):
+    def __init__(self, warn: WarningHandler):
         self.warn = warn
         self.result: Optional[_Result] = None
 
@@ -42,7 +49,7 @@ class Task(ABC, Generic[_Result]):
 
 
 class CalculateDistances(Task[SequenceDistanceMatrix]):
-    def __init__(self, warn: Callable[[Warning], None]):
+    def __init__(self, warn: WarningHandler):
         super().__init__(warn)
         self.sequences: Union[None, SequenceData, SequencesPair] = None
         self.alignment: Optional[Alignment] = None
@@ -121,3 +128,17 @@ class CalculateDistances(Task[SequenceDistanceMatrix]):
             raise MissingArgument("metrics")
         else:
             self._alignment_start()
+
+
+@dataclass(frozen=True)
+class Dereplicated:
+    included: CompleteData
+    excluded: CompleteData
+
+
+class Dereplicate(Task[Iterator[CompleteData]]):
+    def __init__(self, warn: WarningHandler):
+        super().__init__(warn)
+        self.similarity = 0.07
+        self.length_threshold: Optional[int] = None
+        self.keep_most_complete = False
