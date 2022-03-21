@@ -298,7 +298,7 @@ class CompleteData(DataType):
             sequences.dataframe = self.dataframe[["sequence"]].copy()
         return sequences
 
-    def split_sequences(self, sequences: SequenceData) -> SequenceData:
+    def split_sequences(self, sequences: SequenceData) -> CompleteData:
         """
         Removes rows with seqids that are not in `sequences`.
 
@@ -306,7 +306,7 @@ class CompleteData(DataType):
         """
         sequences_table = sequences.get_dataframe()
         dataframe = self.get_dataframe()
-        removed = SequenceData.from_dataframe(
+        removed = CompleteData.from_dataframe(
             dataframe.reindex(dataframe.index.difference(sequences_table.index))
         )
         self.dataframe = dataframe[dataframe.index.intersection(sequences_table.index)]
@@ -359,6 +359,12 @@ class SequenceDistanceMatrix(DataType):
         and columns, whose names are a subset of `Metric`
         """
         return self.distance_matrix
+
+    def set_self_distance(self, self_distance: float) -> None:
+        seqids = self.distance_matrix.index.to_frame()
+        self.distance_matrix.loc[
+            seqids["seqid_target"] == seqids["seqid_query"]
+        ] = self_distance
 
 
 class SpeciesPartition(DataType):

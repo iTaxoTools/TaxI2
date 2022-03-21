@@ -6,6 +6,7 @@ from enum import Enum, auto
 from dataclasses import dataclass
 
 import pandas as pd
+import networkx as nx
 
 from .datatypes import SequenceDistanceMatrix, SequenceData, Metric, CompleteData
 from .rust_backend import calc, make_aligner
@@ -142,3 +143,55 @@ class Dereplicate(Task[Iterator[CompleteData]]):
         self.similarity = 0.07
         self.length_threshold: Optional[int] = None
         self.keep_most_complete = False
+        self.data: Optional[CompleteData] = None
+        self._calculate_distances = CalculateDistances(warn)
+        self._calculate_distances.alignment = Alignment.AlignmentFree
+
+    def start(self) -> None:
+        if self.data is None:
+            raise MissingArgument("data")
+        self.result = self._dereplicate()
+
+    def _dereplicate(self) -> Iterator[Dereplicated]:
+        assert self.data is not None
+        for chunk in self.data.get_chunks():
+            assert chunk.dataframe is not None
+            if self.length_threshold:
+                chunk.dataframe = chunk.dataframe.loc[
+                    chunk.dataframe["sequence"].str.len() >= self.length_threshold
+                ]
+            sequences = chunk.get_sequences()
+            self._calculate_distances.sequences = sequences
+            self._calculate_distances.start()
+            distance_table = self._calculate_distances.result
+            assert distance_table is not None
+            distance_table.set_self_distance(float("inf"))
+
+            nodes = chunk.dataframe.index
+
+            # calculating components
+            connected_table = distance_table.get_dataframe().loc[
+                (distance_table.get_dataframe()[Metric.Uncorrected] <= self.similarity)
+            ]
+            graph = nx.from_pandas_edgelist(
+                connected_table.index.to_frame(),
+                source="seqid_target",
+                target="seqid_query",
+            )
+            graph.add_nodes_from(nodes)
+            components = nx.connected_components(graph)
+
+            seqids_dereplicated: List[str] = []
+            assert sequences.dataframe is not None
+
+            for component in components:
+                chosen_seqid = (
+                    sequences.dataframe.loc[component, "sequence"].str.len().idxmax()
+                )
+                seqids_dereplicated.append(chosen_seqid)
+
+            sequences.dataframe = sequences.dataframe.loc[seqids_dereplicated]
+
+            excluded = chunk.split_sequences(sequences)
+
+            yield Dereplicated(included=chunk, excluded=excluded)
