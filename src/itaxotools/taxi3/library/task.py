@@ -8,7 +8,13 @@ from dataclasses import dataclass
 import pandas as pd
 import networkx as nx
 
-from .datatypes import SequenceDistanceMatrix, SequenceData, Metric, CompleteData
+from .datatypes import (
+    SequenceDistanceMatrix,
+    SequenceData,
+    Metric,
+    CompleteData,
+    DecontaminateSummary,
+)
 from .rust_backend import calc, make_aligner
 
 from .alfpy_distance import alfpy_distance_array, alfpy_distance_array2
@@ -137,7 +143,7 @@ class Dereplicated:
     excluded: CompleteData
 
 
-class Dereplicate(Task[Iterator[CompleteData]]):
+class Dereplicate(Task[Iterator[Dereplicated]]):
     def __init__(self, warn: WarningHandler):
         super().__init__(warn)
         self.similarity = 0.07
@@ -201,7 +207,7 @@ class Dereplicate(Task[Iterator[CompleteData]]):
 class Decontaminated:
     decontaminated: CompleteData
     contaminates: CompleteData
-    summary: pd.DataFrame
+    summary: DecontaminateSummary
 
 
 class Decontaminate(Task[Iterator[Decontaminated]]):
@@ -263,5 +269,7 @@ class Decontaminate(Task[Iterator[Decontaminated]]):
 
             contaminates = chunk.split_sequences(sequences)
             yield Decontaminated(
-                contaminates=contaminates, decontaminated=chunk, summary=closest_table
+                contaminates=contaminates,
+                decontaminated=chunk,
+                summary=DecontaminateSummary(closest_table),
             )
