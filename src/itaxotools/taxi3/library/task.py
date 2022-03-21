@@ -195,3 +195,73 @@ class Dereplicate(Task[Iterator[CompleteData]]):
             excluded = chunk.split_sequences(sequences)
 
             yield Dereplicated(included=chunk, excluded=excluded)
+
+
+@dataclass
+class Decontaminated:
+    decontaminated: CompleteData
+    contaminates: CompleteData
+    summary: pd.DataFrame
+
+
+class Decontaminate(Task[Iterator[Decontaminated]]):
+    def __init__(self, warn: WarningHandler):
+        super().__init__(warn)
+        self.similarity = 0.07
+        self.alignment: Optional[Alignment] = None
+        self.reference: Optional[SequenceData] = None
+        self.data: Optional[CompleteData] = None
+        self._calculate_distances = CalculateDistances(warn)
+        self._calculate_distances.metrics = [Metric.Uncorrected]
+
+    def start(self) -> None:
+        if self.alignment is None:
+            raise MissingArgument("alignment")
+        if self.reference is None:
+            raise MissingArgument("reference")
+        if self.data is None:
+            raise MissingArgument("data")
+        self.result = self._decontaminate()
+
+    def _decontaminate(self) -> Iterator[Decontaminated]:
+        assert self.alignment is not None
+        assert self.reference is not None
+        assert self.data is not None
+        self._calculate_distances.alignment = self.alignment
+
+        for chunk in self.data.get_chunks():
+            sequences = chunk.get_sequences()
+            self._calculate_distances.sequences = SequencesPair(
+                target=self.reference, query=sequences
+            )
+            self._calculate_distances.start()
+            assert self._calculate_distances.result is not None
+            distance_table = self._calculate_distances.result.get_dataframe()
+
+            indices_closest = (
+                distance_table[["seqid (query 1)", Metric.Uncorrected]]
+                .groupby("seqid (query 1)")
+                .idxmin()[Metric.Uncorrected]
+                .squeeze()
+                .dropna()
+            )
+            closest_table = distance_table.loc[indices_closest].rename(
+                columns={"seqid_target": "closest possible contaminant"}
+            )
+            closest_table["is_contaminant"] = ""
+            closest_table.loc[
+                closest_table[Metric.Uncorrected] <= self.similarity, "is_contaminant"
+            ] = "contaminant"
+            decontaminates_seqids = closest_table.loc[
+                closest_table[Metric.Uncorrected] > self.similarity,
+                "seqid_query",
+            ]
+            closest_table.rename(columns={Metric.Uncorrected, "distance"}, inplace=True)
+
+            assert sequences.dataframe is not None
+            sequences.dataframe = sequences.dataframe.loc[decontaminates_seqids]
+
+            contaminates = chunk.split_sequences(sequences)
+            yield Decontaminated(
+                contaminates=contaminates, decontaminated=chunk, summary=closest_table
+            )
