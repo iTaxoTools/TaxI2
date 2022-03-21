@@ -287,6 +287,20 @@ class CompleteData(DataType):
             sequences.dataframe = self.dataframe[["sequence"]].copy()
         return sequences
 
+    def split_sequences(self, sequences: SequenceData) -> SequenceData:
+        """
+        Removes rows with seqids that are not in `sequences`.
+
+        Returns the removed rows.
+        """
+        sequences_table = sequences.get_dataframe()
+        dataframe = self.get_dataframe()
+        removed = SequenceData.from_dataframe(
+            dataframe.reindex(dataframe.index.difference(sequences_table.index))
+        )
+        self.dataframe = dataframe[dataframe.index.intersection(sequences_table.index)]
+        return removed
+
 
 class Metric(Enum):
     """
