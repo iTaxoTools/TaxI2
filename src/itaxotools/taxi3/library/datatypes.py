@@ -38,6 +38,7 @@ class ValidFilePath:
         self._path = Path(*args, **kwargs)
         self.exists = self._path.exists
         self.is_file = self._path.is_file
+        self.stat = self._path.stat
         if not self.exists() or not self.is_file():
             raise InvalidPath
 
@@ -46,6 +47,14 @@ class ValidFilePath:
 
 
 os.PathLike.register(ValidFilePath)
+
+
+def _dataframe_append(dataframe: pd.DataFrame, file: Path) -> None:
+    try:
+        header = file.stat().st_size == 0
+    except FileNotFoundError:
+        header = True
+    dataframe.to_csv(file, header=header, sep="\t")
 
 
 class _Header:
@@ -183,9 +192,10 @@ class SequenceData(DataType):
 
         Yields pandas DataFrame with index "seqid" and column "sequence"
         """
-        if self.path is None:
+        if self.dataframe is not None:
             yield self.dataframe
             return
+        assert self.path is not None
         for dataframe in self.protocol.read(self.path, columns=["seqid", "sequence"]):
             try:
                 dataframe.set_index("seqid", inplace=True, verify_integrity=True)
@@ -262,9 +272,10 @@ class CompleteData(DataType):
 
         Yields pandas DataFrame with index "seqid" and column "sequence"
         """
-        if self.path is None:
+        if self.dataframe is not None:
             yield self.dataframe
             return
+        assert self.path is not None
         for dataframe in self.protocol.read(self.path, columns=[]):
             if not {"seqid", "sequence"} in set(dataframe.columns):
                 raise ColumnsNotFound({"seqid", "sequence"})
@@ -300,6 +311,10 @@ class CompleteData(DataType):
         )
         self.dataframe = dataframe[dataframe.index.intersection(sequences_table.index)]
         return removed
+
+    def append_to_file(self, file: Path) -> None:
+        for dataframe in self.get_dataframe_chunks():
+            _dataframe_append(dataframe, file)
 
 
 class Metric(Enum):
