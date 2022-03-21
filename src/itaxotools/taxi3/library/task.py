@@ -46,6 +46,15 @@ WarningHandler = Callable[[Warning], None]
 
 
 class Task(ABC, Generic[_Result]):
+    """
+    To run:
+        * Set the argument attributes (depends on the subclass)
+        * call self.start()
+        * self.result contains the output
+
+    If self is instance of Task[T], self.result is instance of T
+    """
+
     def __init__(self, warn: WarningHandler):
         self.warn = warn
         self.result: Optional[_Result] = None
@@ -139,11 +148,23 @@ class CalculateDistances(Task[SequenceDistanceMatrix]):
 
 @dataclass(frozen=True)
 class Dereplicated:
+    """
+    The type of the output of Dereplicate class
+    """
+
     included: CompleteData
     excluded: CompleteData
 
 
 class Dereplicate(Task[Iterator[Dereplicated]]):
+    """
+    Arguments:
+        similarity: float
+        length_threshold: Optional[int]
+        keep_most_complete: Bool
+        data: CompleteData
+    """
+
     def __init__(self, warn: WarningHandler):
         super().__init__(warn)
         self.similarity = 0.07
@@ -205,12 +226,24 @@ class Dereplicate(Task[Iterator[Dereplicated]]):
 
 @dataclass
 class Decontaminated:
+    """
+    The type of output of Decontaminate task
+    """
+
     decontaminated: CompleteData
     contaminates: CompleteData
     summary: DecontaminateSummary
 
 
 class Decontaminate(Task[Iterator[Decontaminated]]):
+    """
+    Arguments:
+        similarity: float
+        alignment: Alignment
+        reference: SequenceData
+        data: CompleteData
+    """
+
     def __init__(self, warn: WarningHandler):
         super().__init__(warn)
         self.similarity = 0.07
