@@ -196,7 +196,9 @@ class SequenceData(DataType):
             yield self.dataframe
             return
         assert self.path is not None
-        for dataframe in self.protocol.read(self.path, columns=["seqid", "sequence"]):
+        for dataframe in self.protocol.read_chunks(
+            self.path, columns=["seqid", "sequence"]
+        ):
             try:
                 dataframe.set_index("seqid", inplace=True, verify_integrity=True)
             except ValueError:
@@ -276,8 +278,8 @@ class CompleteData(DataType):
             yield self.dataframe
             return
         assert self.path is not None
-        for dataframe in self.protocol.read(self.path, columns=[]):
-            if not {"seqid", "sequence"} in set(dataframe.columns):
+        for dataframe in self.protocol.read_chunks(self.path, columns=[]):
+            if not {"seqid", "sequence"} <= set(dataframe.columns):
                 raise ColumnsNotFound({"seqid", "sequence"})
             try:
                 dataframe.set_index("seqid", inplace=True, verify_integrity=True)
@@ -294,7 +296,7 @@ class CompleteData(DataType):
 
     def get_sequences(self) -> SequenceData:
         sequences = SequenceData(self.path, self.protocol)
-        if self.dataframe:
+        if self.dataframe is not None:
             sequences.dataframe = self.dataframe[["sequence"]].copy()
         return sequences
 
