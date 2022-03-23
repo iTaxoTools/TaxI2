@@ -278,10 +278,11 @@ class Decontaminate(Task[Iterator[Decontaminated]]):
             self._calculate_distances.start()
             assert self._calculate_distances.result is not None
             distance_table = self._calculate_distances.result.get_dataframe()
+            distance_table.reset_index(inplace=True)
 
             indices_closest = (
-                distance_table[["seqid (query 1)", Metric.Uncorrected]]
-                .groupby("seqid (query 1)")
+                distance_table[["seqid_query", Metric.Uncorrected]]
+                .groupby("seqid_query")
                 .idxmin()[Metric.Uncorrected]
                 .squeeze()
                 .dropna()
@@ -297,7 +298,8 @@ class Decontaminate(Task[Iterator[Decontaminated]]):
                 closest_table[Metric.Uncorrected] > self.similarity,
                 "seqid_query",
             ]
-            closest_table.rename(columns={Metric.Uncorrected, "distance"}, inplace=True)
+            closest_table.rename(columns={Metric.Uncorrected: "distance"}, inplace=True)
+            closest_table.set_index("seqid_query", inplace=True)
 
             assert sequences.dataframe is not None
             sequences.dataframe = sequences.dataframe.loc[decontaminates_seqids]

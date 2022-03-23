@@ -54,7 +54,7 @@ def _dataframe_append(dataframe: pd.DataFrame, file: Path) -> None:
         header = file.stat().st_size == 0
     except FileNotFoundError:
         header = True
-    dataframe.to_csv(file, header=header, sep="\t")
+    dataframe.to_csv(file, header=header, sep="\t", mode="a")
 
 
 class _Header:
