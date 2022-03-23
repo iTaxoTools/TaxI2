@@ -311,7 +311,9 @@ class CompleteData(DataType):
         removed = CompleteData.from_dataframe(
             dataframe.reindex(dataframe.index.difference(sequences_table.index))
         )
-        self.dataframe = dataframe[dataframe.index.intersection(sequences_table.index)]
+        self.dataframe = dataframe.loc[
+            dataframe.index.intersection(sequences_table.index)
+        ]
         return removed
 
     def append_to_file(self, file: Path) -> None:

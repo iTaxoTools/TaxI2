@@ -213,7 +213,9 @@ class Dereplicate(Task[Iterator[Dereplicated]]):
 
             for component in components:
                 chosen_seqid = (
-                    sequences.dataframe.loc[component, "sequence"].str.len().idxmax()
+                    sequences.dataframe.loc[list(component), "sequence"]
+                    .str.len()
+                    .idxmax()
                 )
                 seqids_dereplicated.append(chosen_seqid)
 

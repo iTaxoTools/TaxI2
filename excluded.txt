@@ -1,1 +1,0 @@
-seqid	specimen_voucher	species	sequence
