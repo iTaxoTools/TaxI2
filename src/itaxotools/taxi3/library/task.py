@@ -9,11 +9,16 @@ import pandas as pd
 import networkx as nx
 
 from .datatypes import (
+    DataType,
     SequenceDistanceMatrix,
     SequenceData,
     Metric,
     CompleteData,
     DecontaminateSummary,
+    VersusAllSummary,
+    VoucherPartition,
+    GenusPartition,
+    SubsubspeciesPartition,
 )
 from .rust_backend import calc, make_aligner
 
@@ -144,6 +149,36 @@ class CalculateDistances(Task[SequenceDistanceMatrix]):
             raise MissingArgument("metrics")
         else:
             self._alignment_start()
+
+
+@dataclass
+class VersusAllSummarizeArg:
+    vouchers: VoucherPartition
+    species: Optional[GenusPartition]
+    subspecies: Optional[SubsubspeciesPartition]
+
+    def to_list(self) -> List[DataType]:
+        return [
+            table
+            for table in (self.vouchers, self.species, self.subspecies)
+            if table is not None
+        ]
+
+
+class VersusAllSummarize(Task[VersusAllSummary]):
+    """
+    Arguments:
+        distances: SequenceDistanceMatrix
+        data: VersusAllSummarizeArg
+    """
+
+    def __init__(self, warn: WarningHandler):
+        super().__init__(warn)
+        self.distances: Optional[SequenceDistanceMatrix] = None
+        self.data: Optional[VersusAllSummarizeArg] = None
+
+    def start(self) -> None:
+        pass
 
 
 @dataclass(frozen=True)
