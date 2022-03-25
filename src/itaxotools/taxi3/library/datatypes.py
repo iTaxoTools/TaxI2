@@ -8,6 +8,7 @@ import os
 import re
 import itertools
 from enum import Enum, auto
+from dataclasses import dataclass
 
 import pandas as pd
 import openpyxl
@@ -425,6 +426,33 @@ class SpeciesPartition(DataType):
         return self.species_partition
 
 
+class VoucherPartition(DataType):
+    """
+    Represents partition of sequences into specimens
+    """
+
+    def __init__(self, voucher_partition: pd.DataFrame):
+        assert list(voucher_partition.index.names) == ["seqid"]
+        assert list(voucher_partition.columns) == ["species_voucher"]
+        assert voucher_partition.index.is_unique()
+        self.voucher_partition = voucher_partition
+
+    @classmethod
+    def from_path(cls, path: ValidFilePath, protocol: FileReader) -> VoucherPartition:
+        voucher_partition = protocol.read(path, columns=["seqid", "species_voucher"])
+        try:
+            voucher_partition.set_index("seqid", inplace=True, verify_integrity=True)
+        except ValueError:
+            raise DuplicatedSeqids
+        return cls(voucher_partition)
+
+    def get_dataframe(self) -> pd.DataFrame:
+        """
+        Returns a pandas DataFrame with index "seqid" and column "species_voucher"
+        """
+        return self.voucher_partition
+
+
 class SubsubspeciesPartition(DataType):
     """
     Represents partition of sequences into subspecies
@@ -510,6 +538,48 @@ class GenusPartition(DataType):
         "species" contains the specific epithet of the species.
         """
         return self.genus_partition
+
+
+class Source(Enum):
+    Query1 = auto()
+    Query2 = auto()
+    Reference = auto()
+
+
+@dataclass
+class SourcedColumn:
+    name: str
+    source: Source
+
+
+class VersusAllSummary(DataType):
+    def __init__(self, dataframe: pd.DataFrame):
+        assert set(dataframe.columns) <= {
+            SourcedColumn("seqid", Source.Query1),
+            SourcedColumn("specimen_voucher", Source.Query1),
+            SourcedColumn("genus", Source.Query1),
+            SourcedColumn("species", Source.Query1),
+            SourcedColumn("seqid", Source.Query2),
+            SourcedColumn("specimen_voucher", Source.Query2),
+            SourcedColumn("genus", Source.Query2),
+            SourcedColumn("species", Source.Query2),
+            "comparison_type",
+            Metric.Uncorrected,
+            Metric.JukesCantor,
+            Metric.Kimura2P,
+            Metric.UncorrectedWithGaps,
+        }
+        self.dataframe = dataframe
+
+    @classmethod
+    def from_path(cls, path: ValidFilePath, protocol: FileReader) -> VersusAllSummary:
+        raise NotImplementedError
+
+    def get_dataframe(self) -> pd.DataFrame:
+        return self.dataframe
+
+    def to_file(self, path: Path) -> None:
+        self.dataframe.to_csv(path, sep="\t")
 
 
 class FileReader(ABC):
