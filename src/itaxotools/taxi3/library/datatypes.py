@@ -551,6 +551,18 @@ class SourcedColumn:
     name: str
     source: Source
 
+    @classmethod
+    def query1(cls, name: str) -> SourcedColumn:
+        return cls(name=name, source=Source.Query1)
+
+    @classmethod
+    def query2(cls, name: str) -> SourcedColumn:
+        return cls(name=name, source=Source.Query2)
+
+    @classmethod
+    def reference(cls, name: str) -> SourcedColumn:
+        return cls(name=name, source=Source.Reference)
+
 
 class VersusAllSummary(DataType):
     def __init__(self, dataframe: pd.DataFrame):

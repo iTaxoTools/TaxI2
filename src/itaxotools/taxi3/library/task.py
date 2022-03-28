@@ -4,6 +4,7 @@ from typing import Callable, Generic, TypeVar, Optional, List, Iterator, Union
 from abc import ABC, abstractmethod
 from enum import Enum, auto
 from dataclasses import dataclass
+from collections import defaultdict
 
 import pandas as pd
 import networkx as nx
@@ -16,6 +17,8 @@ from .datatypes import (
     CompleteData,
     DecontaminateSummary,
     VersusAllSummary,
+    SourcedColumn,
+    Source,
     VoucherPartition,
     GenusPartition,
     SubsubspeciesPartition,
@@ -178,7 +181,58 @@ class VersusAllSummarize(Task[VersusAllSummary]):
         self.data: Optional[VersusAllSummarizeArg] = None
 
     def start(self) -> None:
-        pass
+        if self.distances is None:
+            raise MissingArgument("distances")
+        if self.data is None:
+            raise MissingArgument("data")
+        summary_table = (
+            self.distances.get_dataframe()
+            .reset_index()
+            .rename(
+                columns={
+                    "seqid_target": SourcedColumn.query1("seqid"),
+                    "seqid_query": SourcedColumn.query2("seqid"),
+                }
+            )
+        )
+        for table in self.data.to_list():
+            for decorator in (SourcedColumn.query1, SourcedColumn.query2):
+                query_dataframe = table.get_dataframe().rename(columns=decorator)
+                query_dataframe.index.name = decorator(query_dataframe.index.name)
+                summary_table = summary_table.join(
+                    query_dataframe, on=decorator("seqid"), how="left"
+                )
+
+        summary_table["comparison_type"] = ""
+
+        ones = pd.Series("1", index=summary_table.index)
+        for taxon_level in ("genus", "species", "subspecies"):
+            try:
+                summary_table["comparison_type"] += ones.where(
+                    summary_table[SourcedColumn.query1(taxon_level)]
+                    == summary_table[SourcedColumn.query2(taxon_level)],
+                    other="0",
+                )
+            except KeyError:
+                summary_table["comparison_type"] += " "
+
+        summary_table["comparison_type"] = summary_table["comparison_type"].map(
+            defaultdict(
+                lambda: "Undefined",
+                {
+                    "00 ": "inter-genus",
+                    "000": "inter-genus",
+                    "001": "inter-genus",
+                    "10 ": "inter-species",
+                    "100": "inter-species",
+                    "101": "inter-species",
+                    "11 ": "intra-species",
+                    "111": "intra-species (same intraspecific lineage)",
+                    "110": "intra-species (different intraspecific lineages)",
+                },
+            )
+        )
+        self.result = VersusAllSummary(summary_table)
 
 
 @dataclass(frozen=True)
