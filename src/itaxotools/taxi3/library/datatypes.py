@@ -40,6 +40,7 @@ class ValidFilePath:
         self.exists = self._path.exists
         self.is_file = self._path.is_file
         self.stat = self._path.stat
+        self.read_text = self._path.read_text
         if not self.exists() or not self.is_file():
             raise InvalidPath
 
@@ -620,7 +621,9 @@ class VersusAllSummary(DataType):
             ]
             if column in self.dataframe.columns
         ]
-        self.dataframe[column_order].to_csv(path, sep="\t")
+        with open(path, mode="w") as file:
+            print("Summary Statistic", file=file)
+        self.dataframe[column_order].to_csv(path, sep="\t", mode="a")
 
 
 class FileReader(ABC):
@@ -659,7 +662,6 @@ class FileReader(ABC):
     @staticmethod
     @abstractmethod
     def read_data(path: ValidFilePath) -> List[DataType]:
-
         pass
 
 
@@ -725,6 +727,7 @@ class TabfileReader(FileReader):
 
         datatypes: List[Type[DataType]] = [
             SequenceData,
+            VoucherPartition,
             SpeciesPartition,
             SubsubspeciesPartition,
             GenusPartition,
@@ -794,6 +797,7 @@ class XlsxReader(FileReader):
 
         datatypes: List[Type[DataType]] = [
             SequenceData,
+            VoucherPartition,
             SpeciesPartition,
             SubsubspeciesPartition,
             GenusPartition,
@@ -912,6 +916,7 @@ class GenbankReader(FileReader):
 
         datatypes: List[Type[DataType]] = [
             SequenceData,
+            VoucherPartition,
             SpeciesPartition,
             SubsubspeciesPartition,
             GenusPartition,

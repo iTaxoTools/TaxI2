@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from __future__ import annotations
 
 from typing import Callable, Generic, TypeVar, Optional, List, Iterator, Union
 from abc import ABC, abstractmethod
@@ -156,9 +157,21 @@ class CalculateDistances(Task[SequenceDistanceMatrix]):
 
 @dataclass
 class VersusAllSummarizeArg:
-    vouchers: VoucherPartition
+    vouchers: Optional[VoucherPartition]
     species: Optional[GenusPartition]
     subspecies: Optional[SubsubspeciesPartition]
+
+    @classmethod
+    def from_list(cls, data: List[DataType]) -> VersusAllSummarizeArg:
+        self = cls(None, None, None)
+        for table in data:
+            if isinstance(table, VoucherPartition):
+                self.vouchers = table
+            if isinstance(table, GenusPartition):
+                self.species = table
+            if isinstance(table, SubsubspeciesPartition):
+                self.subspecies = table
+        return self
 
     def to_list(self) -> List[DataType]:
         return [
