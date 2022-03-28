@@ -545,6 +545,13 @@ class Source(Enum):
     Query2 = auto()
     Reference = auto()
 
+    def __str__(self):
+        return {
+            Source.Query1: "query1",
+            Source.Query2: "query2",
+            Source.Reference: "reference",
+        }[self]
+
 
 @dataclass
 class SourcedColumn:
@@ -562,6 +569,9 @@ class SourcedColumn:
     @classmethod
     def reference(cls, name: str) -> SourcedColumn:
         return cls(name=name, source=Source.Reference)
+
+    def __str__(self):
+        return f"{self.name} ({self.source})"
 
 
 class VersusAllSummary(DataType):
@@ -591,7 +601,26 @@ class VersusAllSummary(DataType):
         return self.dataframe
 
     def to_file(self, path: Path) -> None:
-        self.dataframe.to_csv(path, sep="\t")
+        column_order = [
+            column
+            for column in [
+                SourcedColumn("seqid", Source.Query1),
+                SourcedColumn("specimen_voucher", Source.Query1),
+                SourcedColumn("genus", Source.Query1),
+                SourcedColumn("species", Source.Query1),
+                "comparison_type",
+                SourcedColumn("seqid", Source.Query2),
+                SourcedColumn("specimen_voucher", Source.Query2),
+                SourcedColumn("genus", Source.Query2),
+                SourcedColumn("species", Source.Query2),
+                Metric.Uncorrected,
+                Metric.JukesCantor,
+                Metric.Kimura2P,
+                Metric.UncorrectedWithGaps,
+            ]
+            if column in self.dataframe.columns
+        ]
+        self.dataframe[column_order].to_csv(path, sep="\t")
 
 
 class FileReader(ABC):
@@ -676,7 +705,7 @@ class TabfileReader(FileReader):
         path: ValidFilePath,
         *,
         columns: List[str],
-        chunksize: int = FileReader.DEFAULT_CHUNK_SIZE
+        chunksize: int = FileReader.DEFAULT_CHUNK_SIZE,
     ) -> Iterator[pd.DataFrame]:
         names = TabfileReader._verify_columns(path, columns=columns)
         yield from pd.read_table(
@@ -743,7 +772,7 @@ class XlsxReader(FileReader):
         path: ValidFilePath,
         *,
         columns: List[str],
-        chunksize: int = FileReader.DEFAULT_CHUNK_SIZE
+        chunksize: int = FileReader.DEFAULT_CHUNK_SIZE,
     ) -> Iterator[pd.DataFrame]:
         names = XlsxReader._verify_columns(path, columns=columns)
         yield from pd.read_table(
@@ -798,7 +827,7 @@ class FastaReader(FileReader):
         path: ValidFilePath,
         *,
         columns: List[str],
-        chunksize: int = FileReader.DEFAULT_CHUNK_SIZE
+        chunksize: int = FileReader.DEFAULT_CHUNK_SIZE,
     ) -> pd.DataFrame:
         if not set(columns) <= {"seqid", "sequence"}:
             raise ColumnsNotFound(set(columns) - {"seqid", "sequence"})
@@ -858,7 +887,7 @@ class GenbankReader(FileReader):
         path: ValidFilePath,
         *,
         columns: List[str],
-        chunksize: int = FileReader.DEFAULT_CHUNK_SIZE
+        chunksize: int = FileReader.DEFAULT_CHUNK_SIZE,
     ) -> Iterator[pd.DataFrame]:
         names = GenbankReader._verify_columns(path, columns=columns)
         columns = columns or names
