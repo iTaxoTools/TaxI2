@@ -408,7 +408,7 @@ class SpeciesPartition(DataType):
     def __init__(self, species_partition: pd.DataFrame):
         assert list(species_partition.index.names) == ["seqid"]
         assert list(species_partition.columns) == ["species"]
-        assert species_partition.index.is_unique()
+        assert species_partition.index.is_unique
         self.species_partition = species_partition
 
     @classmethod
@@ -434,13 +434,13 @@ class VoucherPartition(DataType):
 
     def __init__(self, voucher_partition: pd.DataFrame):
         assert list(voucher_partition.index.names) == ["seqid"]
-        assert list(voucher_partition.columns) == ["species_voucher"]
-        assert voucher_partition.index.is_unique()
+        assert list(voucher_partition.columns) == ["specimen_voucher"]
+        assert voucher_partition.index.is_unique
         self.voucher_partition = voucher_partition
 
     @classmethod
     def from_path(cls, path: ValidFilePath, protocol: FileReader) -> VoucherPartition:
-        voucher_partition = protocol.read(path, columns=["seqid", "species_voucher"])
+        voucher_partition = protocol.read(path, columns=["seqid", "specimen_voucher"])
         try:
             voucher_partition.set_index("seqid", inplace=True, verify_integrity=True)
         except ValueError:
@@ -462,7 +462,7 @@ class SubsubspeciesPartition(DataType):
     def __init__(self, subspecies_partition: pd.DataFrame):
         assert list(subspecies_partition.index.names) == ["seqid"]
         assert list(subspecies_partition.columns) == ["subspecies"]
-        assert subspecies_partition.index.is_unique()
+        assert subspecies_partition.index.is_unique
         self.subspecies_partition = subspecies_partition
 
     @classmethod
@@ -502,7 +502,7 @@ class GenusPartition(DataType):
     def __init__(self, genus_partition: pd.DataFrame):
         assert list(genus_partition.index.names) == ["seqid"]
         assert list(genus_partition.columns) == ["genus", "species"]
-        assert genus_partition.index.is_unique()
+        assert genus_partition.index.is_unique
         self.genus_partition = genus_partition
 
     @staticmethod
@@ -515,7 +515,7 @@ class GenusPartition(DataType):
             r" |_", n=1, expand=True, regex=True
         )
         genus_partition.columns = ["genus", "species"]
-        genus_partition["binomial"] = species["species"]
+        return genus_partition
 
     @classmethod
     def from_path(cls, path: ValidFilePath, protocol: FileReader) -> GenusPartition:
