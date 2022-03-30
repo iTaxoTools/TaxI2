@@ -29,8 +29,10 @@ def test_versus_all() -> None:
 
 def test_summary() -> None:
     input_path = ValidFilePath(Path(__file__).with_name("Scaphio_input_small.txt"))
-    tested_path = Path(__file__).with_name("Summary_statistic.txt")
-    output_path = Path(__file__).with_name("Summary_statistic_test.txt")
+    tested_path = Path(__file__).with_name("Summary_statistics.txt")
+    output_path = (
+        Path(__file__).parent / "temp_test_files" / "Summary_statistics_test.txt"
+    )
     content = TabfileReader.read_data(input_path)
     task_distances = CalculateDistances(print)
     for table in content:
@@ -44,4 +46,5 @@ def test_summary() -> None:
     task.distances = task_distances.result
     task.start()
     task.result.to_file(output_path)
-    assert tested_path.read_text == output_path.read_text
+    assert tested_path.read_text() == output_path.read_text()
+    output_path.unlink()

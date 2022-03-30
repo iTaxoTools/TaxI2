@@ -546,7 +546,7 @@ class Source(Enum):
     Query2 = auto()
     Reference = auto()
 
-    def __str__(self):
+    def __str__(self) -> str:
         return {
             Source.Query1: "query1",
             Source.Query2: "query2",
@@ -554,7 +554,7 @@ class Source(Enum):
         }[self]
 
 
-@dataclass
+@dataclass(frozen=True)  # frozen=True is required for hashing
 class SourcedColumn:
     name: str
     source: Source
@@ -571,7 +571,7 @@ class SourcedColumn:
     def reference(cls, name: str) -> SourcedColumn:
         return cls(name=name, source=Source.Reference)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name} ({self.source})"
 
 
@@ -622,8 +622,8 @@ class VersusAllSummary(DataType):
             if column in self.dataframe.columns
         ]
         with open(path, mode="w") as file:
-            print("Summary Statistic", file=file)
-        self.dataframe[column_order].to_csv(path, sep="\t", mode="a")
+            print("Summary statistics", file=file)
+        self.dataframe[column_order].to_csv(path, sep="\t", mode="a", index=False)
 
 
 class FileReader(ABC):
