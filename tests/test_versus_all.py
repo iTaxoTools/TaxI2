@@ -47,5 +47,5 @@ def test_summary() -> None:
     task.distances = task_distances.result
     task.start()
     task.result.to_file(output_path)
-    assert tested_path.read_text() == output_path.read_text()
+    assert tested_path.read_text().split("\n") == output_path.read_text().split("\n")
     output_path.unlink()

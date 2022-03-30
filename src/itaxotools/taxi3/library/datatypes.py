@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-from typing import List, Set, Any, Optional, Iterator, Type
+from typing import List, Set, Any, Optional, Iterator, Type, Dict
 from abc import ABC, abstractmethod
 from pathlib import Path
 import os
@@ -368,6 +368,15 @@ class Metric(Enum):
             Metric.UncorrectedWithGaps: "pairwise uncorrected distance counting gaps",
         }[self]
 
+    @staticmethod
+    def short_names() -> Dict[Metric, str]:
+        return {
+            Metric.Uncorrected: "p-distance",
+            Metric.Kimura2P: "JC distance",
+            Metric.JukesCantor: "K2P distance",
+            Metric.UncorrectedWithGaps: "p-distance with gaps",
+        }
+
 
 class SequenceDistanceMatrix(DataType):
     """
@@ -548,8 +557,8 @@ class Source(Enum):
 
     def __str__(self) -> str:
         return {
-            Source.Query1: "query1",
-            Source.Query2: "query2",
+            Source.Query1: "query 1",
+            Source.Query2: "query 2",
             Source.Reference: "reference",
         }[self]
 
@@ -615,15 +624,21 @@ class VersusAllSummary(DataType):
                 SourcedColumn("genus", Source.Query2),
                 SourcedColumn("species", Source.Query2),
                 Metric.Uncorrected,
-                Metric.JukesCantor,
                 Metric.Kimura2P,
+                Metric.JukesCantor,
                 Metric.UncorrectedWithGaps,
             ]
             if column in self.dataframe.columns
         ]
         with open(path, mode="w") as file:
             print("Summary statistics", file=file)
-        self.dataframe[column_order].to_csv(path, sep="\t", mode="a", index=False)
+        different_seqids = (
+            self.dataframe[SourcedColumn.query1("seqid")]
+            != self.dataframe[SourcedColumn.query2("seqid")]
+        )
+        self.dataframe.loc[different_seqids, column_order].rename(
+            columns=Metric.short_names()
+        ).to_csv(path, sep="\t", mode="a", index=False, float_format="%.4g")
 
 
 class FileReader(ABC):
