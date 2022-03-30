@@ -12,6 +12,7 @@ import networkx as nx
 
 from .datatypes import (
     DataType,
+    FileReader,
     SequenceDistanceMatrix,
     SequenceData,
     Metric,
@@ -160,6 +161,25 @@ class VersusAllSummarizeArg:
     vouchers: Optional[VoucherPartition]
     species: Optional[GenusPartition]
     subspecies: Optional[SubsubspeciesPartition]
+
+    @classmethod
+    def from_path(
+        cls, path: ValidFilePath, protocol: FileReader
+    ) -> VersusAllSummarizeArg:
+        self = cls(None, None, None)
+        try:
+            self.vouchers = VoucherPartition.from_path(path, protocol)
+        except Exception:
+            pass
+        try:
+            self.species = GenusPartition.from_path(path, protocol)
+        except Exception:
+            pass
+        try:
+            self.subspecies = SubsubspeciesPartition.from_path(path, protocol)
+        except Exception:
+            pass
+        return self
 
     @classmethod
     def from_list(cls, data: List[DataType]) -> VersusAllSummarizeArg:

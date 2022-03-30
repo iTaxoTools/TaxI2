@@ -33,16 +33,17 @@ def test_summary() -> None:
     output_path = (
         Path(__file__).parent / "temp_test_files" / "Summary_statistics_test.txt"
     )
-    content = TabfileReader.read_data(input_path)
+    sequences = SequenceData.from_path(input_path, TabfileReader())
     task_distances = CalculateDistances(print)
-    for table in content:
-        if isinstance(table, SequenceData):
-            task_distances.sequences = table
+    task_distances.sequences = sequences
     task_distances.alignment = Alignment.Pairwise
     task_distances.metrics = list(Metric)
     task_distances.start()
     task = VersusAllSummarize(print)
-    task.data = VersusAllSummarizeArg.from_list(content)
+    task.data = VersusAllSummarizeArg.from_path(input_path, TabfileReader())
+    assert task.data.vouchers is not None
+    assert task.data.species is not None
+    assert task.data.subspecies is None
     task.distances = task_distances.result
     task.start()
     task.result.to_file(output_path)
