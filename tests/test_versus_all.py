@@ -15,9 +15,12 @@ from itaxotools.taxi3.library.task import (
     VersusAllSummarizeArg,
 )
 
+TEST_DATA_DIR = Path(__file__).parent / "versus_all_data"
+TMP_TEST_DIR = Path(__file__).parent / "temp_test_files"
+
 
 def test_versus_all() -> None:
-    input_path = ValidFilePath(Path(__file__).with_name("Scaphio_input_small.txt"))
+    input_path = ValidFilePath(TEST_DATA_DIR / "Scaphio_input_small.txt")
     sequences = SequenceData.from_path(input_path, TabfileReader())
     task = CalculateDistances(print)
     task.sequences = sequences
@@ -28,11 +31,9 @@ def test_versus_all() -> None:
 
 
 def test_summary() -> None:
-    input_path = ValidFilePath(Path(__file__).with_name("Scaphio_input_small.txt"))
-    tested_path = Path(__file__).with_name("Summary_statistics.txt")
-    output_path = (
-        Path(__file__).parent / "temp_test_files" / "Summary_statistics_test.txt"
-    )
+    input_path = ValidFilePath(TEST_DATA_DIR / "Scaphio_input_small.txt")
+    tested_path = TEST_DATA_DIR / "Summary_statistics.txt"
+    output_path = TMP_TEST_DIR / "Summary_statistics_test.txt"
     sequences = SequenceData.from_path(input_path, TabfileReader())
     task_distances = CalculateDistances(print)
     task_distances.sequences = sequences
