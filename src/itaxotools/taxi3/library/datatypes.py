@@ -550,6 +550,61 @@ class GenusPartition(DataType):
         return self.genus_partition
 
 
+class RowOrdering(Enum):
+    Default = auto()
+    Alphabetical = auto()
+    Species = auto()
+
+    def description(self) -> str:
+        return {
+            RowOrdering.Default: "",
+            RowOrdering.Alphabetical: "Alphabetical order",
+            RowOrdering.Species: "Ordered by species",
+        }[self]
+
+
+class SequenceDistanceOutput(DataType):
+    """
+    Represents tables of distances between sequence in a form suitable for output.
+    """
+
+    def __init__(
+        self,
+        dataframe: pd.DataFrame,
+        *,
+        metric: Metric,
+        ordering: RowOrdering,
+        in_percent: bool,
+    ):
+        assert dataframe.index.equals(dataframe.columns)
+        if ordering is RowOrdering.Species:
+            assert list(dataframe.index.names) == ["seqid", "species"]
+        else:
+            assert dataframe.index == "seqid"
+        self.dataframe = dataframe
+        self.ordering = ordering
+        self.in_percent = in_percent
+        self.metric = metric
+
+    def description(self) -> str:
+        if self.ordering is RowOrdering.Default:
+            ordering_s = ""
+        else:
+            ordering_s = f" ({self.ordering.description()})"
+        return f"{self.metric} between sequences{ordering_s}"
+
+    def make_file_name(self) -> str:
+        return self.description().replace(" ", "_") + (
+            "_in_percent" if self.in_percent else ""
+        )
+
+    def append_to_file(self, file: Path) -> None:
+        l = len(self.dataframe.index.names)
+        self.dataframe.index.names = [None] * l
+        self.dataframe.columns.names = [None] * l
+        self.dataframe.to_csv(file, float_format=".4g", sep="\t")
+
+
 class Source(Enum):
     Query1 = auto()
     Query2 = auto()
