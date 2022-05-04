@@ -294,9 +294,11 @@ class OutputSequenceDistances(Task[SequenceDistanceOutput]):
         assert self.sequence_matrix is not None
         assert self.metric is not None
         assert self.ordering is not None
-        dataframe = self.sequence_matrix.get_dataframe()[[self.metric]].copy()
+        dataframe = self.sequence_matrix.get_dataframe()[self.metric].copy()
+        seqids = dataframe.index.to_frame()
+        dataframe.loc[seqids["seqid_target"] == seqids["seqid_query"]] = float("nan")
         if self.in_percent:
-            dataframe[self.metric] *= 100
+            dataframe *= 100
         dataframe = dataframe.unstack(level="seqid_query")
         if self.ordering is RowOrdering.Species:
             assert self.species is not None
@@ -306,20 +308,27 @@ class OutputSequenceDistances(Task[SequenceDistanceOutput]):
                 .reindex(dataframe.index)
                 .reset_index()
             )
-            species_column = (
+            species_columns = (
                 self.species.get_dataframe()
                 .copy()
                 .reindex(dataframe.columns)
                 .reset_index()
             )
+            species_index.rename(columns={"seqid_target": "seqid"}, inplace=True)
+            species_columns.rename(columns={"seqid_query": "seqid"}, inplace=True)
+            species_index = species_index[["species", "seqid"]]
+            species_columns = species_columns[["species", "seqid"]]
             dataframe.set_axis(
                 pd.MultiIndex.from_frame(species_index), axis="index", inplace=True
             )
             dataframe.set_axis(
-                pd.MultiIndex.from_frame(species_column), axis="columns", inplace=True
+                pd.MultiIndex.from_frame(species_columns), axis="columns", inplace=True
             )
             dataframe.sort_index(axis="index", level="species", inplace=True)
             dataframe.sort_index(axis="columns", level="species", inplace=True)
+        else:
+            dataframe.index.name = "seqid"
+            dataframe.columns.name = "seqid"
         if self.ordering is RowOrdering.Alphabetical:
             dataframe.sort_index(axis="index", inplace=True)
             dataframe.sort_index(axis="columns", inplace=True)

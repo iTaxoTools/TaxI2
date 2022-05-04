@@ -88,7 +88,7 @@ def test_sequence_distance_table_output(
     tested_path = TEST_DATA_DIR / table.make_file_name()
     output_path = TMP_TEST_DIR / table.make_file_name()
     with open(output_path, mode="w") as output_file:
-        print(table.description, file=output_file)
+        print(table.description(), file=output_file)
     table.append_to_file(output_path)
     assert tested_path.read_text().split("\n") == output_path.read_text().split("\n")
     output_path.unlink()

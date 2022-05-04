@@ -578,9 +578,9 @@ class SequenceDistanceOutput(DataType):
     ):
         assert dataframe.index.equals(dataframe.columns)
         if ordering is RowOrdering.Species:
-            assert list(dataframe.index.names) == ["seqid", "species"]
+            assert list(dataframe.index.names) == ["species", "seqid"]
         else:
-            assert dataframe.index == "seqid"
+            assert dataframe.index.name == "seqid"
         self.dataframe = dataframe
         self.ordering = ordering
         self.in_percent = in_percent
@@ -613,7 +613,7 @@ class SequenceDistanceOutput(DataType):
         l = len(self.dataframe.index.names)
         self.dataframe.index.names = [None] * l
         self.dataframe.columns.names = [None] * l
-        self.dataframe.to_csv(file, float_format=".4g", sep="\t")
+        self.dataframe.to_csv(file, float_format="%.4g", sep="\t", mode="a")
 
 
 class Source(Enum):
