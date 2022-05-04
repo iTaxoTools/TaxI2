@@ -23,7 +23,10 @@ from .datatypes import (
     Source,
     VoucherPartition,
     GenusPartition,
+    SpeciesPartition,
     SubsubspeciesPartition,
+    SequenceDistanceOutput,
+    RowOrdering,
 )
 from .rust_backend import calc, make_aligner
 
@@ -266,6 +269,66 @@ class VersusAllSummarize(Task[VersusAllSummary]):
             )
         )
         self.result = VersusAllSummary(summary_table)
+
+
+class OutputSequenceDistances(Task[SequenceDistanceOutput]):
+    """
+    Arguments:
+        sequence_matrix: SequenceDistanceMatrix
+        metric: Metric
+        ordering: RowOrdering
+        species: Optional[SpeciesPartition]
+        in_percent: bool
+    If ordering is RowOrdering.Species, species is not None
+    """
+
+    def __init__(self, warn: WarningHandler):
+        super().__init__(warn)
+        self.sequence_matrix: Optional[SequenceDistanceMatrix] = None
+        self.metric: Optional[Metric] = None
+        self.ordering: Optional[RowOrdering] = None
+        self.species: Optional[SpeciesPartition] = None
+        self.in_percent = False
+
+    def start(self) -> None:
+        assert self.sequence_matrix is not None
+        assert self.metric is not None
+        assert self.ordering is not None
+        dataframe = self.sequence_matrix.get_dataframe()[[self.metric]].copy()
+        if self.in_percent:
+            dataframe[self.metric] *= 100
+        dataframe = dataframe.unstack(level="seqid_query")
+        if self.ordering is RowOrdering.Species:
+            assert self.species is not None
+            species_index = (
+                self.species.get_dataframe()
+                .copy()
+                .reindex(dataframe.index)
+                .reset_index()
+            )
+            species_column = (
+                self.species.get_dataframe()
+                .copy()
+                .reindex(dataframe.columns)
+                .reset_index()
+            )
+            dataframe.set_axis(
+                pd.MultiIndex.from_frame(species_index), axis="index", inplace=True
+            )
+            dataframe.set_axis(
+                pd.MultiIndex.from_frame(species_column), axis="columns", inplace=True
+            )
+            dataframe.sort_index(axis="index", level="species", inplace=True)
+            dataframe.sort_index(axis="columns", level="species", inplace=True)
+        if self.ordering is RowOrdering.Alphabetical:
+            dataframe.sort_index(axis="index", inplace=True)
+            dataframe.sort_index(axis="columns", inplace=True)
+        self.result = SequenceDistanceOutput(
+            dataframe,
+            metric=self.metric,
+            ordering=self.ordering,
+            in_percent=self.in_percent,
+        )
 
 
 @dataclass(frozen=True)

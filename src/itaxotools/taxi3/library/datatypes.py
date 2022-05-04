@@ -586,6 +586,15 @@ class SequenceDistanceOutput(DataType):
         self.in_percent = in_percent
         self.metric = metric
 
+    @classmethod
+    def from_path(
+        cls, path: ValidFilePath, protocol: FileReader
+    ) -> SequenceDistanceOutput:
+        raise NotImplementedError
+
+    def get_dataframe(self) -> pd.DataFrame:
+        return self.dataframe
+
     def description(self) -> str:
         if self.ordering is RowOrdering.Default:
             ordering_s = ""
