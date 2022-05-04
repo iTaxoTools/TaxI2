@@ -603,8 +603,10 @@ class SequenceDistanceOutput(DataType):
         return f"{self.metric} between sequences{ordering_s}"
 
     def make_file_name(self) -> str:
-        return self.description().replace(" ", "_") + (
-            "_in_percent" if self.in_percent else ""
+        return (
+            self.description().replace(" ", "_")
+            + ("_in_percent" if self.in_percent else "")
+            + ".txt"
         )
 
     def append_to_file(self, file: Path) -> None:
