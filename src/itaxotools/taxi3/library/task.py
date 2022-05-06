@@ -27,8 +27,14 @@ from .datatypes import (
     SubsubspeciesPartition,
     SequenceDistanceOutput,
     RowOrdering,
+    SimpleSequenceStatistic,
+    SimpleSpeciesStatistic,
 )
 from .rust_backend import calc, make_aligner
+from .sequence_statistics import (
+    sequence_statistics,
+    sequence_statistics_with_gaps,
+)
 
 from .alfpy_distance import alfpy_distance_array, alfpy_distance_array2
 
@@ -337,6 +343,52 @@ class OutputSequenceDistances(Task[SequenceDistanceOutput]):
             metric=self.metric,
             ordering=self.ordering,
             in_percent=self.in_percent,
+        )
+
+
+@dataclass(frozen=True)
+class SimpleStatisticResult:
+    total: SimpleSequenceStatistic
+    by_species: Optional[SimpleSpeciesStatistic]
+
+
+class CalculateSimpleStatistic(Task):
+    """
+    Arguments:
+        sequences: SequenceData
+        species: Optional[SpeciesPartition]
+    """
+
+    def __init__(self, warn: WarningHandler):
+        self.sequences: Optional[SequenceData] = None
+        self.species: Optional[SpeciesPartition] = None
+
+    def start(self) -> None:
+        assert self.sequences is not None
+        sequences_with_gaps = self.sequences.get_dataframe().copy()
+        if self.species is not None:
+            sequences_with_gaps.join(self.species.get_dataframe(), how="left")
+        sequences = sequences_with_gaps.copy()
+        sequences["sequence"] = sequences["sequence"].str.replace("-", "", regex=False)
+        statistic_column = pd.concat(
+            [
+                sequences["sequence"].agg(sequence_statistics),
+                sequences_with_gaps["sequence"].agg(sequence_statistics_with_gaps),
+            ]
+        )
+        statistic_table = None
+        if self.species is not None:
+            statistic_table = pd.concat(
+                [
+                    sequences.groupby("species")["sequences"].agg(sequence_statistics),
+                    sequences_with_gaps.groupby("species")["sequences"].agg(
+                        sequence_statistics_with_gaps
+                    ),
+                ],
+                axis="columns",
+            )
+        self.result = SimpleStatisticResult(
+            total=statistic_column, by_species=statistic_table
         )
 
 
