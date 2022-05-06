@@ -19,6 +19,7 @@ from itaxotools.taxi3.library.task import (
     VersusAllSummarize,
     VersusAllSummarizeArg,
     OutputSequenceDistances,
+    CalculateSimpleStatistic,
 )
 
 TEST_DATA_DIR = Path(__file__).parent / "versus_all_data"
@@ -90,5 +91,27 @@ def test_sequence_distance_table_output(
     with open(output_path, mode="w") as output_file:
         print(table.description(), file=output_file)
     table.append_to_file(output_path)
+    assert tested_path.read_text().split("\n") == output_path.read_text().split("\n")
+    output_path.unlink()
+
+
+def test_simple_statistics() -> None:
+    input_path = ValidFilePath(TEST_DATA_DIR / "Scaphio_input_small.txt")
+    tested_path = TEST_DATA_DIR / "Sequence summary statistics.txt"
+    output_path = TMP_TEST_DIR / "Sequence summary statistics.txt"
+    sequences = SequenceData.from_path(input_path, TabfileReader())
+    species = SpeciesPartition.from_path(input_path, TabfileReader())
+    task = CalculateSimpleStatistic(print)
+    task.sequences = sequences
+    task.species = species
+    task.start()
+    with open(
+        output_path, mode="w"
+    ):  # Erase data that might have been left from a previous run
+        pass
+    task.result.total.append_to_file(output_path)
+    with open(output_path, mode="a") as output_file:
+        print("", file=output_file)
+    task.result.by_species.append_to_file(output_path)
     assert tested_path.read_text().split("\n") == output_path.read_text().split("\n")
     output_path.unlink()
