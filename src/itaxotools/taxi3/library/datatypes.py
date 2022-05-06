@@ -17,6 +17,8 @@ from itaxotools.DNAconvert.library.fasta import Fastafile
 from itaxotools.DNAconvert.library.genbank import GenbankFile
 from itaxotools.DNAconvert.library.record import Record
 
+from .sequence_statistics import sequence_statistics, sequence_statistics_with_gaps
+
 
 class InvalidPath(Exception):
     """
@@ -614,6 +616,58 @@ class SequenceDistanceOutput(DataType):
         self.dataframe.index.names = [None] * l
         self.dataframe.columns.names = [None] * l
         self.dataframe.to_csv(file, float_format="%.4g", sep="\t", mode="a")
+
+
+class SimpleSequenceStatistic(DataType):
+    """
+    A column of simple sequence statistics
+    """
+
+    def __init__(self, column: pd.Series):
+        assert column.name is None
+        assert set(column.index) == set.union(
+            set(sequence_statistics), set(sequence_statistics_with_gaps)
+        )
+        self.column = column
+
+    @classmethod
+    def from_path(
+        cls, path: ValidFilePath, protocol: FileReader
+    ) -> SimpleSequenceStatistic:
+        raise NotImplementedError
+
+    def get_dataframe(self) -> pd.DataFrame:
+        return self.column.to_frame()
+
+    def append_to_file(self, path: Path) -> None:
+        with open(path, mode="a") as output_file:
+            for stat_name, stat_value in self.column.items():
+                print(stat_name, f"{stat_value:.4g}", sep=": ", file=output_file)
+
+
+class SimpleSpeciesStatistic(DataType):
+    """
+    A table of simple sequence statistics by species
+    """
+
+    def __init__(self, table: pd.DataFrame):
+        assert table.index.name == "species"
+        assert set(table.columns) == set.union(
+            set(sequence_statistics), set(sequence_statistics_with_gaps)
+        )
+        self.dataframe = table
+
+    @classmethod
+    def from_path(
+        cls, path: ValidFilePath, protocol: FileReader
+    ) -> SimpleSequenceStatistic:
+        raise NotImplementedError
+
+    def get_dataframe(self) -> pd.DataFrame:
+        return self.dataframe
+
+    def append_to_file(self, path: Path) -> None:
+        self.dataframe.to_csv(path, sep="\t", float_format="%.4g", mode="a")
 
 
 class Source(Enum):
