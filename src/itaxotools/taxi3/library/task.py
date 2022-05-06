@@ -367,7 +367,9 @@ class CalculateSimpleStatistic(Task):
         assert self.sequences is not None
         sequences_with_gaps = self.sequences.get_dataframe().copy()
         if self.species is not None:
-            sequences_with_gaps.join(self.species.get_dataframe(), how="left")
+            sequences_with_gaps = sequences_with_gaps.join(
+                self.species.get_dataframe(), how="left"
+            )
         sequences = sequences_with_gaps.copy()
         sequences["sequence"] = sequences["sequence"].str.replace("-", "", regex=False)
         statistic_column = pd.concat(
@@ -376,19 +378,21 @@ class CalculateSimpleStatistic(Task):
                 sequences_with_gaps["sequence"].agg(sequence_statistics_with_gaps),
             ]
         )
+        statistic_column.name = None
         statistic_table = None
         if self.species is not None:
             statistic_table = pd.concat(
                 [
-                    sequences.groupby("species")["sequences"].agg(sequence_statistics),
-                    sequences_with_gaps.groupby("species")["sequences"].agg(
-                        sequence_statistics_with_gaps
+                    sequences.groupby("species")["sequence"].agg(**sequence_statistics),
+                    sequences_with_gaps.groupby("species")["sequence"].agg(
+                        **sequence_statistics_with_gaps
                     ),
                 ],
                 axis="columns",
             )
         self.result = SimpleStatisticResult(
-            total=statistic_column, by_species=statistic_table
+            total=SimpleSequenceStatistic(statistic_column),
+            by_species=SimpleSpeciesStatistic(statistic_table),
         )
 
 
