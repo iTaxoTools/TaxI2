@@ -670,6 +670,110 @@ class SimpleSpeciesStatistic(DataType):
         self.dataframe.to_csv(path, sep="\t", float_format="%.4g", mode="a")
 
 
+class TaxonRank(Enum):
+    Species = auto()
+    Genus = auto()
+
+    def __str__(self) -> str:
+        return {
+            TaxonRank.Species: "species",
+            TaxonRank.Genus: "genus",
+        }[self]
+
+    def plural_str(self) -> str:
+        return {
+            TaxonRank.Species: "species",
+            TaxonRank.Genus: "genera",
+        }[self]
+
+
+class Aggregation(Enum):
+    Mean = auto()
+    Min = auto()
+    Max = auto()
+
+
+@dataclass(frozen=True)
+class AggregatedMetric:
+    aggregation: Aggregation
+    metric: Metric
+
+    @classmethod
+    def min(cls, metric: Metric) -> AggregatedMetric:
+        return cls(Aggregation.Min, metric)
+
+    @classmethod
+    def max(cls, metric: Metric) -> AggregatedMetric:
+        return cls(Aggregation.Max, metric)
+
+    @classmethod
+    def mean(cls, metric: Metric) -> AggregatedMetric:
+        return cls(Aggregation.Mean, metric)
+
+
+class MeanMinMaxDistances(DataType):
+    """
+    Three column dataframes of mean, mininum and maximum distances
+    """
+
+    def __init__(
+        self,
+        mean_distances: pd.DataFrame,
+        min_distances: pd.DataFrame,
+        max_distances: pd.DataFrame,
+        *,
+        metric: Metric,
+        taxon_rank: TaxonRank,
+        in_percent: bool,
+    ):
+        assert mean_distances.index.equals(min_distances.index)
+        assert mean_distances.index.equals(max_distances.index)
+        assert len(mean_distances.index.names) <= 2
+        self.is_square = len(mean_distances.index.names) == 2
+        self.metric = metric
+        self.taxon_rank = taxon_rank
+        self.in_percent = in_percent
+        if self.is_square:
+            index_names = [
+                str(self.taxon_rank) + "_target",
+                str(self.taxon_rank) + "_query",
+            ]
+            assert list(mean_distances.index.names) == index_names
+            assert list(min_distances.index.names) == index_names
+            assert list(max_distances.index.names) == index_names
+        else:
+            assert mean_distances.index.name == str(self.taxon_rank)
+            assert min_distances.index.name == str(self.taxon_rank)
+            assert max_distances.index.name == str(self.taxon_rank)
+        assert mean_distances.columns == [self.metric]
+        assert min_distances.columns == [self.metric]
+        assert max_distances.columns == [self.metric]
+        self.mean = mean_distances
+        self.min = min_distances
+        self.max = max_distances
+
+    @classmethod
+    def from_path(
+        cls, path: ValidFilePath, protocol: FileReader
+    ) -> MeanMinMaxDistances:
+        raise NotImplementedError
+
+    def get_dataframe(self) -> pd.DataFrame:
+        """
+        Returns a dataframe with the index:
+            str(self.taxon_rank) or
+            [str(self.taxon_rank) + "_target", str(self.taxon_rank) + "_query"]
+        and columns:
+            AggregatedMetric.mean(metric)
+            AggregatedMetric.min(metric)
+            AggregatedMetric.max(metric)
+        """
+        mean_distances = self.mean.rename(columns=AggregatedMetric.mean)
+        min_distances = self.min.rename(columns=AggregatedMetric.min)
+        max_distances = self.max.rename(columns=AggregatedMetric.max)
+        return mean_distances.join(min_distances).join(max_distances)
+
+
 class Source(Enum):
     Query1 = auto()
     Query2 = auto()
