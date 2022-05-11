@@ -711,10 +711,25 @@ class AggregatedMetric:
         return cls(Aggregation.Mean, metric)
 
 
+class MeanMinMaxFileFormat(Enum):
+    Mean = auto()
+    MinMax = auto()
+    MeanMinMax = auto()
+
+    def __str__(self) -> str:
+        return {
+            MeanMinMaxFileFormat.Mean: "mean",
+            MeanMinMaxFileFormat.MinMax: "minimum and maximum",
+            MeanMinMaxFileFormat.MeanMinMax: "mean, minimum and maximum",
+        }[self]
+
+
 class MeanMinMaxDistances(DataType):
     """
     Three column dataframes of mean, mininum and maximum distances
     """
+
+    FLOAT_FORMAT = "{:.4g}"
 
     def __init__(
         self,
@@ -751,6 +766,7 @@ class MeanMinMaxDistances(DataType):
         self.mean = mean_distances
         self.min = min_distances
         self.max = max_distances
+        self._min_max: Optional[pd.DataFrame] = None
 
     @classmethod
     def from_path(
@@ -772,6 +788,62 @@ class MeanMinMaxDistances(DataType):
         min_distances = self.min.rename(columns=AggregatedMetric.min)
         max_distances = self.max.rename(columns=AggregatedMetric.max)
         return mean_distances.join(min_distances).join(max_distances)
+
+    def description(self, format: MeanMinMaxFileFormat) -> str:
+        if self.is_square:
+            return f"{format} {self.metric} between {self.taxon_rank.plural_str()}"
+        else:
+            return f"{format} intra-{self.taxon_rank} {self.metric}"
+
+    def file_name(self, format: MeanMinMaxFileFormat) -> str:
+        return self.description(format).replace(" ", "_") + ".txt"
+
+    def _min_max_table(self) -> pd.DataFrame:
+        if self._min_max is None:
+            self._min_max = (
+                self.min[self.metric].map(MeanMinMaxDistances.FLOAT_FORMAT.format)
+                + "-"
+                + self.max[self.metric].map(MeanMinMaxDistances.FLOAT_FORMAT.format)
+            ).to_frame()
+        return self._min_max
+
+    def _mean_min_max_table(self) -> pd.DataFrame:
+        if self._min_max is None:
+            self._min_max_table()
+        assert self._min_max is not None
+        return (
+            self.mean[self.metric].map(MeanMinMaxDistances.FLOAT_FORMAT.format)
+            + " ("
+            + self._min_max[self.metric]
+            + ")"
+        ).to_frame()
+
+    def _create_table(self, format: MeanMinMaxFileFormat) -> pd.DataFrame:
+        if format is MeanMinMaxFileFormat.Mean:
+            return self.mean
+        elif format is MeanMinMaxFileFormat.MinMax:
+            return self._min_max_table()
+        elif format is MeanMinMaxFileFormat.MeanMinMax:
+            return self._mean_min_max_table()
+        else:
+            assert False
+
+    def _append_square(self, file: Path, format: MeanMinMaxFileFormat) -> None:
+        table = self._create_table(format)
+        table.index.names = [None, None]
+        table = table.unstack()
+        table.to_csv(file, sep="\t", float_format="%.4g", mode="a")
+
+    def _append_column(self, file: Path, format: MeanMinMaxFileFormat) -> None:
+        table = self._create_table(format)
+        table.index.names = None
+        table.to_csv(file, sep="\t", float_format="%.4g", header=False, mode="a")
+
+    def append_to_file(self, file: Path, format: MeanMinMaxFileFormat) -> None:
+        if self.is_square:
+            self._append_square(file, format)
+        else:
+            self._append_column(file, format)
 
 
 class Source(Enum):
