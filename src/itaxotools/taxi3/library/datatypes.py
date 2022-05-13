@@ -542,7 +542,7 @@ class GenusPartition(DataType):
             )
         return cls(genus_partition)
 
-    def get_dataframe(self) -> GenusPartition:
+    def get_dataframe(self) -> pd.DataFrame:
         """
         Returns a pandas DataFrame with indes "seqid" and columns "genus" and "species".
 

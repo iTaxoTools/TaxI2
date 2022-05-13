@@ -29,6 +29,8 @@ from .datatypes import (
     RowOrdering,
     SimpleSequenceStatistic,
     SimpleSpeciesStatistic,
+    MeanMinMaxDistances,
+    TaxonRank,
 )
 from .rust_backend import calc, make_aligner
 from .sequence_statistics import (
@@ -284,7 +286,7 @@ class OutputSequenceDistances(Task[SequenceDistanceOutput]):
         metric: Metric
         ordering: RowOrdering
         species: Optional[SpeciesPartition]
-        in_percent: bool
+        in_percent: bool = False
     If ordering is RowOrdering.Species, species is not None
     """
 
@@ -352,7 +354,7 @@ class SimpleStatisticResult:
     by_species: Optional[SimpleSpeciesStatistic]
 
 
-class CalculateSimpleStatistic(Task):
+class CalculateSimpleStatistic(Task[SimpleStatisticResult]):
     """
     Arguments:
         sequences: SequenceData
@@ -393,6 +395,87 @@ class CalculateSimpleStatistic(Task):
         self.result = SimpleStatisticResult(
             total=SimpleSequenceStatistic(statistic_column),
             by_species=SimpleSpeciesStatistic(statistic_table),
+        )
+
+
+class Connect(Enum):
+    """
+    Describes whether calculations should be done between samples of the same group (Connect.Intra)
+    or samples of different groups (Connect.Between)
+    """
+
+    Intra = auto()
+    Between = auto()
+
+
+class CalculateMeanMinMax(Task[MeanMinMaxDistances]):
+    """
+    Arguments:
+        distances: SequenceDistanceMatrix
+        partition: Union[SpeciesPartition, GenusPartition]
+        connection: Connect
+        metric: Metric
+        in_percent: bool = False
+    """
+
+    def __init__(self, warn: WarningHandler):
+        super().__init__(warn)
+        self.distances: Optional[SequenceDistanceMatrix] = None
+        self.partition: Union[None, SpeciesPartition, GenusPartition] = None
+        self.connection: Optional[Connect] = None
+        self.metric: Optional[Metric] = None
+        self.in_percent: bool = False
+
+    def start(self) -> None:
+        assert self.distances is not None
+        assert self.partition is not None
+        assert self.connection is not None
+        assert self.metric is not None
+        if isinstance(self.partition, GenusPartition):
+            taxon_rank = TaxonRank.Genus
+            partition = self.partition.get_dataframe()[["genus"]].copy()
+        elif isinstance(self.partition, SpeciesPartition):
+            taxon_rank = TaxonRank.Species
+            partition = self.partition.get_dataframe().copy()
+        else:
+            assert False
+        dataframe = self.distances.get_dataframe()[[self.metric]].copy()
+        if self.in_percent:
+            dataframe = dataframe * 100
+        seqids = dataframe.index.get_level_values(0).unique()
+        same_sample = pd.MultiIndex.from_arrays([seqids, seqids])
+        dataframe.loc[same_sample] = float("nan")
+        if self.connection is Connect.Intra:
+            partition.set_axis(
+                pd.MultiIndex.from_arrays([partition.index, partition.index]),
+                axis="index",
+            )
+            mean_distances = dataframe.groupby(partition).mean() / 2.0
+            min_distances = dataframe.groupby(partition).min()
+            max_distances = dataframe.groupby(partition).max()
+            mean_distances.index.name = str(taxon_rank)
+            min_distances.index.name = str(taxon_rank)
+            max_distances.index.name = str(taxon_rank)
+        elif self.connection is Connect.Between:
+            dataframe = dataframe.join(
+                partition.rename(lambda s: s + "_target"), on="seqid_target"
+            ).join(partition.rename(lambda s: s + "_query"), on="seqid_query")
+            between_index_names = [
+                str(taxon_rank) + "_target",
+                str(taxon_rank) + "_query",
+            ]
+            mean_distances = dataframe.groupby(between_index_names).mean()
+            min_distances = dataframe.groupby(between_index_names).min()
+            max_distances = dataframe.groupby(between_index_names).max()
+        else:
+            assert False
+        self.result = MeanMinMaxDistances(
+            mean_distances,
+            min_distances,
+            max_distances,
+            metric=self.metric,
+            taxon_rank=taxon_rank,
+            in_percent=self.in_percent,
         )
 
 
