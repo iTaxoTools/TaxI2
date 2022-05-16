@@ -791,19 +791,27 @@ class MeanMinMaxDistances(DataType):
 
     def description(self, format: MeanMinMaxFileFormat) -> str:
         if self.is_square:
-            return f"{format} {self.metric} between {self.taxon_rank.plural_str()}"
+            return f"{format} {self.metric} between {self.taxon_rank.plural_str()}".capitalize()
         else:
-            return f"{format} intra-{self.taxon_rank} {self.metric}"
+            return f"{format} intra-{self.taxon_rank} {self.metric}".capitalize()
 
-    def file_name(self, format: MeanMinMaxFileFormat) -> str:
-        return self.description(format).replace(" ", "_") + ".txt"
+    def make_file_name(self, format: MeanMinMaxFileFormat) -> str:
+        return (
+            self.description(format).replace(" ", "_")
+            + ("_in_percent" if self.in_percent else "")
+            + ".txt"
+        )
 
     def _min_max_table(self) -> pd.DataFrame:
         if self._min_max is None:
             self._min_max = (
-                self.min[self.metric].map(MeanMinMaxDistances.FLOAT_FORMAT.format)
+                self.min[self.metric].map(
+                    MeanMinMaxDistances.FLOAT_FORMAT.format, na_action="ignore"
+                )
                 + "-"
-                + self.max[self.metric].map(MeanMinMaxDistances.FLOAT_FORMAT.format)
+                + self.max[self.metric].map(
+                    MeanMinMaxDistances.FLOAT_FORMAT.format, na_action="ignore"
+                )
             ).to_frame()
         return self._min_max
 
@@ -812,7 +820,9 @@ class MeanMinMaxDistances(DataType):
             self._min_max_table()
         assert self._min_max is not None
         return (
-            self.mean[self.metric].map(MeanMinMaxDistances.FLOAT_FORMAT.format)
+            self.mean[self.metric].map(
+                MeanMinMaxDistances.FLOAT_FORMAT.format, na_action="ignore"
+            )
             + " ("
             + self._min_max[self.metric]
             + ")"
@@ -831,7 +841,7 @@ class MeanMinMaxDistances(DataType):
     def _append_square(self, file: Path, format: MeanMinMaxFileFormat) -> None:
         table = self._create_table(format)
         table.index.names = [None, None]
-        table = table.unstack()
+        table = table[self.metric].unstack()
         table.to_csv(file, sep="\t", float_format="%.4g", mode="a")
 
     def _append_column(self, file: Path, format: MeanMinMaxFileFormat) -> None:

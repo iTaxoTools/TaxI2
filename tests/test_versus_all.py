@@ -12,6 +12,10 @@ from itaxotools.taxi3.library.datatypes import (
     Metric,
     RowOrdering,
     SpeciesPartition,
+    GenusPartition,
+    TaxonRank,
+    MeanMinMaxFileFormat,
+    MeanMinMaxDistances,
 )
 from itaxotools.taxi3.library.task import (
     CalculateDistances,
@@ -20,6 +24,8 @@ from itaxotools.taxi3.library.task import (
     VersusAllSummarizeArg,
     OutputSequenceDistances,
     CalculateSimpleStatistic,
+    Connect,
+    CalculateMeanMinMax,
 )
 
 TEST_DATA_DIR = Path(__file__).parent / "versus_all_data"
@@ -115,3 +121,51 @@ def test_simple_statistics() -> None:
     task.result.by_species.append_to_file(output_path)
     assert tested_path.read_text().split("\n") == output_path.read_text().split("\n")
     output_path.unlink()
+
+
+@pytest.mark.parametrize(
+    "format, taxon_rank, connection, in_percent",
+    [
+        (format, TaxonRank.Species, Connect.Between, in_percent)
+        for format in MeanMinMaxFileFormat
+        for in_percent in [False, True]
+    ]
+    + [
+        (MeanMinMaxFileFormat.MeanMinMax, TaxonRank.Genus, Connect.Between, False),
+        (MeanMinMaxFileFormat.MeanMinMax, TaxonRank.Genus, Connect.Between, True),
+        (MeanMinMaxFileFormat.MeanMinMax, TaxonRank.Species, Connect.Intra, False),
+        (MeanMinMaxFileFormat.MeanMinMax, TaxonRank.Genus, Connect.Intra, False),
+    ],
+)
+def test_mean_min_max(
+    format: MeanMinMaxFileFormat,
+    taxon_rank: TaxonRank,
+    connection: Connect,
+    in_percent: bool,
+) -> None:
+    input_path = ValidFilePath(TEST_DATA_DIR / "Scaphio_input_small.txt")
+    sequences = SequenceData.from_path(input_path, TabfileReader())
+    task_distances = CalculateDistances(print)
+    task_distances.sequences = sequences
+    task_distances.alignment = Alignment.Pairwise
+    task_distances.metrics = [Metric.Uncorrected]
+    task_distances.start()
+    if taxon_rank is TaxonRank.Species:
+        taxons = SpeciesPartition.from_path(input_path, TabfileReader())
+    else:
+        taxons = GenusPartition.from_path(input_path, TabfileReader())
+    task_mean_min_max = CalculateMeanMinMax(print)
+    task_mean_min_max.distances = task_distances.result
+    task_mean_min_max.partition = taxons
+    task_mean_min_max.connection = connection
+    task_mean_min_max.metric = Metric.Uncorrected
+    task_mean_min_max.in_percent = in_percent
+    task_mean_min_max.start()
+    table = task_mean_min_max.result
+    assert table is not None
+    tested_path = TEST_DATA_DIR / table.make_file_name(format)
+    output_path = TMP_TEST_DIR / table.make_file_name(format)
+    with open(output_path, mode="w") as output_file:
+        print(table.description(format), file=output_file)
+    table.append_to_file(output_path, format)
+    assert tested_path.read_text().split("\n") == output_path.read_text().split("\n")
