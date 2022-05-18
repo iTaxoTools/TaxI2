@@ -446,16 +446,13 @@ class CalculateMeanMinMax(Task[MeanMinMaxDistances]):
         same_sample = pd.MultiIndex.from_arrays([seqids, seqids])
         dataframe.loc[same_sample] = float("nan")
         if self.connection is Connect.Intra:
-            partition = partition.set_axis(
-                pd.MultiIndex.from_arrays(
-                    [partition.index, partition.index],
-                    names=["seqid_target", "seqid_query"],
-                ),
-                axis="index",
-            )[str(taxon_rank)]
-            mean_distances = dataframe.groupby(partition).mean()
-            min_distances = dataframe.groupby(partition).min()
-            max_distances = dataframe.groupby(partition).max()
+            partition = partition[str(taxon_rank)]
+            partition_target = partition.reindex(dataframe.index, level="seqid_target")
+            partition_query = partition.reindex(dataframe.index, level="seqid_query")
+            same_taxon = partition_target.loc[partition_target == partition_query]
+            mean_distances = dataframe.groupby(same_taxon).mean()
+            min_distances = dataframe.groupby(same_taxon).min()
+            max_distances = dataframe.groupby(same_taxon).max()
             mean_distances.index.name = str(taxon_rank)
             min_distances.index.name = str(taxon_rank)
             max_distances.index.name = str(taxon_rank)

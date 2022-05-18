@@ -846,7 +846,7 @@ class MeanMinMaxDistances(DataType):
 
     def _append_column(self, file: Path, format: MeanMinMaxFileFormat) -> None:
         table = self._create_table(format)
-        table.index.names = None
+        table.index.names = [None]
         table.to_csv(file, sep="\t", float_format="%.4g", header=False, mode="a")
 
     def append_to_file(self, file: Path, format: MeanMinMaxFileFormat) -> None:
