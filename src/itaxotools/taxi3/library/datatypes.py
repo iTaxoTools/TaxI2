@@ -465,7 +465,7 @@ class VoucherPartition(DataType):
         return self.voucher_partition
 
 
-class SubsubspeciesPartition(DataType):
+class SubspeciesPartition(DataType):
     """
     Represents partition of sequences into subspecies
     """
@@ -479,7 +479,7 @@ class SubsubspeciesPartition(DataType):
     @classmethod
     def from_path(
         cls, path: ValidFilePath, protocol: FileReader
-    ) -> SubsubspeciesPartition:
+    ) -> SubspeciesPartition:
         subspecies_partition = protocol.read(path, columns=["seqid", "subspecies"])
         try:
             subspecies_partition.set_index("seqid", inplace=True, verify_integrity=True)

@@ -20,17 +20,17 @@ from .datatypes import (
     DecontaminateSummary,
     VersusAllSummary,
     SourcedColumn,
-    Source,
     VoucherPartition,
     GenusPartition,
     SpeciesPartition,
-    SubsubspeciesPartition,
+    SubspeciesPartition,
     SequenceDistanceOutput,
     RowOrdering,
     SimpleSequenceStatistic,
     SimpleSpeciesStatistic,
     MeanMinMaxDistances,
     TaxonRank,
+    ValidFilePath,
 )
 from .rust_backend import calc, make_aligner
 from .sequence_statistics import (
@@ -178,7 +178,7 @@ class CalculateDistances(Task[SequenceDistanceMatrix]):
 class VersusAllSummarizeArg:
     vouchers: Optional[VoucherPartition]
     species: Optional[GenusPartition]
-    subspecies: Optional[SubsubspeciesPartition]
+    subspecies: Optional[SubspeciesPartition]
 
     @classmethod
     def from_path(
@@ -194,7 +194,7 @@ class VersusAllSummarizeArg:
         except Exception:
             pass
         try:
-            self.subspecies = SubsubspeciesPartition.from_path(path, protocol)
+            self.subspecies = SubspeciesPartition.from_path(path, protocol)
         except Exception:
             pass
         return self
@@ -207,7 +207,7 @@ class VersusAllSummarizeArg:
                 self.vouchers = table
             if isinstance(table, GenusPartition):
                 self.species = table
-            if isinstance(table, SubsubspeciesPartition):
+            if isinstance(table, SubspeciesPartition):
                 self.subspecies = table
         return self
 
@@ -506,13 +506,24 @@ class VersusAllOutput:
 
 
 class VersusAll(Task[VersusAllOutput]):
+    """
+    Arguments:
+        sequences: SequenceData
+        alignment: Alignment
+        metrics: List[Metric]
+        species: Optional[SpeciesPartition]
+        vouchers: Optional[VoucherPartition]
+        subspecies: Optional[SubspeciesPartition]
+    """
+
     def __init__(self, warn: WarningHandler):
         super().__init__(warn)
         self.sequences: Optional[SequenceData] = None
         self.alignment: Optional[Alignment] = None
         self.metrics: List[Metric] = []
         self.species: Optional[SpeciesPartition] = None
-        self.genera: Optional[GenusPartition] = None
+        self.vouchers: Optional[VoucherPartition] = None
+        self.subspecies: Optional[SubspeciesPartition] = None
 
     def start(self) -> None:
         if self.sequences is None:
@@ -553,7 +564,15 @@ class VersusAll(Task[VersusAllOutput]):
 
         mean_min_max_distances: List[MeanMinMaxDistances] = []
 
-        for partition in [self.species, self.genera]:
+        try:
+            if self.species:
+                genera = GenusPartition.from_species(self.species)
+            else:
+                genera = None
+        except Exception:
+            genera = None
+
+        for partition in [self.species, genera]:
             if partition is None:
                 continue
             for in_percent in [False, True]:
@@ -568,6 +587,21 @@ class VersusAll(Task[VersusAllOutput]):
                         mean_min_max_task.start()
                         assert mean_min_max_task.result is not None
                         mean_min_max_distances.append(mean_min_max_task.result)
+
+        summarize_arg: VersusAllSummarizeArg = VersusAllSummarizeArg(
+            self.vouchers, genera, self.subspecies
+        )
+        summarize_task = VersusAllSummarize(self.warn)
+        summarize_task.distances = distances_task.result
+        summarize_task.data = summarize_arg
+        summarize_task.start()
+        assert summarize_task.result is not None
+        self.result = VersusAllOutput(
+            simple_statistic_task.result,
+            distances,
+            mean_min_max_distances,
+            summarize_task.result,
+        )
 
 
 @dataclass(frozen=True)
