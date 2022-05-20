@@ -544,7 +544,9 @@ class GenusPartition(DataType):
 
     @classmethod
     def from_species(cls, species: SpeciesPartition) -> GenusPartition:
-        return cls(GenusPartition._separate_species(species.get_dataframe().reset_index()))
+        return cls(
+            GenusPartition._separate_species(species.get_dataframe().reset_index())
+        )
 
     def get_dataframe(self) -> pd.DataFrame:
         """
@@ -696,6 +698,13 @@ class Aggregation(Enum):
     Min = auto()
     Max = auto()
 
+    def __str__(self) -> str:
+        return {
+                Aggregation.Mean: "mean",
+                Aggregation.Min: "minimum",
+                Aggregation.Max: "maximum",
+                }[self]
+
 
 @dataclass(frozen=True)
 class AggregatedMetric:
@@ -713,6 +722,9 @@ class AggregatedMetric:
     @classmethod
     def mean(cls, metric: Metric) -> AggregatedMetric:
         return cls(Aggregation.Mean, metric)
+
+    def __str__(self) -> str:
+        return f"{self.aggregation} {self.metric}"
 
 
 class MeanMinMaxFileFormat(Enum):
@@ -1054,7 +1066,7 @@ class TabfileReader(FileReader):
             SequenceData,
             VoucherPartition,
             SpeciesPartition,
-            SubsubspeciesPartition,
+            SubspeciesPartition,
             GenusPartition,
         ]
         for datatype in datatypes:
@@ -1124,7 +1136,7 @@ class XlsxReader(FileReader):
             SequenceData,
             VoucherPartition,
             SpeciesPartition,
-            SubsubspeciesPartition,
+            SubspeciesPartition,
             GenusPartition,
         ]
         for datatype in datatypes:
@@ -1243,7 +1255,7 @@ class GenbankReader(FileReader):
             SequenceData,
             VoucherPartition,
             SpeciesPartition,
-            SubsubspeciesPartition,
+            SubspeciesPartition,
             GenusPartition,
         ]
         for datatype in datatypes:

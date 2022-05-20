@@ -12,6 +12,8 @@ from itaxotools.taxi3.library.datatypes import (
     Metric,
     RowOrdering,
     SpeciesPartition,
+    VoucherPartition,
+    SubspeciesPartition,
     GenusPartition,
     TaxonRank,
     MeanMinMaxFileFormat,
@@ -26,13 +28,14 @@ from itaxotools.taxi3.library.task import (
     CalculateSimpleStatistic,
     Connect,
     CalculateMeanMinMax,
+    VersusAll,
 )
 
 TEST_DATA_DIR = Path(__file__).parent / "versus_all_data"
 TMP_TEST_DIR = Path(__file__).parent / "temp_test_files"
 
 
-def test_versus_all() -> None:
+def test_versus_all_distances() -> None:
     input_path = ValidFilePath(TEST_DATA_DIR / "Scaphio_input_small.txt")
     sequences = SequenceData.from_path(input_path, TabfileReader())
     task = CalculateDistances(print)
@@ -169,3 +172,35 @@ def test_mean_min_max(
         print(table.description(format), file=output_file)
     table.append_to_file(output_path, format)
     assert tested_path.read_text().split("\n") == output_path.read_text().split("\n")
+
+
+def test_versus_all_mode() -> None:
+    input_path = ValidFilePath(TEST_DATA_DIR / "Scaphio_input_small.txt")
+    data = TabfileReader.read_data(input_path)
+    versus_all_task = VersusAll(warn=print)
+    for table in data:
+        if isinstance(table, SequenceData):
+            versus_all_task.sequences = table
+        elif isinstance(table, VoucherPartition):
+            versus_all_task.vouchers = table
+        elif isinstance(table, SpeciesPartition):
+            versus_all_task.species = table
+        elif isinstance(table, SubspeciesPartition):
+            versus_all_task.subspecies = table
+    assert versus_all_task.sequences is not None
+    versus_all_task.alignment = Alignment.Pairwise
+    versus_all_task.metrics = [Metric.Uncorrected]
+    versus_all_task.start()
+    assert versus_all_task.result is not None
+    tables = versus_all_task.result
+    for table in (
+        [
+            tables.sequence_summary_statistic.total,
+            tables.sequence_summary_statistic.by_species,
+        ]
+        + tables.distances
+        + tables.mean_min_max_distances
+        + [tables.summary_statistics]
+    ):
+        if table:
+            print(table.get_dataframe().to_string())
