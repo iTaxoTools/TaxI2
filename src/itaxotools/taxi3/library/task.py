@@ -86,6 +86,13 @@ class Task(ABC, Generic[_Result]):
 
 
 class CalculateDistances(Task[SequenceDistanceMatrix]):
+    """
+    Arguments:
+        sequences: Union[SequenceData, SequencesPair]
+        alignment: Alignment
+        metrics: List[Metric]
+    """
+
     def __init__(self, warn: WarningHandler):
         super().__init__(warn)
         self.sequences: Union[None, SequenceData, SequencesPair] = None
@@ -299,9 +306,12 @@ class OutputSequenceDistances(Task[SequenceDistanceOutput]):
         self.in_percent = False
 
     def start(self) -> None:
-        assert self.sequence_matrix is not None
-        assert self.metric is not None
-        assert self.ordering is not None
+        if self.sequence_matrix is None:
+            raise MissingArgument("sequence_matrix")
+        if self.metric is None:
+            raise MissingArgument("metric")
+        if self.ordering is None:
+            raise MissingArgument("ordering")
         dataframe = self.sequence_matrix.get_dataframe()[self.metric].copy()
         seqids = dataframe.index.to_frame()
         dataframe.loc[seqids["seqid_target"] == seqids["seqid_query"]] = float("nan")
@@ -353,6 +363,9 @@ class SimpleStatisticResult:
     total: SimpleSequenceStatistic
     by_species: Optional[SimpleSpeciesStatistic]
 
+    def make_file_name(self) -> str:
+        return "Sequence summary statistic.txt"
+
 
 class CalculateSimpleStatistic(Task[SimpleStatisticResult]):
     """
@@ -366,7 +379,8 @@ class CalculateSimpleStatistic(Task[SimpleStatisticResult]):
         self.species: Optional[SpeciesPartition] = None
 
     def start(self) -> None:
-        assert self.sequences is not None
+        if self.sequences is None:
+            raise MissingArgument("sequences")
         sequences_with_gaps = self.sequences.get_dataframe().copy()
         if self.species is not None:
             sequences_with_gaps = sequences_with_gaps.join(
@@ -427,10 +441,14 @@ class CalculateMeanMinMax(Task[MeanMinMaxDistances]):
         self.in_percent: bool = False
 
     def start(self) -> None:
-        assert self.distances is not None
-        assert self.partition is not None
-        assert self.connection is not None
-        assert self.metric is not None
+        if self.distances is None:
+            raise MissingArgument("distances")
+        if self.partition is None:
+            raise MissingArgument("partition")
+        if self.connection is None:
+            raise MissingArgument("connection")
+        if self.metric is None:
+            raise MissingArgument("metric")
         if isinstance(self.partition, GenusPartition):
             taxon_rank = TaxonRank.Genus
             partition = self.partition.get_dataframe()[["genus"]].copy()
@@ -477,6 +495,79 @@ class CalculateMeanMinMax(Task[MeanMinMaxDistances]):
             taxon_rank=taxon_rank,
             in_percent=self.in_percent,
         )
+
+
+@dataclass
+class VersusAllOutput:
+    sequence_summary_statistic: SimpleStatisticResult
+    distances: List[SequenceDistanceOutput]
+    mean_min_max_distances: List[MeanMinMaxDistances]
+    summary_statistics: VersusAllSummary
+
+
+class VersusAll(Task[VersusAllOutput]):
+    def __init__(self, warn: WarningHandler):
+        super().__init__(warn)
+        self.sequences: Optional[SequenceData] = None
+        self.alignment: Optional[Alignment] = None
+        self.metrics: List[Metric] = []
+        self.species: Optional[SpeciesPartition] = None
+        self.genera: Optional[GenusPartition] = None
+
+    def start(self) -> None:
+        if self.sequences is None:
+            raise MissingArgument("sequences")
+        if self.alignment is None:
+            raise MissingArgument("alignment")
+        if self.alignment is not Alignment.AlignmentFree and self.metrics is None:
+            raise MissingArgument("metrics")
+
+        distances_task = CalculateDistances(self.warn)
+        distances_task.sequences = self.sequences
+        distances_task.alignment = self.alignment
+        distances_task.metrics = self.metrics
+        distances_task.start()
+        assert distances_task.result is not None
+
+        simple_statistic_task = CalculateSimpleStatistic(self.warn)
+        simple_statistic_task.sequences = self.sequences
+        simple_statistic_task.species = self.species
+        simple_statistic_task.start()
+        assert simple_statistic_task.result is not None
+
+        distances: List[SequenceDistanceOutput] = []
+        for ordering in RowOrdering:
+            for in_percent in [False, True]:
+                for metric in self.metrics:
+                    if self.species is None and ordering is RowOrdering.Species:
+                        continue
+                    output_distances_task = OutputSequenceDistances(self.warn)
+                    output_distances_task.sequence_matrix = distances_task.result
+                    output_distances_task.metric = metric
+                    output_distances_task.ordering = ordering
+                    output_distances_task.species = self.species
+                    output_distances_task.in_percent = in_percent
+                    output_distances_task.start()
+                    assert output_distances_task.result is not None
+                    distances.append(output_distances_task.result)
+
+        mean_min_max_distances: List[MeanMinMaxDistances] = []
+
+        for partition in [self.species, self.genera]:
+            if partition is None:
+                continue
+            for in_percent in [False, True]:
+                for connection in Connect:
+                    for metric in self.metrics:
+                        mean_min_max_task = CalculateMeanMinMax(self.warn)
+                        mean_min_max_task.distances = distances_task.result
+                        mean_min_max_task.partition = partition
+                        mean_min_max_task.connection = connection
+                        mean_min_max_task.metric = metric
+                        mean_min_max_task.in_percent = in_percent
+                        mean_min_max_task.start()
+                        assert mean_min_max_task.result is not None
+                        mean_min_max_distances.append(mean_min_max_task.result)
 
 
 @dataclass(frozen=True)
