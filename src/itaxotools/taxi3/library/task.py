@@ -692,7 +692,7 @@ class Decontaminated:
 
     decontaminated: CompleteData
     contaminates: CompleteData
-    summary: DecontaminateSummary
+    summary: Optional[DecontaminateSummary]
 
 
 class Decontaminate(Task[Iterator[Decontaminated]]):
@@ -701,7 +701,11 @@ class Decontaminate(Task[Iterator[Decontaminated]]):
         similarity: float
         alignment: Alignment
         reference: SequenceData
+        reference2: Optional[SequenceData] # Temporary until proper DECONT2 implementation
         data: CompleteData
+
+    For DECONT2 mode (`reference2` is not None), `reference` is outgroup (sequences closer to it are contaminates)
+    and `reference2` is ingroup (sequences closer to it are not contaminates)
     """
 
     def __init__(self, warn: WarningHandler):
@@ -709,6 +713,7 @@ class Decontaminate(Task[Iterator[Decontaminated]]):
         self.similarity = 0.07
         self.alignment: Optional[Alignment] = None
         self.reference: Optional[SequenceData] = None
+        self.reference2: Optional[SequenceData] = None
         self.data: Optional[CompleteData] = None
         self._calculate_distances = CalculateDistances(warn)
         self._calculate_distances.metrics = [Metric.Uncorrected]
@@ -720,7 +725,10 @@ class Decontaminate(Task[Iterator[Decontaminated]]):
             raise MissingArgument("reference")
         if self.data is None:
             raise MissingArgument("data")
-        self.result = self._decontaminate()
+        if self.reference is None:
+            self.result = self._decontaminate()
+        else:
+            self.result = self._decontaminate2()
 
     def _decontaminate(self) -> Iterator[Decontaminated]:
         assert self.alignment is not None
@@ -767,4 +775,48 @@ class Decontaminate(Task[Iterator[Decontaminated]]):
                 contaminates=contaminates,
                 decontaminated=chunk,
                 summary=DecontaminateSummary(closest_table),
+            )
+
+    def _decontaminate2(self) -> Iterator[Decontaminated]:
+        assert self.alignment is not None
+        assert self.reference is not None
+        assert self.reference2 is not None
+        assert self.data is not None
+        self._calculate_distances.alignment = self.alignment
+
+        for chunk in self.data.get_chunks():
+            sequences = chunk.get_sequences()
+            self._calculate_distances.sequences = SequencesPair(
+                target=self.reference, query=sequences
+            )
+            self._calculate_distances.start()
+            assert self._calculate_distances.result is not None
+            distance_table_outgroup = (
+                self._calculate_distances.result.get_dataframe().reset_index()
+            )
+            self._calculate_distances.sequences = SequencesPair(
+                target=self.reference2, query=sequences
+            )
+            self._calculate_distances.start()
+            distance_table_ingroup = (
+                self._calculate_distances.result.get_dataframe().reset_index()
+            )
+
+            distances_to_ingroup = distance_table_ingroup.groupby("seqid_query")[
+                Metric.Uncorrected
+            ].min()
+            distances_to_outgroup = distance_table_outgroup.groupby("seqid_query")[
+                Metric.Uncorrected
+            ].min()
+
+            assert sequences.dataframe is not None
+            sequences.dataframe = sequences.dataframe.loc[
+                distances_to_ingroup > distances_to_outgroup
+            ]
+
+            contaminates = chunk.split_sequences(sequences)
+            yield Decontaminated(
+                contaminates=contaminates,
+                decontaminated=chunk,
+                summary=None,
             )
