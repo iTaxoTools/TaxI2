@@ -351,6 +351,34 @@ class DecontaminateSummary(DataType):
     def append_to_file(self, file: Path) -> None:
         _dataframe_append(self.dataframe, file)
 
+class Decontaminate2Summary(DataType):
+    """
+    Represent the summary of decontaminate2 task
+    """
+
+    def __init__(self, dataframe: pd.DataFrame):
+        assert dataframe.index.name == "seqid_query"
+        assert set(dataframe.columns) == {
+            "closest ingroup",
+            "distance to ingroup",
+            "closest outgroup",
+            "distance to outgroup"
+            "is_contaminant",
+        }
+        self.dataframe = dataframe
+
+    def get_dataframe(self) -> pd.DataFrame:
+        return self.dataframe
+
+    @classmethod
+    def from_path(
+        self, path: ValidFilePath, protocol: FileReader
+    ) -> DecontaminateSummary:
+        raise NotImplementedError
+
+    def append_to_file(self, file: Path) -> None:
+        _dataframe_append(self.dataframe, file)
+
 
 class Metric(Enum):
     """
