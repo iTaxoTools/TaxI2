@@ -811,7 +811,7 @@ class Decontaminate(Task[Iterator[Decontaminated]]):
 
             assert sequences.dataframe is not None
             sequences.dataframe = sequences.dataframe.loc[
-                distances_to_ingroup > distances_to_outgroup
+                distances_to_ingroup < distances_to_outgroup
             ]
 
             contaminates = chunk.split_sequences(sequences)

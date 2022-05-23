@@ -10,20 +10,20 @@ from itaxotools.taxi3.library.datatypes import (
     TabfileReader,
 )
 
-TEST_DATA_DIR = Path(__file__).parent / "tests/derep_decont_test_data"
+TEST_DATA_DIR = Path(__file__).parent / "derep_decont_test_data"
 TMP_TEST_DIR = Path(__file__).parent / "temp_test_files"
 
 
 def test_decont2() -> None:
     data = CompleteData.from_path(
-        ValidFilePath(TEST_DATA_DIR / "Scaphio_small_input.txt"), TabfileReader()
+        ValidFilePath(TEST_DATA_DIR / "Scaphio_input_small.txt"), TabfileReader()
     )
     reference = SequenceData.from_path(
-        ValidFilePath(TEST_DATA_DIR / "Scaphio_small_input_reference.txt"),
+        ValidFilePath(TEST_DATA_DIR / "Scaphio_input_small_reference.txt"),
         TabfileReader(),
     )
     reference2 = SequenceData.from_path(
-        ValidFilePath(TEST_DATA_DIR / "Scaphio_small_input_reference2.txt"),
+        ValidFilePath(TEST_DATA_DIR / "Scaphio_input_small_reference2.txt"),
         TabfileReader(),
     )
     decont2_task = Decontaminate(print)
@@ -33,9 +33,9 @@ def test_decont2() -> None:
     decont2_task.reference2 = reference2
     decont2_task.start()
     contaminates_output = TMP_TEST_DIR / "contaminates.txt"
-    tested_contaminates = TEST_DATA_DIR / "Scaphio_small_input_contaminates.txt"
+    tested_contaminates = TEST_DATA_DIR / "Scaphio_input_small_contaminates.txt"
     decontaminated_output = TMP_TEST_DIR / "decontaminated.txt"
-    tested_decontaminated = TEST_DATA_DIR / "Scaphio_small_input_decontaminated.txt"
+    tested_decontaminated = TEST_DATA_DIR / "Scaphio_input_small_decontaminated.txt"
 
     # clear output files
     with open(contaminates_output, mode="w"):
