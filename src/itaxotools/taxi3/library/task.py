@@ -740,7 +740,7 @@ class Decontaminate(Task[Iterator[Decontaminated]]):
             raise MissingArgument("reference")
         if self.data is None:
             raise MissingArgument("data")
-        if self.reference is None:
+        if self.reference2 is None:
             self.result = self._decontaminate()
         else:
             self.result = self._decontaminate2()
