@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 from . import calculate_distances as calc
 import gc
-from typing import Any, TextIO
+from typing import Any, TextIO, Optional
 
 import pandas as pd
 import numpy as np
 
-from .config import get_scores
+from .config import get_scores, AlignmentScores
 from .seq import PDISTANCE, NDISTANCES
 
 
@@ -31,15 +31,25 @@ except KeyError as ex:
     raise ValueError(f"'{ex.args[0]}' is missing in data/scores.tab") from ex
 
 
-def make_aligner() -> Any:
-    return calc.make_aligner(
-        MATCH_SCORE,
-        MISMATCH_SCORE,
-        END_GAP_PENALTY,
-        END_GAP_EXTEND_PENALTY,
-        GAP_PENALTY,
-        GAP_EXTEND_PENALTY,
-    )
+def make_aligner(scores: Optional[AlignmentScores] = None) -> Any:
+    if scores is None:
+        return calc.make_aligner(
+            MATCH_SCORE,
+            MISMATCH_SCORE,
+            END_GAP_PENALTY,
+            END_GAP_EXTEND_PENALTY,
+            GAP_PENALTY,
+            GAP_EXTEND_PENALTY,
+        )
+    else:
+        return calc.make_aligner(
+            scores.match_score,
+            scores.mismatch_score,
+            scores.end_gap_penalty,
+            scores.end_gap_extend_penalty,
+            scores.gap_penalty,
+            scores.gap_extend_penalty,
+        )
 
 
 def show_alignment(aligner, target: str, query: str, file: TextIO) -> None:
