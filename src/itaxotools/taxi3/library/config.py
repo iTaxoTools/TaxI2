@@ -49,12 +49,22 @@ class AlignmentScores:
     def _from_scores_dict(cls, scores_dict: Dict[str, int]) -> AlignmentScores:
         return cls(
             gap_penalty=scores_dict["gap penalty"],
-            gap_extend_penalty=scores_dict["gap extend_penalty"],
-            end_gap_penalty=scores_dict["end gap_penalty"],
-            end_gap_extend_penalty=scores_dict["end gap_extend_penalty"],
+            gap_extend_penalty=scores_dict["gap extend penalty"],
+            end_gap_penalty=scores_dict["end gap penalty"],
+            end_gap_extend_penalty=scores_dict["end gap extend penalty"],
             match_score=scores_dict["match score"],
             mismatch_score=scores_dict["mismatch score"],
         )
+
+    def _to_scores_dict(self) -> Dict[str, int]:
+        return {
+            "gap penalty": self.gap_penalty,
+            "gap extend penalty": self.gap_extend_penalty,
+            "end gap penalty": self.end_gap_penalty,
+            "end gap extend penalty": self.end_gap_extend_penalty,
+            "match score": self.match_score,
+            "mismatch score": self.mismatch_score,
+        }
 
 
 @dataclass
@@ -65,6 +75,10 @@ class Config:
     def load(cls) -> Config:
         scores = get_scores()
         return cls(alignment_scores=AlignmentScores._from_scores_dict(scores))
+
+    def save(self) -> None:
+        with open(_CONFIG_PATH / "scores.json", mode="w") as scores_file:
+            json.dump(self.alignment_scores._to_scores_dict(), scores_file)
 
 
 def get_scores() -> Dict[str, int]:
