@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-from typing import Callable, Generic, TypeVar, Optional, List, Iterator, Union
+from typing import Callable, Generic, TypeVar, Optional, List, Iterator, Union, Type
 from abc import ABC, abstractmethod
 from enum import Enum, auto
 from dataclasses import dataclass
@@ -39,8 +39,10 @@ from .sequence_statistics import (
 )
 
 from .alfpy_distance import alfpy_distance_array, alfpy_distance_array2
+from .config import Config
 
 _Result = TypeVar("_Result")
+_TaskClass = TypeVar("_TaskClass", bound="Task")
 
 
 class Alignment(Enum):
@@ -70,6 +72,7 @@ class Task(ABC, Generic[_Result]):
     """
     To run:
         * Set the argument attributes (depends on the subclass)
+        * (optional) set self.config
         * call self.start()
         * self.result contains the output
 
@@ -78,7 +81,16 @@ class Task(ABC, Generic[_Result]):
 
     def __init__(self, warn: WarningHandler):
         self.warn = warn
+        self.config: Optional[Config] = None
         self.result: Optional[_Result] = None
+
+    def subtask(self, task_class: Type[_TaskClass]) -> _TaskClass:
+        """
+        Create a subtask that inherits configuration and warning handler
+        """
+        task = task_class(self.warn)
+        task.config = self.config
+        return task
 
     @abstractmethod
     def start(self) -> None:
@@ -144,7 +156,10 @@ class CalculateDistances(Task[SequenceDistanceMatrix]):
                 reference["sequence"], sequences["sequence"]
             )
         elif self.alignment is Alignment.Pairwise:
-            aligner = make_aligner()
+            if self.config is None:
+                aligner = make_aligner()
+            else:
+                aligner = make_aligner(self.config.alignment_scores)
             distances_array = calc.make_distance_array(
                 aligner, reference["sequence"], sequences["sequence"]
             )
@@ -533,14 +548,14 @@ class VersusAll(Task[VersusAllOutput]):
         if self.alignment is not Alignment.AlignmentFree and self.metrics is None:
             raise MissingArgument("metrics")
 
-        distances_task = CalculateDistances(self.warn)
+        distances_task = self.subtask(CalculateDistances)
         distances_task.sequences = self.sequences
         distances_task.alignment = self.alignment
         distances_task.metrics = self.metrics
         distances_task.start()
         assert distances_task.result is not None
 
-        simple_statistic_task = CalculateSimpleStatistic(self.warn)
+        simple_statistic_task = self.subtask(CalculateSimpleStatistic)
         simple_statistic_task.sequences = self.sequences
         simple_statistic_task.species = self.species
         simple_statistic_task.start()
@@ -552,7 +567,7 @@ class VersusAll(Task[VersusAllOutput]):
                 for metric in self.metrics:
                     if self.species is None and ordering is RowOrdering.Species:
                         continue
-                    output_distances_task = OutputSequenceDistances(self.warn)
+                    output_distances_task = self.subtask(OutputSequenceDistances)
                     output_distances_task.sequence_matrix = distances_task.result
                     output_distances_task.metric = metric
                     output_distances_task.ordering = ordering
@@ -578,7 +593,7 @@ class VersusAll(Task[VersusAllOutput]):
             for in_percent in [False, True]:
                 for connection in Connect:
                     for metric in self.metrics:
-                        mean_min_max_task = CalculateMeanMinMax(self.warn)
+                        mean_min_max_task = self.subtask(CalculateMeanMinMax)
                         mean_min_max_task.distances = distances_task.result
                         mean_min_max_task.partition = partition
                         mean_min_max_task.connection = connection
@@ -591,7 +606,7 @@ class VersusAll(Task[VersusAllOutput]):
         summarize_arg: VersusAllSummarizeArg = VersusAllSummarizeArg(
             self.vouchers, genera, self.subspecies
         )
-        summarize_task = VersusAllSummarize(self.warn)
+        summarize_task = self.subtask(VersusAllSummarize)
         summarize_task.distances = distances_task.result
         summarize_task.data = summarize_arg
         summarize_task.start()
