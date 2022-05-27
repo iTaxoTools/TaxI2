@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from itaxotools.taxi3.library.task import Decontaminate, Alignment
+from itaxotools.taxi3.library.task import Decontaminate2, Alignment
 from itaxotools.taxi3.library.datatypes import (
     SequenceData,
     CompleteData,
@@ -18,19 +18,19 @@ def test_decont2() -> None:
     data = CompleteData.from_path(
         ValidFilePath(TEST_DATA_DIR / "Scaphio_input_small.txt"), TabfileReader()
     )
-    reference = SequenceData.from_path(
-        ValidFilePath(TEST_DATA_DIR / "Scaphio_input_small_reference.txt"),
+    ingroup = SequenceData.from_path(
+        ValidFilePath(TEST_DATA_DIR / "Scaphio_input_small_ingroup.txt"),
         TabfileReader(),
     )
-    reference2 = SequenceData.from_path(
-        ValidFilePath(TEST_DATA_DIR / "Scaphio_input_small_reference2.txt"),
+    outgroup = SequenceData.from_path(
+        ValidFilePath(TEST_DATA_DIR / "Scaphio_input_small_outgroup.txt"),
         TabfileReader(),
     )
-    decont2_task = Decontaminate(print)
+    decont2_task = Decontaminate2(print)
     decont2_task.alignment = Alignment.AlignmentFree
     decont2_task.data = data
-    decont2_task.reference = reference
-    decont2_task.reference2 = reference2
+    decont2_task.ingroup = ingroup
+    decont2_task.outgroup = outgroup
     decont2_task.start()
     contaminates_output = TMP_TEST_DIR / "contaminates.txt"
     tested_contaminates = TEST_DATA_DIR / "Scaphio_input_small_contaminates.txt"
