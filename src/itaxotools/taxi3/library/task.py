@@ -1,7 +1,17 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-from typing import Callable, Generic, TypeVar, Optional, List, Iterator, Union, Type
+from typing import (
+    Callable,
+    Generic,
+    TypeVar,
+    Optional,
+    List,
+    Iterator,
+    Union,
+    Type,
+    Any,
+)
 from abc import ABC, abstractmethod
 from enum import Enum, auto
 from dataclasses import dataclass
@@ -69,6 +79,16 @@ class MissingArgument(Exception):
 WarningHandler = Callable[[Warning], None]
 
 
+@dataclass(frozen=True)
+class Progress:
+    operation: str
+    total_steps: Optional[int]  # None if total number of steps is unknown
+    current_step: int
+
+
+ProgressHandler = Callable[[Progress], None]
+
+
 class Task(ABC, Generic[_Result]):
     """
     To run:
@@ -84,14 +104,27 @@ class Task(ABC, Generic[_Result]):
         self.warn = warn
         self.config: Optional[Config] = None
         self.result: Optional[_Result] = None
+        self.progress_handler: Optional[ProgressHandler] = None
+        self._total_steps: Optional[int] = None
 
     def subtask(self, task_class: Type[_TaskClass]) -> _TaskClass:
         """
-        Create a subtask that inherits configuration and warning handler
+        Create a subtask that inherits configuration, warning handler and progress handler
         """
         task = task_class(self.warn)
         task.config = self.config
+        task.progress_handler = self.progress_handler
         return task
+
+    def progress(self, *, operation: Any, step: int) -> None:
+        if self.progress_handler:
+            self.progress_handler(
+                Progress(
+                    operation=str(operation),
+                    total_steps=self._total_steps,
+                    current_step=step,
+                )
+            )
 
     @abstractmethod
     def start(self) -> None:
@@ -655,8 +688,10 @@ class Dereplicate(Task[Iterator[Dereplicated]]):
 
     def _dereplicate(self) -> Iterator[Dereplicated]:
         assert self.data is not None
+        step = 0
         for chunk in self.data.get_chunks():
             assert chunk.dataframe is not None
+            step += len(chunk.dataframe)
             if self.length_threshold:
                 chunk.dataframe = chunk.dataframe.loc[
                     chunk.dataframe["sequence"].str.len() >= self.length_threshold
@@ -697,6 +732,7 @@ class Dereplicate(Task[Iterator[Dereplicated]]):
 
             excluded = chunk.split_sequences(sequences)
 
+            self.progress(operation="Dereplicate", step=step)
             yield Dereplicated(included=chunk, excluded=excluded)
 
 
@@ -744,7 +780,10 @@ class Decontaminate(Task[Iterator[Decontaminated]]):
         assert self.data is not None
         self._calculate_distances.alignment = self.alignment
 
+        step=0
         for chunk in self.data.get_chunks():
+            assert chunk.dataframe is not None
+            step += len(chunk.dataframe)
             sequences = chunk.get_sequences()
             self._calculate_distances.sequences = SequencesPair(
                 target=self.reference, query=sequences
@@ -779,6 +818,8 @@ class Decontaminate(Task[Iterator[Decontaminated]]):
             sequences.dataframe = sequences.dataframe.loc[decontaminates_seqids]
 
             contaminates = chunk.split_sequences(sequences)
+
+            self.progress(operation="Decontaminate", step=step)
             yield Decontaminated(
                 contaminates=contaminates,
                 decontaminated=chunk,
@@ -833,7 +874,10 @@ class Decontaminate2(Task[Iterator[Decontaminated2]]):
         assert self.data is not None
         self._calculate_distances.alignment = self.alignment
 
+        step=0
         for chunk in self.data.get_chunks():
+            assert chunk.dataframe is not None
+            step += len(chunk.dataframe)
             sequences = chunk.get_sequences()
             self._calculate_distances.sequences = SequencesPair(
                 target=self.outgroup, query=sequences
@@ -886,6 +930,7 @@ class Decontaminate2(Task[Iterator[Decontaminated2]]):
 
             contaminates = chunk.split_sequences(sequences)
 
+            self.progress(operation="Decontaminate", step=step)
             yield Decontaminated2(
                 contaminates=contaminates,
                 decontaminated=chunk,
