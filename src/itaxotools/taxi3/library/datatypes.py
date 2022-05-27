@@ -362,8 +362,8 @@ class Decontaminate2Summary(DataType):
             "closest ingroup",
             "distance to ingroup",
             "closest outgroup",
-            "distance to outgroup"
-            "is_contaminant",
+            "distance to outgroup",
+            "is contaminant",
         }
         self.dataframe = dataframe
 

@@ -860,7 +860,7 @@ class Decontaminate2(Task[Iterator[Decontaminated2]]):
                 distance_table_outgroup.groupby("seqid_query")[
                     Metric.Uncorrected
                 ].idxmin()
-            ].set_index("seqid_target")
+            ].set_index("seqid_query")
 
             summary = distances_to_ingroup.rename(
                 columns={
@@ -882,7 +882,7 @@ class Decontaminate2(Task[Iterator[Decontaminated2]]):
             )
 
             assert sequences.dataframe is not None
-            sequences.dataframe = sequences.dataframe.loc[summary["is contaminant"]]
+            sequences.dataframe = sequences.dataframe.loc[~summary["is contaminant"]]
 
             contaminates = chunk.split_sequences(sequences)
 
