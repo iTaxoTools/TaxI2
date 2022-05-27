@@ -851,21 +851,43 @@ class Decontaminate2(Task[Iterator[Decontaminated2]]):
                 self._calculate_distances.result.get_dataframe().reset_index()
             )
 
-            distances_to_ingroup = distance_table_ingroup.groupby("seqid_query")[
-                Metric.Uncorrected
-            ].min()
-            distances_to_outgroup = distance_table_outgroup.groupby("seqid_query")[
-                Metric.Uncorrected
-            ].min()
+            distances_to_ingroup = distance_table_ingroup.loc[
+                distance_table_ingroup.groupby("seqid_query")[
+                    Metric.Uncorrected
+                ].idxmin()
+            ].set_index("seqid_query")
+            distances_to_outgroup = distance_table_outgroup.loc[
+                distance_table_outgroup.groupby("seqid_query")[
+                    Metric.Uncorrected
+                ].idxmin()
+            ].set_index("seqid_target")
+
+            summary = distances_to_ingroup.rename(
+                columns={
+                    "seqid_target": "closest ingroup",
+                    Metric.Uncorrected: "distance to ingroup",
+                }
+            ).join(
+                distances_to_outgroup.rename(
+                    columns={
+                        "seqid_target": "closest outgroup",
+                        Metric.Uncorrected: "distance to outgroup",
+                    }
+                ),
+                how="inner",
+            )
+
+            summary["is contaminant"] = (
+                summary["distance to ingroup"] > summary["distance to outgroup"]
+            )
 
             assert sequences.dataframe is not None
-            sequences.dataframe = sequences.dataframe.loc[
-                distances_to_ingroup < distances_to_outgroup
-            ]
+            sequences.dataframe = sequences.dataframe.loc[summary["is contaminant"]]
 
             contaminates = chunk.split_sequences(sequences)
+
             yield Decontaminated2(
                 contaminates=contaminates,
                 decontaminated=chunk,
-                summary=None,
+                summary=Decontaminate2Summary(summary),
             )
