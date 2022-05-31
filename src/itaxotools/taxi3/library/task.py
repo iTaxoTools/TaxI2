@@ -670,6 +670,13 @@ class Dereplicate(Task[Iterator[Dereplicated]]):
         length_threshold: Optional[int]
         keep_most_complete: Bool
         data: CompleteData
+
+    `similarity` describes alignment-free distance between sequences.
+    The correspondence to similarity percentage was empirically determined to be the following:
+        0.07:   98%
+        0.10:   95%
+        0.25:   90%
+        0.31:   80%
     """
 
     def __init__(self, warn: WarningHandler):
@@ -756,6 +763,13 @@ class Decontaminate(Task[Iterator[Decontaminated]]):
         alignment: Alignment
         reference: SequenceData
         data: CompleteData
+
+    `similarity` describes alignment-free distance between sequences.
+    The correspondence to similarity percentage was empirically determined to be the following:
+        0.07:   98%
+        0.10:   95%
+        0.25:   90%
+        0.31:   80%
     """
 
     def __init__(self, warn: WarningHandler):
