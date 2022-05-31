@@ -684,6 +684,8 @@ class Dereplicate(Task[Iterator[Dereplicated]]):
     def start(self) -> None:
         if self.data is None:
             raise MissingArgument("data")
+        if self.progress_handler:
+            self._total_steps = self.data.sequence_count()
         self.result = self._dereplicate()
 
     def _dereplicate(self) -> Iterator[Dereplicated]:
@@ -772,6 +774,8 @@ class Decontaminate(Task[Iterator[Decontaminated]]):
             raise MissingArgument("reference")
         if self.data is None:
             raise MissingArgument("data")
+        if self.progress_handler:
+            self._total_steps = self.data.sequence_count()
         self.result = self._decontaminate()
 
     def _decontaminate(self) -> Iterator[Decontaminated]:
@@ -865,6 +869,8 @@ class Decontaminate2(Task[Iterator[Decontaminated2]]):
             raise MissingArgument("outgroup")
         if self.data is None:
             raise MissingArgument("data")
+        if self.progress_handler:
+            self._total_steps = self.data.sequence_count()
         self.result = self._decontaminate2()
 
     def _decontaminate2(self) -> Iterator[Decontaminated2]:
