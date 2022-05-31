@@ -675,6 +675,8 @@ class VersusReference(Task[Iterator[VersusReferenceSummary]]):
             raise MissingArgument("reference")
         if self.alignment is None:
             raise MissingArgument("alignment")
+        if self.progress_handler:
+            self._total_steps = self.data.sequence_count()
         self.result = self._process()
 
     def _process(self) -> Iterator[VersusReferenceSummary]:
@@ -682,6 +684,7 @@ class VersusReference(Task[Iterator[VersusReferenceSummary]]):
         assert self.reference is not None
         assert self.alignment is not None
 
+        step = 0
         for chunk in self.data.get_chunks():
             distance_task = self.subtask(CalculateDistances)
             distance_task.alignment = self.alignment
@@ -711,6 +714,8 @@ class VersusReference(Task[Iterator[VersusReferenceSummary]]):
                 self.reference.get_dataframe().drop(columns="sequence").rename(columns=SourcedColumn.reference),
                 on=SourcedColumn.reference("seqid"),
             )
+            step += len(chunk.get_dataframe())
+            self.progress(operation="Versus reference", step=step)
             yield VersusReferenceSummary(summary)
 
 
