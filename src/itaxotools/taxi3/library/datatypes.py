@@ -212,6 +212,14 @@ class SequenceData(DataType):
                     self._normalize_sequences(dataframe)
                 yield dataframe
 
+    def sequence_count(self) -> int:
+        if self.path:
+            return self.protocol.count_data(self.path)
+        elif self.dataframe:
+            return len(self.dataframe)
+        else:
+            return 0
+
 
 class CompleteData(DataType):
     """
@@ -324,6 +332,14 @@ class CompleteData(DataType):
         for dataframe in self.get_dataframe_chunks():
             _dataframe_append(dataframe, file)
 
+    def sequence_count(self) -> int:
+        if self.path:
+            return self.protocol.count_data(self.path)
+        elif self.dataframe:
+            return len(self.dataframe)
+        else:
+            return 0
+
 
 class DecontaminateSummary(DataType):
     """
@@ -350,6 +366,7 @@ class DecontaminateSummary(DataType):
 
     def append_to_file(self, file: Path) -> None:
         _dataframe_append(self.dataframe, file)
+
 
 class Decontaminate2Summary(DataType):
     """
@@ -728,10 +745,10 @@ class Aggregation(Enum):
 
     def __str__(self) -> str:
         return {
-                Aggregation.Mean: "mean",
-                Aggregation.Min: "minimum",
-                Aggregation.Max: "maximum",
-                }[self]
+            Aggregation.Mean: "mean",
+            Aggregation.Min: "minimum",
+            Aggregation.Max: "maximum",
+        }[self]
 
 
 @dataclass(frozen=True)
@@ -1029,6 +1046,11 @@ class FileReader(ABC):
     def read_data(path: ValidFilePath) -> List[DataType]:
         pass
 
+    @staticmethod
+    @abstractmethod
+    def count_data(path: ValidFilePath) -> int:
+        pass
+
 
 class ColumnsNotFound(Exception):
     """
@@ -1104,6 +1126,15 @@ class TabfileReader(FileReader):
                 pass
         return data
 
+    @staticmethod
+    def count_data(path: ValidFilePath) -> int:
+        line_count = 0
+        with open(path) as file:
+            for line in file:
+                if not line.isspace():
+                    line_count += 1
+        return line_count - 1
+
 
 class XlsxReader(FileReader):
     """
@@ -1174,6 +1205,11 @@ class XlsxReader(FileReader):
                 pass
         return data
 
+    @staticmethod
+    def count_data(path: ValidFilePath) -> int:
+        worksheet = openpyxl.load_workbook(path).worksheets[0]
+        return worksheet.max_row - worksheet.min_row
+
 
 class FastaReader(FileReader):
     """
@@ -1218,6 +1254,12 @@ class FastaReader(FileReader):
     @staticmethod
     def read_data(path: ValidFilePath) -> List[DataType]:
         return [SequenceData.from_path(path, FastaReader())]
+
+    @staticmethod
+    def count_data(path: ValidFilePath) -> int:
+        with open(path) as file:
+            _, records = Fastafile.read(file)
+            return sum(1 for _ in records)
 
 
 class GenbankReader(FileReader):
@@ -1292,3 +1334,9 @@ class GenbankReader(FileReader):
             except Exception:
                 pass
         return data
+
+    @staticmethod
+    def count_data(path: ValidFilePath) -> int:
+        with open(path) as file:
+            _, records = GenbankFile.read(file)
+            return sum(1 for _ in records)
