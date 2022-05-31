@@ -270,7 +270,7 @@ class CompleteData(DataType):
         if self.dataframe is None:
             assert self.path is not None
             self.dataframe = self.protocol.read(self.path, columns=[])
-            if not {"seqid", "sequence"} in set(self.dataframe.columns):
+            if not {"seqid", "sequence"} <= set(self.dataframe.columns):
                 raise ColumnsNotFound({"seqid", "sequence"})
             try:
                 self.dataframe.set_index("seqid", inplace=True, verify_integrity=True)
@@ -1016,10 +1016,10 @@ class VersusAllSummary(DataType):
 class VersusReferenceSummary(DataType):
     def __init__(self, dataframe: pd.DataFrame):
         assert set(dataframe.columns) <= {
-            SourcedColumn("seqid", Source.Query1),
-            SourcedColumn("specimen_voucher", Source.Query1),
-            SourcedColumn("genus", Source.Query1),
-            SourcedColumn("species", Source.Query1),
+            SourcedColumn("seqid", Source.Query),
+            SourcedColumn("specimen_voucher", Source.Query),
+            SourcedColumn("genus", Source.Query),
+            SourcedColumn("species", Source.Query),
             SourcedColumn("seqid", Source.Reference),
             SourcedColumn("specimen_voucher", Source.Reference),
             SourcedColumn("genus", Source.Reference),
@@ -1042,10 +1042,10 @@ class VersusReferenceSummary(DataType):
         column_order = [
             column
             for column in [
-                SourcedColumn("seqid", Source.Query1),
-                SourcedColumn("specimen_voucher", Source.Query1),
-                SourcedColumn("genus", Source.Query1),
-                SourcedColumn("species", Source.Query1),
+                SourcedColumn("seqid", Source.Query),
+                SourcedColumn("specimen_voucher", Source.Query),
+                SourcedColumn("genus", Source.Query),
+                SourcedColumn("species", Source.Query),
                 SourcedColumn("seqid", Source.Reference),
                 SourcedColumn("specimen_voucher", Source.Reference),
                 SourcedColumn("genus", Source.Reference),

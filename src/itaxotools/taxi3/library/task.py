@@ -663,6 +663,7 @@ class VersusReference(Task[Iterator[VersusReferenceSummary]]):
     """
 
     def __init__(self, warn: WarningHandler):
+        super().__init__(warn)
         self.data: Optional[CompleteData] = None
         self.reference: Optional[CompleteData] = None
         self.alignment: Optional[Alignment] = None
@@ -703,15 +704,14 @@ class VersusReference(Task[Iterator[VersusReferenceSummary]]):
                 },
                 inplace=True,
             )
-            min_distance_table.join(
-                    chunk.get_dataframe().rename(column=SourcedColumn.query),
-                    on=SourcedColumn.query("seqid")
-                    ).join(
-                            self.reference.get_dataframe().rename(column=SourcedColumn.reference),
-                            on=SourcedColumn.reference("seqid")
-                            )
-            yield VersusReferenceSummary(min_distance_table)
-
+            summary = min_distance_table.join(
+                chunk.get_dataframe().drop(columns="sequence").rename(columns=SourcedColumn.query),
+                on=SourcedColumn.query("seqid"),
+            ).join(
+                self.reference.get_dataframe().drop(columns="sequence").rename(columns=SourcedColumn.reference),
+                on=SourcedColumn.reference("seqid"),
+            )
+            yield VersusReferenceSummary(summary)
 
 
 @dataclass(frozen=True)
