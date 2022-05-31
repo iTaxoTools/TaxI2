@@ -58,7 +58,7 @@ def _dataframe_append(dataframe: pd.DataFrame, file: Path) -> None:
         header = file.stat().st_size == 0
     except FileNotFoundError:
         header = True
-    dataframe.to_csv(file, header=header, sep="\t", mode="a")
+    dataframe.to_csv(file, header=header, sep="\t", mode="a", float_format="%.4g")
 
 
 class _Header:
@@ -1006,6 +1006,52 @@ class VersusAllSummary(DataType):
         self.dataframe.loc[different_seqids, column_order].rename(
             columns=Metric.short_names()
         ).to_csv(path, sep="\t", mode="a", index=False, float_format="%.4g")
+
+class VersusReferenceSummary(DataType):
+    def __init__(self, dataframe: pd.DataFrame):
+        assert set(dataframe.columns) <= {
+            SourcedColumn("seqid", Source.Query1),
+            SourcedColumn("specimen_voucher", Source.Query1),
+            SourcedColumn("genus", Source.Query1),
+            SourcedColumn("species", Source.Query1),
+            SourcedColumn("seqid", Source.Reference),
+            SourcedColumn("specimen_voucher", Source.Reference),
+            SourcedColumn("genus", Source.Reference),
+            SourcedColumn("species", Source.Reference),
+            Metric.Uncorrected,
+            Metric.JukesCantor,
+            Metric.Kimura2P,
+            Metric.UncorrectedWithGaps,
+        }
+        self.dataframe = dataframe
+
+    @classmethod
+    def from_path(cls, path: ValidFilePath, protocol: FileReader) -> VersusAllSummary:
+        raise NotImplementedError
+
+    def get_dataframe(self) -> pd.DataFrame:
+        return self.dataframe
+
+    def append_to_file(self, path: Path) -> None:
+        column_order = [
+            column
+            for column in [
+                SourcedColumn("seqid", Source.Query1),
+                SourcedColumn("specimen_voucher", Source.Query1),
+                SourcedColumn("genus", Source.Query1),
+                SourcedColumn("species", Source.Query1),
+                SourcedColumn("seqid", Source.Reference),
+                SourcedColumn("specimen_voucher", Source.Reference),
+                SourcedColumn("genus", Source.Reference),
+                SourcedColumn("species", Source.Reference),
+                Metric.Uncorrected,
+                Metric.Kimura2P,
+                Metric.JukesCantor,
+                Metric.UncorrectedWithGaps,
+            ]
+            if column in self.dataframe.columns
+        ]
+        _dataframe_append(self.dataframe[column_order].rename(columns=Metric.short_names()), path)
 
 
 class FileReader(ABC):
