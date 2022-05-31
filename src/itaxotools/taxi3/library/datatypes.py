@@ -920,12 +920,14 @@ class MeanMinMaxDistances(DataType):
 class Source(Enum):
     Query1 = auto()
     Query2 = auto()
+    Query = auto()
     Reference = auto()
 
     def __str__(self) -> str:
         return {
             Source.Query1: "query 1",
             Source.Query2: "query 2",
+            Source.Query: "query",
             Source.Reference: "reference",
         }[self]
 
@@ -942,6 +944,10 @@ class SourcedColumn:
     @classmethod
     def query2(cls, name: str) -> SourcedColumn:
         return cls(name=name, source=Source.Query2)
+
+    @classmethod
+    def query(cls, name: str) -> SourcedColumn:
+        return cls(name=name, source=Source.Query)
 
     @classmethod
     def reference(cls, name: str) -> SourcedColumn:

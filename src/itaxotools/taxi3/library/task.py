@@ -30,6 +30,7 @@ from .datatypes import (
     DecontaminateSummary,
     Decontaminate2Summary,
     VersusAllSummary,
+    VersusReferenceSummary,
     SourcedColumn,
     VoucherPartition,
     GenusPartition,
@@ -651,6 +652,66 @@ class VersusAll(Task[VersusAllOutput]):
             mean_min_max_distances,
             summarize_task.result,
         )
+
+
+class VersusReference(Task[Iterator[VersusReferenceSummary]]):
+    """
+    Arguments:
+        data: CompleteData
+        reference: CompleteData
+        alignment: Alignment
+    """
+
+    def __init__(self, warn: WarningHandler):
+        self.data: Optional[CompleteData] = None
+        self.reference: Optional[CompleteData] = None
+        self.alignment: Optional[Alignment] = None
+
+    def start(self) -> None:
+        if self.data is None:
+            raise MissingArgument("data")
+        if self.reference is None:
+            raise MissingArgument("reference")
+        if self.alignment is None:
+            raise MissingArgument("alignment")
+        self.result = self._process()
+
+    def _process(self) -> Iterator[VersusReferenceSummary]:
+        assert self.data is not None
+        assert self.reference is not None
+        assert self.alignment is not None
+
+        for chunk in self.data.get_chunks():
+            distance_task = self.subtask(CalculateDistances)
+            distance_task.alignment = self.alignment
+            distance_task.metrics = list(Metric)
+            distance_task.sequences = SequencesPair(
+                target=self.reference.get_sequences(), query=chunk.get_sequences()
+            )
+            distance_task.start()
+            assert distance_task.result is not None
+
+            distance_table = distance_task.result.get_dataframe()
+            min_distance_table = distance_table.loc[
+                distance_table.groupby(level="seqid_query")[Metric.Uncorrected].idxmin()
+            ]
+            min_distance_table.reset_index(inplace=True)
+            min_distance_table.rename(
+                columns={
+                    "seqid_query": SourcedColumn.query("seqid"),
+                    "seqid_target": SourcedColumn.reference("seqid"),
+                },
+                inplace=True,
+            )
+            min_distance_table.join(
+                    chunk.get_dataframe().rename(column=SourcedColumn.query),
+                    on=SourcedColumn.query("seqid")
+                    ).join(
+                            self.reference.get_dataframe().rename(column=SourcedColumn.reference),
+                            on=SourcedColumn.reference("seqid")
+                            )
+            yield VersusReferenceSummary(min_distance_table)
+
 
 
 @dataclass(frozen=True)
