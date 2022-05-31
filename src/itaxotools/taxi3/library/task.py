@@ -798,7 +798,7 @@ class Decontaminate(Task[Iterator[Decontaminated]]):
         assert self.data is not None
         self._calculate_distances.alignment = self.alignment
 
-        step=0
+        step = 0
         for chunk in self.data.get_chunks():
             assert chunk.dataframe is not None
             step += len(chunk.dataframe)
@@ -860,9 +860,14 @@ class Decontaminate2(Task[Iterator[Decontaminated2]]):
     """
     Arguments:
         alignment: Alignment
-        ingroupb: SequenceData
+        ingroup: SequenceData
         outgroup: SequenceData
         data: CompleteData
+        outgroup_weight: float = 1
+
+    `outgroup_weight` desribes how strong the distance to the outgroup is considered.
+    A sequence is considered a contiminant if
+    distance_to_ingroup > outgroup_weight * distances_to_outgroup
     """
 
     def __init__(self, warn: WarningHandler):
@@ -871,6 +876,7 @@ class Decontaminate2(Task[Iterator[Decontaminated2]]):
         self.ingroup: Optional[SequenceData] = None
         self.outgroup: Optional[SequenceData] = None
         self.data: Optional[CompleteData] = None
+        self.outgroup_weight: float = 1
         self._calculate_distances = self.subtask(CalculateDistances)
         self._calculate_distances.metrics = [Metric.Uncorrected]
 
@@ -894,7 +900,7 @@ class Decontaminate2(Task[Iterator[Decontaminated2]]):
         assert self.data is not None
         self._calculate_distances.alignment = self.alignment
 
-        step=0
+        step = 0
         for chunk in self.data.get_chunks():
             assert chunk.dataframe is not None
             step += len(chunk.dataframe)
@@ -942,7 +948,8 @@ class Decontaminate2(Task[Iterator[Decontaminated2]]):
             )
 
             summary["is contaminant"] = (
-                summary["distance to ingroup"] > summary["distance to outgroup"]
+                summary["distance to ingroup"]
+                > self.outgroup_weight * summary["distance to outgroup"]
             )
 
             assert sequences.dataframe is not None
