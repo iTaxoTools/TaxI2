@@ -739,6 +739,8 @@ class Dereplicate(Task[Iterator[Dereplicated]]):
 
     `similarity` describes alignment-free distance between sequences.
     The correspondence to similarity percentage was empirically determined to be the following:
+    # These values are for the previously used BBC distance,
+    # they need to be recalculated for the currently used NCD distance
         0.07:   98%
         0.10:   95%
         0.25:   90%
@@ -747,7 +749,7 @@ class Dereplicate(Task[Iterator[Dereplicated]]):
 
     def __init__(self, warn: WarningHandler):
         super().__init__(warn)
-        self.similarity = 0.07
+        self.similarity = 0.09 # TODO: pick a sensible default
         self.length_threshold: Optional[int] = None
         self.keep_most_complete = False
         self.data: Optional[CompleteData] = None
@@ -832,6 +834,8 @@ class Decontaminate(Task[Iterator[Decontaminated]]):
 
     `similarity` describes alignment-free distance between sequences.
     The correspondence to similarity percentage was empirically determined to be the following:
+    # These values are for the previously used BBC distance,
+    # they need to be recalculated for the currently used NCD distance
         0.07:   98%
         0.10:   95%
         0.25:   90%
@@ -840,7 +844,7 @@ class Decontaminate(Task[Iterator[Decontaminated]]):
 
     def __init__(self, warn: WarningHandler):
         super().__init__(warn)
-        self.similarity = 0.07
+        self.similarity = 0.09 # TODO: pick a sensible default
         self.alignment: Optional[Alignment] = None
         self.reference: Optional[SequenceData] = None
         self.data: Optional[CompleteData] = None

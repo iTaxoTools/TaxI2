@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import gc
 import alfpy.bbc as bbc
+import alfpy.ncd as ncd
 from alfpy.utils import seqrecords
 import itertools
 
@@ -16,6 +17,49 @@ distances_short_names = [
 
 
 def alfpy_distance_array(sequences: pd.Series) -> np.ndarray:
+    """
+    Calculate NCD distances between `sequences`
+    """
+    seqs = seqrecords.SeqRecords(
+        id_list=sequences.index.to_list(), seq_list=sequences.to_list()
+    )
+    size = len(sequences)
+    dist = ncd.Distance(seqs)
+    arr = np.zeros(size * size)
+    for i, j in itertools.combinations(range(size), 2):
+        try:
+            value = dist.pairwise_distance(i, j)
+        except KeyError:
+            value = 0
+        arr[i * size + j] = value
+        arr[j * size + i] = value
+    return arr
+
+
+def alfpy_distance_array2(sequences1: pd.Series, sequences2: pd.Series) -> np.ndarray:
+    """
+    Calculates NCD distances between `sequences1` and `sequences2`
+
+    Returns `arr` where arr[i * len(sequences2) + j] is the distance between sequences1[i] and sequences2[j]
+    """
+    seqs = seqrecords.SeqRecords(
+        id_list=sequences1.index.to_list() + sequences2.index.to_list(),
+        seq_list=sequences1.to_list() + sequences2.to_list(),
+    )
+    size1 = len(sequences1)
+    size2 = len(sequences2)
+    dist = ncd.Distance(seqs)
+    arr = np.zeros(size1 * size2)
+    for i, j in itertools.product(range(size1), range(size2)):
+        value = dist.pairwise_distance(i, size1 + j)
+        arr[i * size2 + j] = value
+    return arr
+
+
+def alfpy_distance_array_bbc(sequences: pd.Series) -> np.ndarray:
+    """
+    Calculates BBC distances between `sequences`
+    """
     seqs = seqrecords.SeqRecords(
         id_list=sequences.index.to_list(), seq_list=sequences.to_list()
     )
@@ -30,7 +74,14 @@ def alfpy_distance_array(sequences: pd.Series) -> np.ndarray:
     return arr
 
 
-def alfpy_distance_array2(sequences1: pd.Series, sequences2: pd.Series) -> np.ndarray:
+def alfpy_distance_array2_bbc(
+    sequences1: pd.Series, sequences2: pd.Series
+) -> np.ndarray:
+    """
+    Calculates BBC distances between `sequences1` and `sequences2`
+
+    Returns `arr` where arr[i * len(sequences2) + j] is the distance between sequences1[i] and sequences2[j]
+    """
     seqs = seqrecords.SeqRecords(
         id_list=sequences1.index.to_list() + sequences2.index.to_list(),
         seq_list=sequences1.to_list() + sequences2.to_list(),
