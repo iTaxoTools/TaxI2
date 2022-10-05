@@ -50,7 +50,12 @@ from .sequence_statistics import (
     sequence_statistics_with_gaps,
 )
 
-from .alfpy_distance import alfpy_distance_array, alfpy_distance_array2
+from .alfpy_distance import (
+    alfpy_distance_array_ncd,
+    alfpy_distance_array2_ncd,
+    alfpy_distance_array_bbc,
+    alfpy_distance_array2_bbc,
+)
 from .config import Config
 
 _Result = TypeVar("_Result")
@@ -61,6 +66,11 @@ class Alignment(Enum):
     Pairwise = auto()
     AlignmentFree = auto()
     AlreadyAligned = auto()
+
+
+class AlignmentFreeLibrary(Enum):
+    BBC = auto()
+    NCD = auto()
 
 
 @dataclass()
@@ -138,6 +148,7 @@ class CalculateDistances(Task[SequenceDistanceMatrix]):
         sequences: Union[SequenceData, SequencesPair]
         alignment: Alignment
         metrics: List[Metric]
+        library: AlignmentFreeLibrary
     """
 
     def __init__(self, warn: WarningHandler):
@@ -145,9 +156,14 @@ class CalculateDistances(Task[SequenceDistanceMatrix]):
         self.sequences: Union[None, SequenceData, SequencesPair] = None
         self.alignment: Optional[Alignment] = None
         self.metrics: List[Metric] = []
+        self.library = AlignmentFreeLibrary.BBC
 
     def _alignment_free_start(self) -> None:
         assert self.sequences is not None
+        alfpy_distance_array, alfpy_distance_array2 = {
+            AlignmentFreeLibrary.BBC: (alfpy_distance_array_bbc, alfpy_distance_array2_bbc),
+            AlignmentFreeLibrary.NCD: (alfpy_distance_array_ncd, alfpy_distance_array2_ncd),
+        }[self.library]
         if isinstance(self.sequences, SequenceData):
             sequences = self.sequences.get_dataframe()
             distances_array = alfpy_distance_array(sequences["sequence"])

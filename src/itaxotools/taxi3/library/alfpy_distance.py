@@ -16,7 +16,7 @@ distances_short_names = [
 ]
 
 
-def alfpy_distance_array(sequences: pd.Series) -> np.ndarray:
+def alfpy_distance_array_ncd(sequences: pd.Series) -> np.ndarray:
     """
     Calculate NCD distances between `sequences`
     """
@@ -36,7 +36,7 @@ def alfpy_distance_array(sequences: pd.Series) -> np.ndarray:
     return arr
 
 
-def alfpy_distance_array2(sequences1: pd.Series, sequences2: pd.Series) -> np.ndarray:
+def alfpy_distance_array2_ncd(sequences1: pd.Series, sequences2: pd.Series) -> np.ndarray:
     """
     Calculates NCD distances between `sequences1` and `sequences2`
 
