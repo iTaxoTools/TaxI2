@@ -67,6 +67,7 @@ setup(
         "openpyxl",
         "pandas",
         "seaborn",
+        "scipy",
     ],
     extras_require={
         "dev": ["pyinstaller"],
