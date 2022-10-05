@@ -17,7 +17,7 @@ long_description = (here / "README.md").read_text(encoding="utf-8")
 
 setup(
     name="taxi3",
-    version="0.2.0",
+    version="0.2.dev0",
     description="taxi3 description",
     long_description=long_description,
     long_description_content_type="text/markdown",
