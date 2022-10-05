@@ -32,7 +32,7 @@ setuptools==60.9.2
 setuptools-rust==1.1.2
 six==1.16.0
 tabulate==0.8.9
-taxi3==0.1.0
+taxi3==0.2.0
 termcolor==1.1.0
 typing_extensions==4.1.1
 uritemplate==4.1.1
