@@ -2,7 +2,7 @@
 Calculates genetic differences between DNA sequences
 
 ## Scores for alignment
-The file `TaxI/scores.json` (found in `%APPDATA%\iTaxoTools` or in `$XDG_CONFIG_HOME$/`) 
+The file `TaxI/scores.json` (found in `%APPDATA%\iTaxoTools` or in `$XDG_CONFIG_HOME$/`)
 contains the scores used in the sequence alignment.
 
 Each line has the format:
@@ -69,24 +69,4 @@ rustup default stable-x86_64-pc-windows-msvc
 
 ### Compilation
 
-In the directory `library/calculate_distances` run:
-```
-cargo build --release
-```
-
-To compile for another Python interpreter (for example `python3.6`), do instead:
-* On Linux:
-```
-PYO3_PYTHON=python3.6 cargo build --release
-```
-* On Windows:
-```
-$env:PYO3_PYTHON=python3.6 
-cargo build --release
-```
-
-In the directory `library` run:
-```
-python copy_rust_lib.py
-```
-
+Rust module compilation is now automated via setuptools.
