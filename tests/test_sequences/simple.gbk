@@ -1,0 +1,36 @@
+LOCUS       id1                        3 bp    DNA              UNK 01-JAN-1980
+DEFINITION  id1.
+ACCESSION   id1
+VERSION     id1
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 atc
+//
+LOCUS       id2                        3 bp    DNA              UNK 01-JAN-1980
+DEFINITION  id2.
+ACCESSION   id2
+VERSION     id2
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 atg
+//
+LOCUS       id3                        3 bp    DNA              UNK 01-JAN-1980
+DEFINITION  id3.
+ACCESSION   id3
+VERSION     id3
+KEYWORDS    .
+SOURCE      .
+  ORGANISM  .
+            .
+FEATURES             Location/Qualifiers
+ORIGIN
+        1 ata
+//
