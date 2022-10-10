@@ -1,5 +1,5 @@
-seqid	sequences
-id1	ATC
-id2	ATG
-id3	ATA
+seqid	voucher	sequences
+id1	X	ATC
+id2	Y	ATG
+id3	Z	ATA
 
