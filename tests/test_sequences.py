@@ -30,7 +30,7 @@ read_tests = [
     ReadTest(validate_simple, 'simple.multi.fas', SequenceReader.FastaReader, {}),
     ReadTest(validate_simple, 'simple.gbk', SequenceReader.GenbankReader, {}),
     ReadTest(validate_simple, 'simple.tsv', SequenceReader.TabfileReader, {}),
-    ReadTest(validate_simple, 'simple.headers.tsv', SequenceReader.TabfileReader, dict(id='seqid', seq='sequence')),
+    ReadTest(validate_simple, 'simple.headers.tsv', SequenceReader.TabfileReader, dict(idHeader='seqid', seqHeader='sequences')),
     ReadTest(validate_simple, 'simple.xlsx', SequenceReader.ExcelReader, {}),
     ReadTest(validate_simple, 'simple.headers.xlsx', SequenceReader.ExcelReader, dict(id='seqid', seq='sequence')),
 ]

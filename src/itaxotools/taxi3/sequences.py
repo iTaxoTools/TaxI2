@@ -71,31 +71,29 @@ def read_genbank_sequences(path: Path) -> Sequences:
 @sequence_reader(SequenceReader.TabfileReader)
 def read_tabfile_sequences(
     path: Path,
-    id: str = None,
-    seq: str = None,
+    idHeader: str = None,
+    seqHeader: str = None,
+    hasHeader: bool = False,
+    idColumn: int = 0,
+    seqCoulmn: int = 1
 ) -> Sequences:
     # new lazy iterator, optional headers
     # library.TabfileReader
-    count = 0
     with open(path) as f:
+        #Checking headers
+        if idHeader and seqHeader:
+            hasHeader = True
+        if hasHeader:
+            headerLine = f.readline().strip().split('\t', maxsplit=-1)
+            idColumn, seqCoulmn = headerLine.index(idHeader), headerLine.index(seqHeader)
+
+        #getting id and seq
         for line in f:
-            if len(line) > 1:
-                data = line.strip().split('\t', maxsplit=-1)
-                print(len(data))
-                if len(data) == 2:
-                    id, seq = data[0], data[1]
-                    if id and seq:
-                        yield Sequence(id, seq)
-                else:
-                    try:
-                        if count == 0:
-                            indexId, indexSeq = data.index('seqid'), data.index('sequences')
-                            count = 1
-                            continue
-                        yield Sequence(data[indexId], data[indexSeq])
-                    except:
-                        yield Sequence("0", "1")
-                        # raise TypeError('Must either provide both or none of id/seq')
+            if len(line) <= 1:
+                continue
+            data = line.strip().split('\t', maxsplit=-1)
+            print(data)
+            yield Sequence(data[idColumn], data[seqCoulmn])
 
 @sequence_reader(SequenceReader.ExcelReader)
 def read_excel_sequences(
