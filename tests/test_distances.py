@@ -27,16 +27,16 @@ class WriteTest(NamedTuple):
 def validate_simple(distances: Distances):
     dis_list = list(distances)
     assert len(dis_list) == 3
-    assert Distance(DistanceMetric.Uncorrected, 'id1', 'id2', 0.1) in dis_list
-    assert Distance(DistanceMetric.Uncorrected, 'id1', 'id3', 0.2) in dis_list
-    assert Distance(DistanceMetric.Uncorrected, 'id1', 'id4', 0.3) in dis_list
+    assert Distance(DistanceMetric.Uncorrected(), 'id1', 'id2', 0.1) in dis_list
+    assert Distance(DistanceMetric.Uncorrected(), 'id1', 'id3', 0.2) in dis_list
+    assert Distance(DistanceMetric.Uncorrected(), 'id1', 'id4', 0.3) in dis_list
 
 
 def generate_simple() -> Distances:
     distances = [
-        Distance(DistanceMetric.Uncorrected, 'id1', 'id2', 0.1),
-        Distance(DistanceMetric.Uncorrected, 'id1', 'id3', 0.2),
-        Distance(DistanceMetric.Uncorrected, 'id1', 'id4', 0.3),
+        Distance(DistanceMetric.Uncorrected(), 'id1', 'id2', 0.1),
+        Distance(DistanceMetric.Uncorrected(), 'id1', 'id3', 0.2),
+        Distance(DistanceMetric.Uncorrected(), 'id1', 'id4', 0.3),
     ]
     return Distances(lambda: iter(distances))
 

@@ -52,8 +52,17 @@ class Buffer(DistanceFile):
 
 
 class Linear(DistanceFile):
-    pass
+    def __init__(self, path: Path):
+        super().__init__(path)
 
+    def read(self) -> iter[Distance]:
+        with open(self.path, 'r') as f:
+            data = f.readline()
+            id1Header, id2Header, label = data.strip().split('\t')
+            metric = DistanceMetric.fromLabel(label)
+            for line in f:
+                id1, id2, labelData = line.split('\t')
+                yield Distance(metric, id1, id2, float(labelData))
 
 class Matrix(DistanceFile):
     pass
@@ -66,15 +75,24 @@ class DistanceMetric(Type):
     def __str__(self):
         return self.label
 
+    def __eq__(self, other):
+        return type(self) == type(other)
+
     def _calculate(self, x: str, y: str) -> float:
         raise NotImplementedError()
 
     def calculate(self, x: Sequence, y: Sequence) -> Distance:
         return Distance(self, x.id, y.id, self._calculate(x.seq, y.seq))
 
+    @classmethod
+    def fromLabel(cls, label: str):
+        for child in cls:
+            if label == child.label:
+                return child()
 
 class Uncorrected(DistanceMetric):
     label = 'p-distance'
+
 
 
 class UncorrectedWithGaps(DistanceMetric):
