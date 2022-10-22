@@ -36,6 +36,8 @@ class DistanceFile(Type):
         raise NotImplementedError()
 
     def write(self, distances: iter[Distance]) -> None:
+        """Get all metrics for a specific pair before we get the next pair"""
+        # go to new line when id pair changes
         raise NotImplementedError()
 
 
