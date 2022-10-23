@@ -35,6 +35,15 @@ class WriteTest(NamedTuple):
         return self.fixture()
 
 
+class LabelTest(NamedTuple):
+    metric: DistanceMetric
+    label: str
+
+    def validate(self):
+        assert self.metric == DistanceMetric.fromLabel(self.label)
+        assert self.label == str(self.metric)
+
+
 def distances_simple() -> Distances:
     metric = DistanceMetric.Uncorrected()
     return Distances([
@@ -136,6 +145,18 @@ write_tests = [
 ]
 
 
+label_tests = [
+    LabelTest(DistanceMetric.Uncorrected(), 'p-distance'),
+    LabelTest(DistanceMetric.UncorrectedWithGaps(), 'p-distance with gaps'),
+    LabelTest(DistanceMetric.JukesCantor(), 'jc'),
+    LabelTest(DistanceMetric.Kimura2P(), 'k2p'),
+    LabelTest(DistanceMetric.NCD(0), 'ncd(0)'),
+    LabelTest(DistanceMetric.NCD(1), 'ncd(1)'),
+    LabelTest(DistanceMetric.BBC(0), 'bbc(0)'),
+    LabelTest(DistanceMetric.BBC(1), 'bbc(1)'),
+]
+
+
 @pytest.mark.parametrize("test", read_tests)
 def test_read_distances(test: ReadTest) -> None:
     input_path = TEST_DATA_DIR / test.input
@@ -150,3 +171,8 @@ def test_write(test: WriteTest, tmp_path: Path) -> None:
     distances = test.generate()
     test.file(output_path).write(distances)
     assert_eq_files(output_path, fixed_path)
+
+
+@pytest.mark.parametrize("test", label_tests)
+def test_labels(test: WriteTest) -> None:
+    test.validate()
