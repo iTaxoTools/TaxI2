@@ -22,7 +22,6 @@ class ReadTest(NamedTuple):
     def validate(self, generated: Distances):
         fixture_list = list(self.fixture())
         generated_list = list(generated)
-        assert len(fixture_list) == len(generated_list)
         for distance in fixture_list:
             assert distance in generated_list
 
@@ -168,7 +167,7 @@ read_tests = [
     ReadTest(distances_square_unknown, 'square.matrix', DistanceFile.Matrix),
     ReadTest(distances_square, 'square.matrix', DistanceFile.Matrix, dict(metric=DistanceMetric.Uncorrected())),
     ReadTest(distances_rectangle, 'rectangle.matrix', DistanceFile.Matrix, dict(metric=DistanceMetric.Uncorrected())),
-    ReadTest(distances_missing, 'missing.matrix', DistanceFile.Matrix),
+    ReadTest(distances_missing, 'missing.matrix', DistanceFile.Matrix, dict(metric=DistanceMetric.Uncorrected())),
 ]
 
 

@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import re
 from typing import Callable, Iterable, NamedTuple
 from enum import Enum, auto
-
+import numpy as np
 from .sequences import Sequence, Sequences
 from .types import Type, Container
-
+import parse
 
 class Distance(NamedTuple):
     metric: DistanceMetric
@@ -63,17 +64,38 @@ class Linear(DistanceFile):
     def read(self) -> iter[Distance]:
         with open(self.path, 'r') as f:
             data = f.readline()
-            id1Header, id2Header, label = data.strip().split('\t')
-            metric = DistanceMetric.fromLabel(label)
+            labels = data.strip().split('\t')[2:]
             for line in f:
-                idx, idy, d = line[:-1].split('\t')
-                yield Distance(metric, idx, idy, self.distanceFromText(d))
+                lineData = line[:-1].split('\t')
+                idx, idy, labelDistances = lineData[0], lineData[1], lineData[2:]
+                for label in range(len(labels)):
+                    metric = DistanceMetric.fromLabel(labels[label])
+                    #print(Distance(metric, idx, idy, self.distanceFromText(labelDistances[label])))
+                    yield Distance(metric, idx, idy, self.distanceFromText(labelDistances[label]))
 
 
 class Matrix(DistanceFile):
+    MISSING = 'nan'
+
+    @classmethod
+    def distanceFromText(cls, text: str) -> float | None:
+        if text == cls.MISSING:
+            return None
+        return float(text)
+
     def read(self, metric: DistanceMetric = None) -> iter[Distance]:
         metric = metric or DistanceMetric.Unknown()
-        raise NotImplementedError()
+        with open(self.path, 'r') as f:
+            id_data = f.readline()
+            id_to_compare = id_data.strip().split('\t')
+            print(id_to_compare)
+            for line in f:
+                data = line.strip().split('\t')
+                idx = data[0]
+                for index in range(len(data[1:])):
+                    idy = id_to_compare[index]
+                    label_distance = data[1:][index]
+                    yield Distance(metric, idx, idy, self.distanceFromText(label_distance))
 
 
 class DistanceMetric(Type):
@@ -102,9 +124,17 @@ class DistanceMetric(Type):
 
     @classmethod
     def fromLabel(cls, label: str):
+        label_arg = None
+        res = re.search(r'(\w+)\((\d+)\)', label)
+        if res:
+            label = res.group(1)+'({})'
+            label_arg = res.group(2)
         for child in cls:
             if label == child.label:
-                return child()
+                if label_arg:
+                    return child(label_arg)
+                else:
+                    return child()
 
 
 class Unknown(DistanceMetric):
@@ -136,8 +166,8 @@ class NCD(DistanceMetric):
     def __str__(self):
         return self.label.format(self.arg)
 
-    def __eq__(self, other):
-        return super().__eq__(other) and self.arg == other.arg
+    # def __eq__(self, other):
+    #     return super().__eq__(other) and self.arg == other.arg
 
 
 class BBC(DistanceMetric):
@@ -149,5 +179,5 @@ class BBC(DistanceMetric):
     def __str__(self):
         return self.label.format(self.arg)
 
-    def __eq__(self, other):
-        return super().__eq__(other) and self.arg == other.arg
+    # def __eq__(self, other):
+    #     return super().__eq__(other) and self.arg == other.arg
