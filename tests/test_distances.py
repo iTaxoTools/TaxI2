@@ -8,12 +8,13 @@ import pytest
 from utility import assert_eq_files
 
 from itaxotools.taxi3.distances import Distance, Distances, DistanceFile, DistanceMetric
+from itaxotools.taxi3.sequences import Sequence
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 
 
 class ReadTest(NamedTuple):
-    fixture: Callable[None, Distances]
+    fixture: Callable[[], Distances]
     input: str
     file: DistanceFile
     kwargs: dict = {}
@@ -27,7 +28,7 @@ class ReadTest(NamedTuple):
 
 
 class WriteTest(NamedTuple):
-    fixture: Callable[None, Distances]
+    fixture: Callable[[], Distances]
     output: str
     file: DistanceFile
 
@@ -39,9 +40,29 @@ class LabelTest(NamedTuple):
     metric: DistanceMetric
     label: str
 
-    def validate(self):
+    def check(self):
         assert self.metric == DistanceMetric.fromLabel(self.label)
         assert self.label == str(self.metric)
+
+
+class MetricTest(NamedTuple):
+    metric: DistanceMetric
+    seq_x: str
+    seq_y: str
+    d: float
+
+    def check(self):
+        x = Sequence('idx', self.seq_x)
+        y = Sequence('idy', self.seq_y)
+        r = self.metric.calculate(x, y)
+        assert r.metric == self.metric
+        assert r.idx == 'idx'
+        assert r.idy == 'idy'
+        assert r.d == self.d
+
+
+class MetricFileTest(NamedTuple):
+    file: str
 
 
 def distances_simple() -> Distances:
@@ -157,6 +178,18 @@ label_tests = [
 ]
 
 
+metric_tests = [
+    MetricTest(DistanceMetric.Uncorrected(), 'gg-ccnccta', 'ggaccaccaa', 1.0 / 8.0),
+    MetricTest(DistanceMetric.UncorrectedWithGaps(), 'gg-ccnccta', 'ggaccaccaa', 2.0 / 9.0),
+    MetricTest(DistanceMetric.Uncorrected(), '---', 'nnn', None),
+]
+
+
+metric_file_tests = [
+    MetricFileTest('metrics.tsv'),
+]
+
+
 @pytest.mark.parametrize("test", read_tests)
 def test_read_distances(test: ReadTest) -> None:
     input_path = TEST_DATA_DIR / test.input
@@ -174,5 +207,17 @@ def test_write(test: WriteTest, tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize("test", label_tests)
-def test_labels(test: WriteTest) -> None:
-    test.validate()
+def test_labels(test: LabelTest) -> None:
+    test.check()
+
+
+@pytest.mark.parametrize("test", metric_tests)
+def test_metrics(test: MetricTest) -> None:
+    test.check()
+
+
+@pytest.mark.parametrize("test", metric_file_tests)
+def test_metric_files(test: MetricFileTest) -> None:
+    path = TEST_DATA_DIR / test.file
+    # for test in read_metric_tests(path): test.check()
+    raise NotImplementedError()

@@ -11,7 +11,7 @@ class Distance(NamedTuple):
     metric: DistanceMetric
     idx: str
     idy: str
-    d: float
+    d: float | None
 
 
 class Distances(Container[Distance]):

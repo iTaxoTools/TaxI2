@@ -11,7 +11,7 @@ TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 
 
 class ReadTest(NamedTuple):
-    fixture: Callable[None, Sequences]
+    fixture: Callable[[], Sequences]
     input: str
     file: SequenceFile
     kwargs: dict = {}

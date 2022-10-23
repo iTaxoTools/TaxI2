@@ -1,0 +1,5 @@
+target	query	p-distance	p-distance with gaps	jc	k2p
+------	nnnnnn	nan	nan	nan	nan
+a-----	------a	nan	nan	nan	nan
+annnnnn	nnnnnna	nan	nan	nan	nan
+acg---	---cgt	nan	nan	nan	nan
