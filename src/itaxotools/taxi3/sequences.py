@@ -7,134 +7,134 @@ from Bio.SeqIO.FastaIO import SimpleFastaParser
 from Bio import SeqIO
 from openpyxl import load_workbook
 
+from .types import Type
+
+
 class Sequence(NamedTuple):
     id: str
     seq: str
 
 
 class Sequences:
-    def __init__(self, iterator: Iterator[Sequence]):
-        self.iterator = iterator
+    """Sequence containers that can be iterated multiple times"""
 
-    def __iter__(self):
-        return self.iterator
+    def __init__(
+        self, source: Iterable[Sequence] | Callable[None, iter[Sequence]],
+        *args, **kwargs,
+    ):
+        self.iterable = None
+        self.callable = None
+        self.args = []
+        self.kwargs = {}
+        if callable(source):
+            self.callable = source
+            self.args = kwargs
+            self.kwargs = kwargs
+        else:  # iterable
+            self.iterable = source
+            if args or kwargs:
+                raise TypeError('Cannot pass arguments to iterable source')
 
-    def __next__(self):
-        return next(self.iterator)
+    def __iter__(self) -> iter[Sequence]:
+        if self.callable:
+            return self.callable(*args, **kwargs)
+        return iter(self.iterable)
 
-
-class SequenceReader(Enum):
-    FastaReader = auto()
-    GenbankReader = auto()
-    TabfileReader = auto()
-    ExcelReader = auto()
-
-    def __init__(self, *args):
-        self._read = None
-
-    def read(self, path: Path, **kwargs) -> Sequences:
-        if self._read is None:
-            raise MissingImplementation(self)
-        return self._read(path, **kwargs)
-
-
-class MissingImplementation(Exception):
-    def __init__(self, reader: SequenceReader):
-        self.reader = reader
-        message = f'Missing implementation for {reader}'
-        super().__init__(message)
+    @classmethod
+    def fromFile(cls, file: SequenceFile, *args, **kwargs) -> Sequences:
+        return cls(file.read, *args, **kwargs)
 
 
-def sequence_reader(reader: SequenceReader):
-    """Decorate reader implementations"""
-    def decorator(func: Callable):
-        reader._read = func
-    return decorator
+class SequenceFile(Type):
+    """Handlers for sequence files"""
+
+    def __init__(self, path: Path):
+        self.path = path
+
+    def read(self, *args, **kwargs) -> iter[Sequence]:
+        raise NotImplementedError()
+
+    def write(self, distances: iter[Sequence], *args, **kwargs) -> None:
+        raise NotImplementedError()
 
 
-@sequence_reader(SequenceReader.FastaReader)
-def read_fasta_sequences(path: Path) -> Sequences:
-    # Bio.SeqIO.FastaIO.SimpleFastaParser
-    print(path)
-    with open(path, 'r') as handle:
-        for data in SimpleFastaParser(handle):
-            yield Sequence(*data)
+class Fasta(SequenceFile):
+    def read(self) -> iter[Sequence]:
+        with open(self.path, 'r') as handle:
+            for data in SimpleFastaParser(handle):
+                yield Sequence(*data)
 
 
-@sequence_reader(SequenceReader.GenbankReader)
-def read_genbank_sequences(path: Path) -> Sequences:
-    # Bio.GenBank.Scanner
-    for data in SeqIO.parse(path, 'genbank'):
-        yield Sequence(data.id, data.seq)
+class Genbank(SequenceFile):
+    def read(self) -> iter[Sequence]:
+        # Bio.GenBank.Scanner
+        for data in SeqIO.parse(self.path, 'genbank'):
+            yield Sequence(data.id, data.seq)
 
 
-@sequence_reader(SequenceReader.TabfileReader)
-def read_tabfile_sequences(
-    path: Path,
-    idHeader: str = None,
-    seqHeader: str = None,
-    hasHeader: bool = False,
-    idColumn: int = 0,
-    seqCoulmn: int = 1
-) -> Sequences:
-    # new lazy iterator, optional headers
-    # library.TabfileReader
-    with open(path) as f:
-        #Checking headers
-        if idHeader and seqHeader:
-            hasHeader = True
-        if hasHeader:
-            headerLine = f.readline().strip().split('\t', maxsplit=-1)
-            idColumn, seqCoulmn = headerLine.index(idHeader), headerLine.index(seqHeader)
+class Tabfile(SequenceFile):
+    def read(
+        self,
+        idHeader: str = None,
+        seqHeader: str = None,
+        hasHeader: bool = False,
+        idColumn: int = 0,
+        seqColumn: int = 1,
+    ) -> iter[Sequence]:
+        with open(self.path) as f:
+            # Checking headers
+            if idHeader and seqHeader:
+                hasHeader = True
+            if hasHeader:
+                headerLine = f.readline().strip().split('\t', maxsplit=-1)
+                idColumn, seqColumn = headerLine.index(idHeader), headerLine.index(seqHeader)
 
-        #getting id and seq
-        for line in f:
-            if len(line) <= 1:
-                continue
-            data = line.strip().split('\t', maxsplit=-1)
-            print(data)
-            yield Sequence(data[idColumn], data[seqCoulmn])
+            # Getting id and seq
+            for line in f:
+                if len(line) <= 1:
+                    continue
+                data = line.strip().split('\t', maxsplit=-1)
+                print(data)
+                yield Sequence(data[idColumn], data[seqColumn])
 
-@sequence_reader(SequenceReader.ExcelReader)
-def read_excel_sequences(
-    path: Path,
-    id: str = None,
-    seq: str = None,
-) -> Sequences:
-    # new lazy iterator, optional headers
-    # openpyxxl.readthedocs.io/en/stable/optimized.html
-    # library.XlsxReader
-    wb = load_workbook(filename=path, read_only=True)
-    ws = wb['Sheet 1']
-    idColumn = None
-    seqColumn = None
-    numCells = 0
-    numRows = 0
-    for row in ws.rows:
-        lenRow = 0
-        for cell in row:
-            if cell.value is not None:
-                if cell.value == 'seqid':
-                    idColumn = cell.column
-                elif cell.value == 'sequences':
-                    seqColumn = cell.column
-                lenRow += 1
-        if lenRow > 0:
-            numRows = lenRow
-        numCells += 1
 
-    if numRows == 2:
-        for x in range(1, numCells):
-            id = ws.cell(row=x, column=1).value
-            seq = ws.cell(row=x, column=2).value
-            if id and seq:
-                yield Sequence(id, seq)
+class Excel(SequenceFile):
+    def read(
+        self,
+        id: str = None,
+        seq: str = None,
+    ) -> iter[Sequence]:
+        wb = load_workbook(filename=self.path, read_only=True)
+        ws = wb['Sheet 1']
+        idColumn = None
+        seqColumn = None
+        numCells = 0
+        numRows = 0
+        for row in ws.rows:
+            lenRow = 0
+            for cell in row:
+                if cell.value is not None:
+                    if cell.value == 'seqid':
+                        idColumn = cell.column
+                    elif cell.value == 'sequences':
+                        seqColumn = cell.column
+                    lenRow += 1
+            if lenRow > 0:
+                numRows = lenRow
+            numCells += 1
 
-    elif idColumn and seqColumn:
-        for x in range(2, numCells):
-            id = ws.cell(row=x, column=idColumn).value
-            seq = ws.cell(row=x, column=seqColumn).value
-            if id and seq:
-                yield Sequence(id, seq)
+        if numRows == 2:
+            for x in range(1, numCells):
+                id = ws.cell(row=x, column=1).value
+                seq = ws.cell(row=x, column=2).value
+                if id and seq:
+                    yield Sequence(id, seq)
 
-    wb.close()
+        elif idColumn and seqColumn:
+            for x in range(2, numCells):
+                id = ws.cell(row=x, column=idColumn).value
+                seq = ws.cell(row=x, column=seqColumn).value
+                if id and seq:
+                    yield Sequence(id, seq)
+
+        wb.close()

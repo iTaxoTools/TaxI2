@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, NamedTuple
+from typing import Callable, Iterable, NamedTuple
 from enum import Enum, auto
 
 from .sequences import Sequence, Sequences
@@ -17,18 +17,31 @@ class Distance(NamedTuple):
 class Distances:
     """Distance containers that can be iterated multiple times"""
 
-    def __init__(self, source: iter[Distance] | Callable[None, iter[Distance]]):
+    def __init__(
+        self, source: Iterable[Distance] | Callable[None, iter[Distance]],
+        *args, **kwargs,
+    ):
+        self.iterable = None
+        self.callable = None
+        self.args = []
+        self.kwargs = {}
         if callable(source):
-            self.source = source
+            self.callable = source
+            self.args = kwargs
+            self.kwargs = kwargs
         else:  # iterable
-            self.source = lambda: iter(source)
+            self.iterable = source
+            if args or kwargs:
+                raise TypeError('Cannot pass arguments to iterable source')
 
-    def __iter__(self):
-        return self.source()
+    def __iter__(self) -> iter[Distance]:
+        if self.callable:
+            return self.callable(*args, **kwargs)
+        return self.iterable
 
     @classmethod
-    def fromFile(cls, file: DistanceFile):
-        return cls(file.read)
+    def fromFile(cls, file: DistanceFile, *args, **kwargs) -> Distances:
+        return cls(file.read, *args, **kwargs)
 
 
 class DistanceFile(Type):
@@ -37,10 +50,10 @@ class DistanceFile(Type):
     def __init__(self, path: Path):
         self.path = path
 
-    def read(self, **kwargs) -> iter[Distance]:
+    def read(self, *args, **kwargs) -> iter[Distance]:
         raise NotImplementedError()
 
-    def write(self, distances: iter[Distance]) -> None:
+    def write(self, distances: iter[Distance], *args, **kwargs) -> None:
         raise NotImplementedError()
 
 

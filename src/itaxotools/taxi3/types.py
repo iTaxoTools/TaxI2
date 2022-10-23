@@ -32,7 +32,7 @@ class Type(metaclass=TypeMeta):
         return super().__repr__()
 
     def __eq__(self, other):
-        return type(self) == type(other)
+        return type(self) is type(other)
 
     @property
     def type(self):
