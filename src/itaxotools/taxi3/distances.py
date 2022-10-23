@@ -70,6 +70,17 @@ class DistanceMetric(Type):
         return self.label
 
     def _calculate(self, x: str, y: str) -> float:
+        # Legacy implementation found in these modules:
+        # library.task.CalculateDistances
+        # library.datatypes.Metric
+        # library.rust_backend
+        # library.calculate_distances
+        # library.alfpy_distance
+        # alfpy.bbc
+        # alfpy.ncd
+        # Unlike legacy code, we need to calculate distances between
+        # one pair of sequences at a time. Bulk processing comes later.
+        # Must dig in the code and find the simplest solution.
         raise NotImplementedError()
 
     def calculate(self, x: Sequence, y: Sequence) -> Distance:
