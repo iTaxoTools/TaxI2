@@ -46,14 +46,28 @@ class Buffer(DistanceFile):
 
 
 class Linear(DistanceFile):
+    MISSING = 'nan'
+
+    @classmethod
+    def distanceFromText(cls, text: str) -> float | None:
+        if text == cls.MISSING:
+            return None
+        return float(text)
+
+    @classmethod
+    def distanceToText(cls, d: float | None) -> str:
+        if d is None:
+            return cls.MISSING
+        return str(d)
+
     def read(self) -> iter[Distance]:
         with open(self.path, 'r') as f:
             data = f.readline()
             id1Header, id2Header, label = data.strip().split('\t')
             metric = DistanceMetric.fromLabel(label)
             for line in f:
-                id1, id2, labelData = line.split('\t')
-                yield Distance(metric, id1, id2, float(labelData))
+                idx, idy, d = line[:-1].split('\t')
+                yield Distance(metric, idx, idy, self.distanceFromText(d))
 
 
 class Matrix(DistanceFile):

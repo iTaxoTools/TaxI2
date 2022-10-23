@@ -59,6 +59,7 @@ class MetricTest(NamedTuple):
         assert r.idx == 'idx'
         assert r.idy == 'idy'
         assert r.d == self.d
+        assert r.d is None or isinstance(r.d, float)
 
 
 class MetricFileTest(NamedTuple):
@@ -149,20 +150,35 @@ def distances_rectangle() -> Distances:
     ])
 
 
+def distances_missing() -> Distances:
+    metric = DistanceMetric.Uncorrected()
+    return Distances([
+        Distance(metric, 'id1', 'id1', 0.0),
+        Distance(metric, 'id1', 'id2', None),
+
+        Distance(metric, 'id2', 'id1', None),
+        Distance(metric, 'id2', 'id2', 0.0),
+    ])
+
+
 read_tests = [
-    ReadTest(distances_simple, 'simple.tsv', DistanceFile.Linear),
-    ReadTest(distances_multiple, 'multiple.tsv', DistanceFile.Linear),
-    ReadTest(distances_square_unknown, 'square.tsv', DistanceFile.Matrix),
-    ReadTest(distances_square, 'square.tsv', DistanceFile.Matrix, dict(metric=DistanceMetric.Uncorrected())),
-    ReadTest(distances_rectangle, 'rectangle.tsv', DistanceFile.Matrix, dict(metric=DistanceMetric.Uncorrected())),
+    ReadTest(distances_simple, 'simple.linear', DistanceFile.Linear),
+    ReadTest(distances_multiple, 'multiple.linear', DistanceFile.Linear),
+    ReadTest(distances_missing, 'missing.linear', DistanceFile.Linear),
+    ReadTest(distances_square_unknown, 'square.matrix', DistanceFile.Matrix),
+    ReadTest(distances_square, 'square.matrix', DistanceFile.Matrix, dict(metric=DistanceMetric.Uncorrected())),
+    ReadTest(distances_rectangle, 'rectangle.matrix', DistanceFile.Matrix, dict(metric=DistanceMetric.Uncorrected())),
+    ReadTest(distances_missing, 'missing.matrix', DistanceFile.Matrix),
 ]
 
 
 write_tests = [
-    WriteTest(distances_simple, 'simple.tsv', DistanceFile.Linear),
-    WriteTest(distances_multiple, 'multiple.tsv', DistanceFile.Linear),
-    WriteTest(distances_square, 'square.tsv', DistanceFile.Matrix),
-    WriteTest(distances_rectangle, 'rectangle.tsv', DistanceFile.Matrix),
+    WriteTest(distances_simple, 'simple.linear', DistanceFile.Linear),
+    WriteTest(distances_multiple, 'multiple.linear', DistanceFile.Linear),
+    WriteTest(distances_missing, 'missing.linear', DistanceFile.Linear),
+    WriteTest(distances_square, 'square.matrix', DistanceFile.Matrix),
+    WriteTest(distances_rectangle, 'rectangle.matrix', DistanceFile.Matrix),
+    WriteTest(distances_missing, 'missing.matrix', DistanceFile.Matrix),
 ]
 
 
@@ -198,7 +214,7 @@ def test_read_distances(test: ReadTest) -> None:
 
 
 @pytest.mark.parametrize("test", write_tests)
-def test_write(test: WriteTest, tmp_path: Path) -> None:
+def test_write_distances(test: WriteTest, tmp_path: Path) -> None:
     fixed_path = TEST_DATA_DIR / test.output
     output_path = tmp_path / test.output
     distances = test.generate()
