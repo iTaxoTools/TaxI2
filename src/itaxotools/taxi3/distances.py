@@ -4,7 +4,7 @@ from typing import Callable, Iterable, NamedTuple
 from enum import Enum, auto
 
 from .sequences import Sequence, Sequences
-from .types import Type
+from .types import Type, Container
 
 
 class Distance(NamedTuple):
@@ -14,31 +14,7 @@ class Distance(NamedTuple):
     d: float
 
 
-class Distances:
-    """Distance containers that can be iterated multiple times"""
-
-    def __init__(
-        self, source: Iterable[Distance] | Callable[None, iter[Distance]],
-        *args, **kwargs,
-    ):
-        self.iterable = None
-        self.callable = None
-        self.args = []
-        self.kwargs = {}
-        if callable(source):
-            self.callable = source
-            self.args = kwargs
-            self.kwargs = kwargs
-        else:  # iterable
-            self.iterable = source
-            if args or kwargs:
-                raise TypeError('Cannot pass arguments to iterable source')
-
-    def __iter__(self) -> iter[Distance]:
-        if self.callable:
-            return self.callable(*args, **kwargs)
-        return self.iterable
-
+class Distances(Container[Distance]):
     @classmethod
     def fromFile(cls, file: DistanceFile, *args, **kwargs) -> Distances:
         return cls(file.read, *args, **kwargs)

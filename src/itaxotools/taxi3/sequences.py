@@ -7,7 +7,7 @@ from Bio.SeqIO.FastaIO import SimpleFastaParser
 from Bio import SeqIO
 from openpyxl import load_workbook
 
-from .types import Type
+from .types import Type, Container
 
 
 class Sequence(NamedTuple):
@@ -15,31 +15,7 @@ class Sequence(NamedTuple):
     seq: str
 
 
-class Sequences:
-    """Sequence containers that can be iterated multiple times"""
-
-    def __init__(
-        self, source: Iterable[Sequence] | Callable[None, iter[Sequence]],
-        *args, **kwargs,
-    ):
-        self.iterable = None
-        self.callable = None
-        self.args = []
-        self.kwargs = {}
-        if callable(source):
-            self.callable = source
-            self.args = kwargs
-            self.kwargs = kwargs
-        else:  # iterable
-            self.iterable = source
-            if args or kwargs:
-                raise TypeError('Cannot pass arguments to iterable source')
-
-    def __iter__(self) -> iter[Sequence]:
-        if self.callable:
-            return self.callable(*args, **kwargs)
-        return iter(self.iterable)
-
+class Sequences(Container[Sequence]):
     @classmethod
     def fromFile(cls, file: SequenceFile, *args, **kwargs) -> Sequences:
         return cls(file.read, *args, **kwargs)

@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+from typing import Callable, Generic, Iterable, TypeVar, NamedTuple
+
+
 class TypeMeta(type):
     _inheritors = dict()
 
@@ -37,3 +42,33 @@ class Type(metaclass=TypeMeta):
     @property
     def type(self):
         return type(self)
+
+
+Item = TypeVar('Item', bound=NamedTuple)
+
+
+class Container(Generic[Item]):
+    """Container that can be iterated multiple times"""
+
+    def __init__(
+        self, source: Iterable[Item] | Callable[..., iter[Item]],
+        *args, **kwargs,
+    ):
+        """The `source` argument is either an iterable or a callable"""
+        self.iterable = None
+        self.callable = None
+        self.args = []
+        self.kwargs = {}
+        if callable(source):
+            self.callable = source
+            self.args = kwargs
+            self.kwargs = kwargs
+        else:  # iterable
+            self.iterable = source
+            if args or kwargs:
+                raise TypeError('Cannot pass arguments to iterable source')
+
+    def __iter__(self) -> iter[Item]:
+        if self.callable:
+            return self.callable(*args, **kwargs)
+        return iter(self.iterable)
