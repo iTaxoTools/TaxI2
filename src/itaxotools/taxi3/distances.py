@@ -57,9 +57,6 @@ class Buffer(DistanceFile):
 
 
 class Linear(DistanceFile):
-    def __init__(self, path: Path):
-        super().__init__(path)
-
     def read(self) -> iter[Distance]:
         with open(self.path, 'r') as f:
             data = f.readline()
@@ -71,7 +68,9 @@ class Linear(DistanceFile):
 
 
 class Matrix(DistanceFile):
-    pass
+    def read(self, metric: DistanceMetric = None) -> iter[Distance]:
+        metric = metric or DistanceMetric.Unknown()
+        raise NotImplementedError()
 
 
 class DistanceMetric(Type):
@@ -92,6 +91,10 @@ class DistanceMetric(Type):
         for child in cls:
             if label == child.label:
                 return child()
+
+
+class Unknown(DistanceMetric):
+    label = '?'
 
 
 class Uncorrected(DistanceMetric):
