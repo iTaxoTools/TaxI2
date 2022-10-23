@@ -31,6 +31,9 @@ class Type(metaclass=TypeMeta):
             return f'<{self._parent.__name__}.{type(self).__name__}>'
         return super().__repr__()
 
+    def __eq__(self, other):
+        return type(self) == type(other)
+
     @property
     def type(self):
         return type(self)

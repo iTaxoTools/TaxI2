@@ -13,19 +13,37 @@ TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 
 
 class ReadTest(NamedTuple):
-    validator: Callable
+    fixture: Callable[None, Distances]
     input: str
     file: DistanceFile
 
+    def validate(self, generated: Distances):
+        fixture_list = list(self.fixture())
+        generated_list = list(generated)
+        assert len(fixture_list) == len(generated_list)
+        for distance in fixture_list:
+            assert distance in generated_list
+
 
 class WriteTest(NamedTuple):
-    generator: Callable
+    fixture: Callable[None, Distances]
     output: str
     file: DistanceFile
 
+    def generate(self) -> Distances:
+        return self.fixture()
 
-def distances_multiple():
-    return [
+
+def distances_simple() -> Distances:
+    return Distances([
+        Distance(DistanceMetric.Uncorrected(), 'id1', 'id2', 0.1),
+        Distance(DistanceMetric.Uncorrected(), 'id1', 'id3', 0.2),
+        Distance(DistanceMetric.Uncorrected(), 'id1', 'id4', 0.3),
+    ])
+
+
+def distances_multiple() -> Distances:
+    return Distances([
         Distance(DistanceMetric.Uncorrected(), 'id1', 'id2', 0.11),
         Distance(DistanceMetric.UncorrectedWithGaps(), 'id1', 'id2', 0.12),
         Distance(DistanceMetric.JukesCantor(), 'id1', 'id2', 0.13),
@@ -46,53 +64,19 @@ def distances_multiple():
         Distance(DistanceMetric.Kimura2P(), 'id1', 'id4', 0.34),
         Distance(DistanceMetric.NCD(0), 'id1', 'id4', 0.35),
         Distance(DistanceMetric.BBC(0), 'id1', 'id4', 0.36),
-    ]
-
-
-def distances_simple():
-    return [
-        Distance(DistanceMetric.Uncorrected(), 'id1', 'id2', 0.1),
-        Distance(DistanceMetric.Uncorrected(), 'id1', 'id3', 0.2),
-        Distance(DistanceMetric.Uncorrected(), 'id1', 'id4', 0.3),
-    ]
-
-
-def validate_simple(distances: Distances):
-    test_list = distances_simple()
-    dis_list = list(distances)
-    assert len(dis_list) == len(test_list)
-    for distance in test_list:
-        assert distance in dis_list
-
-
-def validate_multiple(distances: Distances):
-    test_list = distances_multiple()
-    dis_list = list(distances)
-    assert len(dis_list) == len(test_list)
-
-    for distance in test_list:
-        assert distance in dis_list
-
-
-def generate_simple() -> Distances:
-    distances = distances_simple()
-    return Distances(lambda: iter(distances))
-
-
-def generate_multiple() -> Distances:
-    distances = distances_multiple()
-    return Distances(lambda: iter(distances))
+    ])
 
 
 read_tests = [
-    ReadTest(validate_simple, 'simple.tsv', DistanceFile.Linear),
-    ReadTest(validate_simple, 'multiple.tsv', DistanceFile.Linear),
+    ReadTest(distances_simple, 'simple.tsv', DistanceFile.Linear),
+    ReadTest(distances_multiple, 'multiple.tsv', DistanceFile.Linear),
+    ReadTest(distances_multiple, 'multiple.tsv', DistanceFile.Matrix),
 ]
 
 
 write_tests = [
-    WriteTest(generate_simple, 'simple.tsv', DistanceFile.Linear),
-    WriteTest(generate_multiple, 'multiple.tsv', DistanceFile.Linear),
+    WriteTest(distances_simple, 'simple.tsv', DistanceFile.Linear),
+    WriteTest(distances_multiple, 'multiple.tsv', DistanceFile.Linear),
 ]
 
 
@@ -100,13 +84,13 @@ write_tests = [
 def test_read_distances(test: ReadTest) -> None:
     input_path = TEST_DATA_DIR / test.input
     distances = test.file(input_path).read()
-    test.validator(distances)
+    test.validate(distances)
 
 
 @pytest.mark.parametrize("test", write_tests)
 def test_write(test: WriteTest, tmp_path: Path) -> None:
-    output_path = TEST_DATA_DIR / test.output
-    test_path = tmp_path / test.output
-    distances = test.generator()
-    test.file(test_path).write(distances)
-    assert_eq_files(test_path, output_path, test.case_sensitive)
+    fixed_path = TEST_DATA_DIR / test.output
+    output_path = tmp_path / test.output
+    distances = test.generate()
+    test.file(output_path).write(distances)
+    assert_eq_files(output_path, fixed_path)
