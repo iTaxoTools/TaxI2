@@ -693,7 +693,7 @@ class VersusReference(Task[Iterator[VersusReferenceSummary]]):
             raise MissingArgument("alignment")
         if self.progress_handler:
             self._total_steps = self.data.sequence_count()
-        self.result = self._process()
+        self.result = list(self._process())
 
     def _process(self) -> Iterator[VersusReferenceSummary]:
         assert self.data is not None
