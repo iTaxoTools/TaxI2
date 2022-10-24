@@ -5,7 +5,7 @@ from typing import Callable, NamedTuple
 
 import pytest
 
-from itaxotools.taxi3.sequences import Sequence, Sequences, SequenceFile
+from itaxotools.taxi3.sequences import Sequence, SequenceFile, Sequences
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 

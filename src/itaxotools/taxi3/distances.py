@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import re
-from typing import Callable, Iterable, NamedTuple
-from enum import Enum, auto
-import numpy as np
-from .sequences import Sequence, Sequences
-from .types import Type, Container
-import collections
+from pathlib import Path
+from typing import NamedTuple
+
+from .sequences import Sequence
+from .types import Container, Type
+
 
 class Distance(NamedTuple):
     metric: DistanceMetric
@@ -74,7 +74,7 @@ class Linear(DistanceFile):
 
     def write(self, distances: iter[Distance], *args, **kwargs) -> None:
         metrics = []
-        #get metrics
+        # get metrics
         for d in distances:
             if repr(d.metric) not in metrics:
                 metrics.append(repr(d.metric))
@@ -180,7 +180,7 @@ class DistanceMetric(Type):
         label_arg = None
         res = re.search(r'(\w+)\((\d+)\)', label)
         if res:
-            label = res.group(1)+'({})'
+            label = res.group(1) + '({})'
             label_arg = res.group(2)
         for child in cls:
             if label == child.label:

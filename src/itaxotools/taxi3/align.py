@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from typing import Callable, Iterable, NamedTuple
-from enum import Enum, auto
+from pathlib import Path
+from typing import NamedTuple
 
 from .sequences import Sequence
-from .types import Type, Container
+from .types import Container, Type
 
 
 class SequencePair(NamedTuple):

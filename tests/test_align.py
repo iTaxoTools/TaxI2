@@ -4,10 +4,10 @@ from pathlib import Path
 from typing import Callable, NamedTuple
 
 import pytest
-
 from utility import assert_eq_files
 
-from itaxotools.taxi3.align import SequencePair, SequencePairs, PairwiseAligner, SequencePairFile
+from itaxotools.taxi3.align import (
+    SequencePair, SequencePairFile, SequencePairs)
 from itaxotools.taxi3.sequences import Sequence
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem

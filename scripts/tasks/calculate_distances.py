@@ -1,8 +1,11 @@
-from itaxotools.taxi3.library.datatypes import CompleteData, SequenceData, ValidFilePath, TabfileReader, Metric
-from itaxotools.taxi3.library.task import CalculateDistances, Alignment, SequencesPair
 from pathlib import Path
 from sys import argv
 from time import perf_counter
+
+from itaxotools.taxi3.library.datatypes import (
+    Metric, SequenceData, TabfileReader, ValidFilePath)
+from itaxotools.taxi3.library.task import (
+    Alignment, CalculateDistances, SequencesPair)
 
 # Time taken for 50 vs 50 sample input: ~ 45s
 

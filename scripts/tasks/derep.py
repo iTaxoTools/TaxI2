@@ -1,6 +1,8 @@
-from itaxotools.taxi3.library.datatypes import CompleteData, ValidFilePath, TabfileReader
-from itaxotools.taxi3.library.task import Dereplicate
 from pathlib import Path
+
+from itaxotools.taxi3.library.datatypes import (
+    CompleteData, TabfileReader, ValidFilePath)
+from itaxotools.taxi3.library.task import Dereplicate
 
 sequences = CompleteData.from_path(ValidFilePath(Path("input.tab")), TabfileReader)
 task = Dereplicate(warn=print)

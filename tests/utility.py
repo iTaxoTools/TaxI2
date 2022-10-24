@@ -1,6 +1,7 @@
 
-from pathlib import Path
 import re
+from pathlib import Path
+
 
 def assert_eq_files(
     file1: Path,

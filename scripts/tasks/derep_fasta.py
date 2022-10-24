@@ -1,6 +1,8 @@
-from itaxotools.taxi3.library.datatypes import CompleteData, ValidFilePath, FastaReader
-from itaxotools.taxi3.library.task import Dereplicate
 from pathlib import Path
+
+from itaxotools.taxi3.library.datatypes import (
+    CompleteData, FastaReader, ValidFilePath)
+from itaxotools.taxi3.library.task import Dereplicate
 
 sequences = CompleteData.from_path(ValidFilePath(Path("input_fasta.fas")), FastaReader)
 task = Dereplicate(warn=print)

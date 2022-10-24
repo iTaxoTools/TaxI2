@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Callable, Iterator, NamedTuple
-from enum import Enum, auto
-from Bio.SeqIO.FastaIO import SimpleFastaParser
+from typing import NamedTuple
+
 from Bio import SeqIO
+from Bio.SeqIO.FastaIO import SimpleFastaParser
 from openpyxl import load_workbook
 
-from .types import Type, Container
+from .types import Container, Type
 
 
 class Sequence(NamedTuple):

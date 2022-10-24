@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Callable, NamedTuple
-
 import pytest
 
 from itaxotools.taxi3.types import Type

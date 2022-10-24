@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, Generic, Iterable, TypeVar, NamedTuple
+from typing import Callable, Generic, Iterable, NamedTuple, TypeVar
 
 
 class TypeMeta(type):
@@ -70,5 +70,5 @@ class Container(Generic[Item]):
 
     def __iter__(self) -> iter[Item]:
         if self.callable:
-            return self.callable(*args, **kwargs)
+            return self.callable(*self.args, **self.kwargs)
         return iter(self.iterable)

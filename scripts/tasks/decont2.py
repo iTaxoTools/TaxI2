@@ -1,6 +1,8 @@
-from itaxotools.taxi3.library.datatypes import CompleteData, SequenceData, ValidFilePath, TabfileReader
-from itaxotools.taxi3.library.task import Decontaminate, Alignment
 from pathlib import Path
+
+from itaxotools.taxi3.library.datatypes import (
+    CompleteData, SequenceData, TabfileReader, ValidFilePath)
+from itaxotools.taxi3.library.task import Alignment, Decontaminate
 
 data = CompleteData.from_path(ValidFilePath(Path("input.tab")), TabfileReader)
 reference = SequenceData.from_path(ValidFilePath(Path("ingroup.tab")), TabfileReader)

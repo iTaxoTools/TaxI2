@@ -70,7 +70,12 @@ setup(
         "scipy",
     ],
     extras_require={
-        "dev": ["pyinstaller"],
+        "dev": [
+            "pyinstaller",
+            "pytest",
+            "flake8",
+            "isort",
+        ],
     },
     # Include all data from MANIFEST.in
     include_package_data=True,

@@ -4,10 +4,10 @@ from pathlib import Path
 from typing import Callable, NamedTuple
 
 import pytest
-
 from utility import assert_eq_files
 
-from itaxotools.taxi3.distances import Distance, Distances, DistanceFile, DistanceMetric
+from itaxotools.taxi3.distances import (
+    Distance, DistanceFile, DistanceMetric, Distances)
 from itaxotools.taxi3.sequences import Sequence
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
@@ -233,6 +233,6 @@ def test_metrics(test: MetricTest) -> None:
 
 @pytest.mark.parametrize("test", metric_file_tests)
 def test_metric_files(test: MetricFileTest) -> None:
-    path = TEST_DATA_DIR / test.file
+    # path = TEST_DATA_DIR / test.file
     # for test in read_metric_tests(path): test.check()
     raise NotImplementedError()

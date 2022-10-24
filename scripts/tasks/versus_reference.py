@@ -1,8 +1,10 @@
-from itaxotools.taxi3.library.datatypes import CompleteData, SequenceData, ValidFilePath, TabfileReader
-from itaxotools.taxi3.library.task import VersusReference, Alignment
 from pathlib import Path
 from sys import argv
 from time import perf_counter
+
+from itaxotools.taxi3.library.datatypes import (
+    CompleteData, TabfileReader, ValidFilePath)
+from itaxotools.taxi3.library.task import Alignment, VersusReference
 
 # Time taken for 50 vs 50 sample input: ~ 47s
 
