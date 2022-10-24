@@ -6,7 +6,7 @@ from enum import Enum, auto
 import numpy as np
 from .sequences import Sequence, Sequences
 from .types import Type, Container
-import parse
+import collections
 
 class Distance(NamedTuple):
     metric: DistanceMetric
@@ -70,8 +70,36 @@ class Linear(DistanceFile):
                 idx, idy, labelDistances = lineData[0], lineData[1], lineData[2:]
                 for label in range(len(labels)):
                     metric = DistanceMetric.fromLabel(labels[label])
-                    #print(Distance(metric, idx, idy, self.distanceFromText(labelDistances[label])))
                     yield Distance(metric, idx, idy, self.distanceFromText(labelDistances[label]))
+
+    def write(self, distances: iter[Distance], *args, **kwargs) -> None:
+        metrics = []
+        #get metrics
+        for d in distances:
+            if repr(d.metric) not in metrics:
+                metrics.append(repr(d.metric))
+        with open(self.path, 'w') as f:
+            metricString = '\t'.join(metrics)
+            metricCount = len(metrics)
+            f.write(f'idx\tidy\t{metricString}\n')
+            count = metricCount
+            if metricCount > 1:
+                scores = []
+                for distance in distances:
+                    scores.append(str(distance.d) if distance.d else 'nan')
+                    count -= 1
+                    if len(scores) == metricCount:
+                        count = metricCount
+                        score = '\t'.join(scores)
+                        f.write(f'{distance.idx}\t{distance.idy}\t{score}\n')
+                        scores = []
+            else:
+                for distance in distances:
+                    score = str(distance.d)
+                    if score == 'None':
+                        score = 'nan'
+                    f.write(f'{distance.idx}\t{distance.idy}\t{score}\n')
+            f.close()
 
 
 class Matrix(DistanceFile):
@@ -96,6 +124,31 @@ class Matrix(DistanceFile):
                     idy = id_to_compare[index]
                     label_distance = data[1:][index]
                     yield Distance(metric, idx, idy, self.distanceFromText(label_distance))
+
+    def write(self, distances: iter[Distance], *args, **kwargs) -> None:
+        id = {'idx': [], 'idy': []}
+        for distance in distances:
+            if distance.idx not in id['idx']:
+                id['idx'].append(distance.idx)
+            if distance.idy not in id['idy']:
+                id['idy'].append(distance.idy)
+
+        with open(self.path, 'w') as f:
+            idy_header = '\t'.join(id['idy'])
+            f.write(f'\t{idy_header}\n')
+            count = len(id['idy'])
+            scores = []
+            for distance in distances:
+                d = str(distance.d)
+                if d == 'None':
+                    d = 'nan'
+                scores.append(d)
+                count -= 1
+                if len(scores) == len(id['idy']):
+                    count = len(id['idy'])
+                    score = '\t'.join(scores)
+                    f.write(f'{distance.idx}\t{score}\n')
+                    scores = []
 
 
 class DistanceMetric(Type):
@@ -140,21 +193,36 @@ class DistanceMetric(Type):
 class Unknown(DistanceMetric):
     label = '?'
 
+    def __repr__(self):
+        return self.label
+
 
 class Uncorrected(DistanceMetric):
     label = 'p-distance'
+
+    def __repr__(self):
+        return self.label
 
 
 class UncorrectedWithGaps(DistanceMetric):
     label = 'p-distance with gaps'
 
+    def __repr__(self):
+        return self.label
+
 
 class JukesCantor(DistanceMetric):
     label = 'jc'
 
+    def __repr__(self):
+        return self.label
+
 
 class Kimura2P(DistanceMetric):
     label = 'k2p'
+
+    def __repr__(self):
+        return self.label
 
 
 class NCD(DistanceMetric):
@@ -164,6 +232,9 @@ class NCD(DistanceMetric):
         self.arg = arg
 
     def __str__(self):
+        return self.label.format(self.arg)
+
+    def __repr__(self):
         return self.label.format(self.arg)
 
     # def __eq__(self, other):
@@ -177,6 +248,9 @@ class BBC(DistanceMetric):
         self.arg = arg
 
     def __str__(self):
+        return self.label.format(self.arg)
+
+    def __repr__(self):
         return self.label.format(self.arg)
 
     # def __eq__(self, other):
