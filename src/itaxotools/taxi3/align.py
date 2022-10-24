@@ -7,7 +7,9 @@ from .sequences import Sequence
 from .types import Type, Container
 
 
-SequencePair = tuple[Sequence, Sequence]
+class SequencePair(NamedTuple):
+    x: Sequence
+    y: Sequence
 
 
 class SequencePairs(Container[SequencePair]):
