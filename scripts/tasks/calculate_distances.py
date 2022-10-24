@@ -1,0 +1,36 @@
+from itaxotools.taxi3.library.datatypes import CompleteData, SequenceData, ValidFilePath, TabfileReader, Metric
+from itaxotools.taxi3.library.task import CalculateDistances, Alignment, SequencesPair
+from pathlib import Path
+from sys import argv
+from time import perf_counter
+
+# Time taken for 50 vs 50 sample input: ~ 45s
+
+path_data = Path(argv[1])
+path_reference = Path(argv[2])
+path_out = Path(argv[3])
+
+ts = perf_counter()
+
+data = SequenceData.from_path(ValidFilePath(path_data), TabfileReader)
+reference = SequenceData.from_path(ValidFilePath(path_reference), TabfileReader)
+
+pairs = SequencesPair(target = data, query = reference)
+
+task = CalculateDistances(warn=print)
+task.sequences = pairs
+task.alignment = Alignment.Pairwise
+task.metrics = [
+    Metric.Uncorrected,
+    Metric.JukesCantor,
+    Metric.Kimura2P,
+    Metric.UncorrectedWithGaps,
+]
+
+task.start()
+
+task.result.distance_matrix.to_csv(path_out, sep='\t')
+
+tf = perf_counter()
+
+print(f'Time taken: {tf-ts:.4f}s')
