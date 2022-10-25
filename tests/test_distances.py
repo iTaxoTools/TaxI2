@@ -40,6 +40,13 @@ class LabelTest(NamedTuple):
     label: str
 
     def check(self):
+        d = DistanceMetric.fromLabel(self.label)
+        print(d)
+        print(type(d))
+        print(vars(d))
+        print(self.metric)
+        print(type(self.metric))
+        print(vars(self.metric))
         assert self.metric == DistanceMetric.fromLabel(self.label)
         assert self.label == str(self.metric)
 
@@ -80,21 +87,21 @@ def distances_multiple() -> Distances:
         Distance(DistanceMetric.UncorrectedWithGaps(), 'id1', 'id2', 0.12),
         Distance(DistanceMetric.JukesCantor(), 'id1', 'id2', 0.13),
         Distance(DistanceMetric.Kimura2P(), 'id1', 'id2', 0.14),
-        Distance(DistanceMetric.NCD(0), 'id1', 'id2', 0.15),
+        Distance(DistanceMetric.NCD(), 'id1', 'id2', 0.15),
         Distance(DistanceMetric.BBC(0), 'id1', 'id2', 0.16),
 
         Distance(DistanceMetric.Uncorrected(), 'id1', 'id3', 0.21),
         Distance(DistanceMetric.UncorrectedWithGaps(), 'id1', 'id3', 0.22),
         Distance(DistanceMetric.JukesCantor(), 'id1', 'id3', 0.23),
         Distance(DistanceMetric.Kimura2P(), 'id1', 'id3', 0.24),
-        Distance(DistanceMetric.NCD(0), 'id1', 'id3', 0.25),
+        Distance(DistanceMetric.NCD(), 'id1', 'id3', 0.25),
         Distance(DistanceMetric.BBC(0), 'id1', 'id3', 0.26),
 
         Distance(DistanceMetric.Uncorrected(), 'id1', 'id4', 0.31),
         Distance(DistanceMetric.UncorrectedWithGaps(), 'id1', 'id4', 0.32),
         Distance(DistanceMetric.JukesCantor(), 'id1', 'id4', 0.33),
         Distance(DistanceMetric.Kimura2P(), 'id1', 'id4', 0.34),
-        Distance(DistanceMetric.NCD(0), 'id1', 'id4', 0.35),
+        Distance(DistanceMetric.NCD(), 'id1', 'id4', 0.35),
         Distance(DistanceMetric.BBC(0), 'id1', 'id4', 0.36),
     ])
 
@@ -186,8 +193,8 @@ label_tests = [
     LabelTest(DistanceMetric.UncorrectedWithGaps(), 'p-distance with gaps'),
     LabelTest(DistanceMetric.JukesCantor(), 'jc'),
     LabelTest(DistanceMetric.Kimura2P(), 'k2p'),
-    LabelTest(DistanceMetric.NCD(0), 'ncd(0)'),
-    LabelTest(DistanceMetric.NCD(1), 'ncd(1)'),
+    LabelTest(DistanceMetric.NCD(), 'ncd'),
+    LabelTest(DistanceMetric.NCD(), 'ncd'),
     LabelTest(DistanceMetric.BBC(0), 'bbc(0)'),
     LabelTest(DistanceMetric.BBC(1), 'bbc(1)'),
 ]

@@ -76,8 +76,8 @@ class Linear(DistanceFile):
         metrics = []
         # get metrics
         for d in distances:
-            if repr(d.metric) not in metrics:
-                metrics.append(repr(d.metric))
+            if str(d.metric) not in metrics:
+                metrics.append(str(d.metric))
         with open(self.path, 'w') as f:
             metricString = '\t'.join(metrics)
             metricCount = len(metrics)
@@ -185,7 +185,7 @@ class DistanceMetric(Type):
         for child in cls:
             if label == child.label:
                 if label_arg:
-                    return child(label_arg)
+                    return child(int(label_arg))
                 else:
                     return child()
 
@@ -193,52 +193,25 @@ class DistanceMetric(Type):
 class Unknown(DistanceMetric):
     label = '?'
 
-    def __repr__(self):
-        return self.label
-
 
 class Uncorrected(DistanceMetric):
     label = 'p-distance'
-
-    def __repr__(self):
-        return self.label
 
 
 class UncorrectedWithGaps(DistanceMetric):
     label = 'p-distance with gaps'
 
-    def __repr__(self):
-        return self.label
-
 
 class JukesCantor(DistanceMetric):
     label = 'jc'
-
-    def __repr__(self):
-        return self.label
 
 
 class Kimura2P(DistanceMetric):
     label = 'k2p'
 
-    def __repr__(self):
-        return self.label
-
 
 class NCD(DistanceMetric):
-    label = 'ncd({})'
-
-    def __init__(self, arg):
-        self.arg = arg
-
-    def __str__(self):
-        return self.label.format(self.arg)
-
-    def __repr__(self):
-        return self.label.format(self.arg)
-
-    # def __eq__(self, other):
-    #     return super().__eq__(other) and self.arg == other.arg
+    label = 'ncd'
 
 
 class BBC(DistanceMetric):
@@ -250,8 +223,5 @@ class BBC(DistanceMetric):
     def __str__(self):
         return self.label.format(self.arg)
 
-    def __repr__(self):
-        return self.label.format(self.arg)
-
-    # def __eq__(self, other):
-    #     return super().__eq__(other) and self.arg == other.arg
+    def __eq__(self, other):
+        return super().__eq__(other) and self.arg == other.arg
