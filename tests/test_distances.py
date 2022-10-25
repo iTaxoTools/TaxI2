@@ -40,13 +40,6 @@ class LabelTest(NamedTuple):
     label: str
 
     def check(self):
-        d = DistanceMetric.fromLabel(self.label)
-        print(d)
-        print(type(d))
-        print(vars(d))
-        print(self.metric)
-        print(type(self.metric))
-        print(vars(self.metric))
         assert self.metric == DistanceMetric.fromLabel(self.label)
         assert self.label == str(self.metric)
 
@@ -223,7 +216,7 @@ def test_read_distances(test: ReadTest) -> None:
 def test_write_distances(test: WriteTest, tmp_path: Path) -> None:
     fixed_path = TEST_DATA_DIR / test.output
     output_path = tmp_path / test.output
-    distances = test.generate()
+    distances = iter(test.generate())
     test.file(output_path).write(distances)
     assert_eq_files(output_path, fixed_path)
 

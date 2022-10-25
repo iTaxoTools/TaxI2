@@ -75,6 +75,6 @@ def test_read_pairs(test: ReadTest) -> None:
 def test_write_pairs(test: WriteTest, tmp_path: Path) -> None:
     fixed_path = TEST_DATA_DIR / test.output
     output_path = tmp_path / test.output
-    pairs = test.generate()
+    pairs = iter(test.generate())
     test.file(output_path).write(pairs)
     assert_eq_files(output_path, fixed_path, ignore=r'\n')
