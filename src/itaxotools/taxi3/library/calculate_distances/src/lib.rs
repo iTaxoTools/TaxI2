@@ -130,6 +130,13 @@ fn make_distance_array_aligned<'py>(
     .map_err(|_| exceptions::PyRuntimeError::new_err("can't convert Vec to numpy array"))
 }
 
+
+#[pyfunction]
+#[text_signature = "(target, query, /)"]
+fn seq_distances_p(target: &str, query: &str) -> f64 {
+    crate::distance::seq_distances_p(target, query)
+}
+
 /// A Python module implemented in Rust.
 #[pymodule]
 fn calculate_distances(_py: Python, m: &PyModule) -> PyResult<()> {
@@ -137,6 +144,7 @@ fn calculate_distances(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(make_aligner, m)?)?;
     m.add_function(wrap_pyfunction!(seq_distances, m)?)?;
     m.add_function(wrap_pyfunction!(seq_distances_aligned, m)?)?;
+    m.add_function(wrap_pyfunction!(seq_distances_p, m)?)?;
     m.add_function(wrap_pyfunction!(show_alignment, m)?)?;
     m.add_function(wrap_pyfunction!(make_distance_array, m)?)?;
     m.add_function(wrap_pyfunction!(make_distance_array_aligned, m)?)?;
