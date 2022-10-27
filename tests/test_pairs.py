@@ -8,7 +8,7 @@ from utility import assert_eq_files
 
 from itaxotools.taxi3.pairs import (
     SequencePair, SequencePairFile, SequencePairs)
-from itaxotools.taxi3.sequences import Sequence
+from itaxotools.taxi3.sequences import Sequence, Sequences
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 
@@ -62,6 +62,29 @@ write_tests = [
     WriteTest(pairs_simple, 'simple.tsv', SequencePairFile.Tabfile),
     WriteTest(pairs_simple, 'simple.formatted', SequencePairFile.Formatted),
 ]
+
+
+def test_pairs_from_product() -> None:
+    xs = [
+        Sequence('id1', 'ATC'),
+        Sequence('id2', 'ATG'),
+    ]
+    ys = [
+        Sequence('id3', 'TAA'),
+        Sequence('id4', 'TAC'),
+        Sequence('id5', 'TAG'),
+    ]
+    ts = [
+        SequencePair(xs[0], ys[0]),
+        SequencePair(xs[0], ys[1]),
+        SequencePair(xs[0], ys[2]),
+        SequencePair(xs[1], ys[0]),
+        SequencePair(xs[1], ys[1]),
+        SequencePair(xs[1], ys[2]),
+    ]
+    ps = SequencePairs.fromProduct(Sequences(xs), Sequences(ys))
+    for p, t in zip(ps, ts):
+        assert p == t
 
 
 @pytest.mark.xfail

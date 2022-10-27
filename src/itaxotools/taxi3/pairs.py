@@ -17,6 +17,10 @@ class SequencePairs(Container[SequencePair]):
     def fromFile(cls, file: SequencePairFile, *args, **kwargs) -> SequencePairs:
         return cls(file.read, *args, **kwargs)
 
+    @classmethod
+    def fromProduct(cls, xs: Sequences, ys: Sequences) -> SequencePairs:
+        return cls(SequencePair(x, y) for x in xs for y in ys)
+
 
 class Scores(dict):
     """Can access keys like attributes"""
