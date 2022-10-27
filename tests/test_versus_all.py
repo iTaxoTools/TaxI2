@@ -35,6 +35,7 @@ TEST_DATA_DIR = Path(__file__).parent / "versus_all_data"
 TMP_TEST_DIR = Path(__file__).parent / "temp_test_files"
 
 
+@pytest.mark.legacy
 def test_versus_all_distances() -> None:
     input_path = ValidFilePath(TEST_DATA_DIR / "Scaphio_input_small.txt")
     sequences = SequenceData.from_path(input_path, TabfileReader())
@@ -46,6 +47,7 @@ def test_versus_all_distances() -> None:
     print(task.result.get_dataframe())
 
 
+@pytest.mark.legacy
 def test_summary() -> None:
     input_path = ValidFilePath(TEST_DATA_DIR / "Scaphio_input_small.txt")
     tested_path = TEST_DATA_DIR / "Summary_statistics.txt"
@@ -68,6 +70,7 @@ def test_summary() -> None:
     output_path.unlink()
 
 
+@pytest.mark.legacy
 @pytest.mark.parametrize("ordering", list(RowOrdering))
 @pytest.mark.parametrize("in_percent", [False, True])
 def test_sequence_distance_table_output(
@@ -104,6 +107,7 @@ def test_sequence_distance_table_output(
     output_path.unlink()
 
 
+@pytest.mark.legacy
 def test_simple_statistics() -> None:
     input_path = ValidFilePath(TEST_DATA_DIR / "Scaphio_input_small.txt")
     tested_path = TEST_DATA_DIR / "Sequence summary statistics.txt"
@@ -126,6 +130,7 @@ def test_simple_statistics() -> None:
     output_path.unlink()
 
 
+@pytest.mark.legacy
 @pytest.mark.parametrize(
     "format, taxon_rank, connection, in_percent",
     [
@@ -140,6 +145,9 @@ def test_simple_statistics() -> None:
         (MeanMinMaxFileFormat.MeanMinMax, TaxonRank.Genus, Connect.Intra, False),
     ],
 )
+
+
+@pytest.mark.legacy
 def test_mean_min_max(
     format: MeanMinMaxFileFormat,
     taxon_rank: TaxonRank,
@@ -174,6 +182,7 @@ def test_mean_min_max(
     assert tested_path.read_text().split("\n") == output_path.read_text().split("\n")
 
 
+@pytest.mark.legacy
 def test_versus_all_mode() -> None:
     input_path = ValidFilePath(TEST_DATA_DIR / "Scaphio_input_small.txt")
     data = TabfileReader.read_data(input_path)

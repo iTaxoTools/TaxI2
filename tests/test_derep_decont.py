@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from pathlib import Path
+import pytest
 
 from itaxotools.taxi3.library.task import Decontaminate, Decontaminate2, Alignment
 from itaxotools.taxi3.library.datatypes import (
@@ -14,6 +15,7 @@ TEST_DATA_DIR = Path(__file__).parent / "derep_decont_test_data"
 TMP_TEST_DIR = Path(__file__).parent / "temp_test_files"
 
 
+@pytest.mark.legacy
 def test_decont() -> None:
     data = CompleteData.from_path(
         ValidFilePath(TEST_DATA_DIR / "Scaphio_input_small.txt"), TabfileReader()
@@ -55,6 +57,7 @@ def test_decont() -> None:
     decontaminated_output.unlink()
 
 
+@pytest.mark.legacy
 def test_decont2() -> None:
     data = CompleteData.from_path(
         ValidFilePath(TEST_DATA_DIR / "Scaphio_input_small.txt"), TabfileReader()

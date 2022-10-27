@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from pathlib import Path
-
+import pytest
 
 from itaxotools.taxi3.library.datatypes import (
     TabfileReader,
@@ -18,6 +18,7 @@ TEST_DATA_DIR = Path(__file__).parent / "versus_reference_data"
 TMP_TEST_DIR = Path(__file__).parent / "temp_test_files"
 
 
+@pytest.mark.legacy
 def test_versus_reference() -> None:
     reference = CompleteData.from_path(
         ValidFilePath(TEST_DATA_DIR / "Scaphio_input_small.txt"), TabfileReader
