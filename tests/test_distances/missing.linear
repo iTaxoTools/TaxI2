@@ -1,5 +1,5 @@
 idx	idy	p-distance
 id1	id1	0.0
-id1	id2	nan
-id2	id1	nan
+id1	id2	NA
+id2	id1	NA
 id2	id2	0.0

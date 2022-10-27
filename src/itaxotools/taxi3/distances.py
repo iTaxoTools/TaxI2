@@ -47,7 +47,7 @@ class Buffer(DistanceFile):
 
 
 class Linear(DistanceFile):
-    MISSING = 'nan'
+    MISSING = 'NA'
 
     @classmethod
     def distanceFromText(cls, text: str) -> float | None:
@@ -86,7 +86,7 @@ class Linear(DistanceFile):
             if metricCount > 1:
                 scores = []
                 for distance in distances:
-                    scores.append(str(distance.d) if distance.d else 'nan')
+                    scores.append(str(distance.d) if distance.d else self.MISSING)
                     count -= 1
                     if len(scores) == metricCount:
                         count = metricCount
@@ -95,15 +95,13 @@ class Linear(DistanceFile):
                         scores = []
             else:
                 for distance in distances:
-                    score = str(distance.d)
-                    if score == 'None':
-                        score = 'nan'
+                    score = str(distance.d) if distance.d is not None else self.MISSING
                     f.write(f'{distance.idx}\t{distance.idy}\t{score}\n')
             f.close()
 
 
 class Matrix(DistanceFile):
-    MISSING = 'nan'
+    MISSING = 'NA'
 
     @classmethod
     def distanceFromText(cls, text: str) -> float | None:
@@ -139,9 +137,7 @@ class Matrix(DistanceFile):
             count = len(id['idy'])
             scores = []
             for distance in distances:
-                d = str(distance.d)
-                if d == 'None':
-                    d = 'nan'
+                d = str(distance.d) if distance.d is not None else self.MISSING
                 scores.append(d)
                 count -= 1
                 if len(scores) == len(id['idy']):
