@@ -199,6 +199,57 @@ pub fn seq_distances_p(target: &str, query: &str) -> f64 {
 
 }
 
+pub fn seq_distances_p_gaps(target: &str, query: &str) -> f64 {
+    let (start, end) = match common_content(target, query) {
+        None => return f64::NAN,
+        Some(x) => x,
+    };
+    let target = &target[start..=end];
+    let query = &query[start..=end];
+    let mut alignment_stats = AlignmentStats::new();
+    target
+        .bytes()
+        .zip(query.bytes())
+        .for_each(|pair| alignment_stats.update(pair));
+
+    alignment_stats.pdistance_counting_gaps()
+
+}
+
+pub fn seq_distances_jukes_cantor(target: &str, query: &str) -> f64 {
+    let (start, end) = match common_content(target, query) {
+        None => return f64::NAN,
+        Some(x) => x,
+    };
+    let target = &target[start..=end];
+    let query = &query[start..=end];
+    let mut alignment_stats = AlignmentStats::new();
+    target
+        .bytes()
+        .zip(query.bytes())
+        .for_each(|pair| alignment_stats.update(pair));
+
+    alignment_stats.jukes_cantor_distance()
+
+}
+
+pub fn seq_distances_kimura2p(target: &str, query: &str) -> f64 {
+    let (start, end) = match common_content(target, query) {
+        None => return f64::NAN,
+        Some(x) => x,
+    };
+    let target = &target[start..=end];
+    let query = &query[start..=end];
+    let mut alignment_stats = AlignmentStats::new();
+    target
+        .bytes()
+        .zip(query.bytes())
+        .for_each(|pair| alignment_stats.update(pair));
+
+    alignment_stats.kimura2p_distance()
+
+}
+
 /// Creates (n, 4) vector of distances between `targets` and `queries`.
 ///
 /// Outer iteration over `targets`.

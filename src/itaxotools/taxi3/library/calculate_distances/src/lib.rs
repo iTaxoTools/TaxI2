@@ -136,6 +136,21 @@ fn make_distance_array_aligned<'py>(
 fn seq_distances_p(target: &str, query: &str) -> f64 {
     crate::distance::seq_distances_p(target, query)
 }
+#[pyfunction]
+#[text_signature = "(target, query, /)"]
+fn seq_distances_p_gaps(target: &str, query: &str) -> f64 {
+    crate::distance::seq_distances_p(target, query)
+}
+#[pyfunction]
+#[text_signature = "(target, query, /)"]
+fn seq_distances_jukes_cantor(target: &str, query: &str) -> f64 {
+    crate::distance::seq_distances_p(target, query)
+}
+#[pyfunction]
+#[text_signature = "(target, query, /)"]
+fn seq_distances_kimura2p(target: &str, query: &str) -> f64 {
+    crate::distance::seq_distances_p(target, query)
+}
 
 /// A Python module implemented in Rust.
 #[pymodule]
@@ -145,6 +160,9 @@ fn calculate_distances(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(seq_distances, m)?)?;
     m.add_function(wrap_pyfunction!(seq_distances_aligned, m)?)?;
     m.add_function(wrap_pyfunction!(seq_distances_p, m)?)?;
+    m.add_function(wrap_pyfunction!(seq_distances_p_gaps, m)?)?;
+    m.add_function(wrap_pyfunction!(seq_distances_jukes_cantor, m)?)?;
+    m.add_function(wrap_pyfunction!(seq_distances_kimura2p, m)?)?;
     m.add_function(wrap_pyfunction!(show_alignment, m)?)?;
     m.add_function(wrap_pyfunction!(make_distance_array, m)?)?;
     m.add_function(wrap_pyfunction!(make_distance_array_aligned, m)?)?;
