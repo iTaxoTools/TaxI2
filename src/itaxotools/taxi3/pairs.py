@@ -22,31 +22,6 @@ class SequencePairs(Container[SequencePair]):
         return cls(SequencePair(x, y) for x in xs for y in ys)
 
 
-class Scores(dict):
-    """Can access keys like attributes"""
-
-    defaults = dict(
-        gap_penalty = -8,
-        gap_extend_penalty = -1,
-        end_gap_penalty = -1,
-        end_gap_extend_penalty = -1,
-        match_score = 1,
-        mismatch_score = -1,
-    )
-
-    def __init__(self, **kwargs):
-        super().__init__(self.defaults | kwargs)
-        self.__dict__ = self
-
-
-class PairwiseAligner:
-    def __init__(self, scores: Scores = None):
-        self.scores = scores or Scores()
-
-    def align(self, x: Sequence, y: Sequence) -> SequencePair:
-        raise NotImplementedError()
-
-
 class SequencePairFile(Type):
     """Handlers for pairwise-aligned sequence files"""
 
