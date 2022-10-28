@@ -139,17 +139,17 @@ fn seq_distances_p(target: &str, query: &str) -> f64 {
 #[pyfunction]
 #[text_signature = "(target, query, /)"]
 fn seq_distances_p_gaps(target: &str, query: &str) -> f64 {
-    crate::distance::seq_distances_p(target, query)
+    crate::distance::seq_distances_p_gaps(target, query)
 }
 #[pyfunction]
 #[text_signature = "(target, query, /)"]
 fn seq_distances_jukes_cantor(target: &str, query: &str) -> f64 {
-    crate::distance::seq_distances_p(target, query)
+    crate::distance::seq_distances_jukes_cantor(target, query)
 }
 #[pyfunction]
 #[text_signature = "(target, query, /)"]
 fn seq_distances_kimura2p(target: &str, query: &str) -> f64 {
-    crate::distance::seq_distances_p(target, query)
+    crate::distance::seq_distances_kimura2p(target, query)
 }
 
 /// A Python module implemented in Rust.

@@ -6,6 +6,7 @@ from typing import NamedTuple
 
 from .sequences import Sequence
 from .types import Container, Type
+from itaxotools.taxi3.library import calculate_distances as calc
 
 
 class Distance(NamedTuple):
@@ -48,6 +49,7 @@ class Buffer(DistanceFile):
 
 class Linear(DistanceFile):
     MISSING = 'NA'
+    dataList = []
 
     @classmethod
     def distanceFromText(cls, text: str) -> float | None:
@@ -75,26 +77,32 @@ class Linear(DistanceFile):
     def write(self, distances: iter[Distance], *args, **kwargs) -> None:
         metrics = []
         # get metrics
+        self.dataList = []
         for d in distances:
             if str(d.metric) not in metrics:
                 metrics.append(str(d.metric))
+            self.dataList.append(d)
         with open(self.path, 'w') as f:
             metricString = '\t'.join(metrics)
             metricCount = len(metrics)
             f.write(f'idx\tidy\t{metricString}\n')
             count = metricCount
+            print('ewww')
             if metricCount > 1:
                 scores = []
-                for distance in distances:
+                for distance in self.dataList:
+                    print(d)
                     scores.append(str(distance.d) if distance.d else self.MISSING)
                     count -= 1
                     if len(scores) == metricCount:
                         count = metricCount
                         score = '\t'.join(scores)
+                        print(f'{distance.idx}\t{distance.idy}\t{score}\n')
                         f.write(f'{distance.idx}\t{distance.idy}\t{score}\n')
                         scores = []
             else:
-                for distance in distances:
+                for distance in self.dataList:
+                    print('em')
                     score = str(distance.d) if distance.d is not None else self.MISSING
                     f.write(f'{distance.idx}\t{distance.idy}\t{score}\n')
             f.close()
@@ -102,6 +110,7 @@ class Linear(DistanceFile):
 
 class Matrix(DistanceFile):
     MISSING = 'NA'
+    dataList = []
 
     @classmethod
     def distanceFromText(cls, text: str) -> float | None:
@@ -114,7 +123,6 @@ class Matrix(DistanceFile):
         with open(self.path, 'r') as f:
             id_data = f.readline()
             id_to_compare = id_data.strip().split('\t')
-            print(id_to_compare)
             for line in f:
                 data = line.strip().split('\t')
                 idx = data[0]
@@ -124,19 +132,21 @@ class Matrix(DistanceFile):
                     yield Distance(metric, idx, idy, self.distanceFromText(label_distance))
 
     def write(self, distances: iter[Distance], *args, **kwargs) -> None:
+        self.dataList = []
         id = {'idx': [], 'idy': []}
         for distance in distances:
             if distance.idx not in id['idx']:
                 id['idx'].append(distance.idx)
             if distance.idy not in id['idy']:
                 id['idy'].append(distance.idy)
+            self.dataList.append(distance)
 
         with open(self.path, 'w') as f:
             idy_header = '\t'.join(id['idy'])
             f.write(f'\t{idy_header}\n')
             count = len(id['idy'])
             scores = []
-            for distance in distances:
+            for distance in self.dataList:
                 d = str(distance.d) if distance.d is not None else self.MISSING
                 scores.append(d)
                 count -= 1
@@ -155,18 +165,18 @@ class DistanceMetric(Type):
         return self.label
 
     def _calculate(self, x: str, y: str) -> float:
-        # Legacy implementation found in these modules:
-        # library.task.CalculateDistances
-        # library.datatypes.Metric
-        # library.rust_backend
-        # library.calculate_distances
-        # library.alfpy_distance
-        # alfpy.bbc
-        # alfpy.ncd
-        # Unlike legacy code, we need to calculate distances between
-        # one pair of sequences at a time. Bulk processing comes later.
-        # Must dig in the code and find the simplest solution.
-        raise NotImplementedError()
+        distance = None
+        if self.label == 'p-distance':
+            distance = calc.seq_distances_p(x, y)
+        elif self.label == 'p-distance with gaps':
+            print('entered')
+            distance = calc.seq_distances_p_gaps(x, y)
+        elif self.label == 'jc':
+            distance = calc.seq_distances_jukes_cantor(x, y)
+        elif self.label == 'k2p':
+            distance = calc.seq_distances_kimura2p(x, y)
+
+        return distance if str(distance) != 'nan' else None
 
     def calculate(self, x: Sequence, y: Sequence) -> Distance:
         return Distance(self, x.id, y.id, self._calculate(x.seq, y.seq))
