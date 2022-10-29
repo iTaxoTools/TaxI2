@@ -1,14 +1,21 @@
 from itaxotools.taxi3.distances import *
 from itaxotools.taxi3.sequences import *
+from itaxotools.taxi3.align import *
+from itaxotools.taxi3.pairs import *
 from pathlib import Path
 from sys import argv
 from time import perf_counter
 
 
-def calc(data, refrence, metric):
-    for x in data.read(idHeader='seqid', seqHeader='sequence'):
-        for y in refrence.read(idHeader='seqid', seqHeader='sequence'):
-            yield metric.calculate(x, y)
+def calc(aligned_pairs, metric):
+    for x, y in aligned_pairs:
+        yield metric.calculate(x, y)
+
+
+def make_pairs(x, y):
+    for a in x.read(idHeader='seqid', seqHeader='sequence'):
+        for b in y.read(idHeader='seqid', seqHeader='sequence'):
+            yield SequencePair(a, b)
 
 
 path_data = Path(argv[1])
@@ -20,10 +27,16 @@ ts = perf_counter()
 data = SequenceFile.Tabfile(path_data)
 refrence = SequenceFile.Tabfile(path_reference)
 
-metric = DistanceMetric.Uncorrected()
-distances = calc(data, refrence, metric)
-outFile = DistanceFile.Linear(path_out)
+# pairs = SequencePairs.fromProduct(data, refrence)
+pairs = make_pairs(data, refrence)
 
+aligner = PairwiseAligner.Biopython()
+aligned_pairs = aligner.align_pairs(pairs)
+
+metric = DistanceMetric.Kimura2P()
+distances = calc(aligned_pairs, metric)
+
+outFile = DistanceFile.Linear(path_out)
 outFile.write(distances)
 
 
