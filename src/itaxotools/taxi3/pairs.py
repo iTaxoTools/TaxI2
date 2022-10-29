@@ -5,7 +5,7 @@ from typing import NamedTuple
 
 from .sequences import Sequence, Sequences
 from .types import Container, Type
-
+from itertools import chain
 
 class SequencePair(NamedTuple):
     x: Sequence
@@ -36,7 +36,7 @@ class SequencePairFile(Type):
 
 
 class Tabfile(SequencePairFile):
-    
+    #SequencePair(x=Sequence(id='id1 ', seq='ATC-'), y=Sequence(id=' id2', seq='ATG-'))
     def read(self) -> iter[SequencePair]:
         with open(self.path, 'r') as f:
             for line in f:
@@ -46,14 +46,23 @@ class Tabfile(SequencePairFile):
                 yield SequencePair(Sequence(idx, seqX),Sequence(idy, seqY))
 
     def write(self, pairs: iter[SequencePair], *args, **kwargs) -> None:
-        raise NotImplementedError()
+        with open(self.path, 'w') as f:
+            buffer = []
+            for p in pairs:
+                buffer.append(p)
+                if len(buffer) > 1:
+                    if (buffer[-1].x.id, buffer[-1].y.id) != (p.x.id, p.y.id):
+                        break
+            f.write(f'idx\tidy\tseqx\tseqy\n')
+            for pair in chain(buffer, pairs):
+                f.write(f'{pair.x.id}\t{pair.y.id}\t{pair.x.seq}\t{pair.y.seq}\n')
 
 
 class Formatted(SequencePairFile):
 
     @staticmethod
     def _format_char(x: str, y: str) -> str:
-        if x == y:
+        if x == y and x != '-' and y != '-':
             return '|'
         if x == '-' or y == '-':
             return ' '
@@ -81,4 +90,15 @@ class Formatted(SequencePairFile):
 
 
     def write(self, pairs: iter[SequencePair], *args, **kwargs) -> None:
-        raise NotImplementedError()
+        with open(self.path, 'w') as f:
+            buffer = []
+            for p in pairs:
+                buffer.append(p)
+                if len(buffer) > 1:
+                    if (buffer[-1].x.id, buffer[-1].y.id) != (p.x.id, p.y.id):
+                        break
+            for pair in chain(buffer, pairs):
+                f.write(f'{pair.x.id} / {pair.y.id}\n')
+                f.write(f'{pair.x.seq}\n')
+                f.write(f'{self._format(pair.x.seq, pair.y.seq)}\n')
+                f.write(f'{pair.y.seq}\n\n')
