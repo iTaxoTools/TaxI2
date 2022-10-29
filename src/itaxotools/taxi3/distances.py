@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 from typing import NamedTuple
-
+from itertools import chain
 from .sequences import Sequence
 from .types import Container, Type
 from itaxotools.taxi3.library import calculate_distances as calc
@@ -49,7 +49,6 @@ class Buffer(DistanceFile):
 
 class Linear(DistanceFile):
     MISSING = 'NA'
-    dataList = []
 
     @classmethod
     def distanceFromText(cls, text: str) -> float | None:
@@ -75,37 +74,30 @@ class Linear(DistanceFile):
                     yield Distance(metric, idx, idy, self.distanceFromText(labelDistances[label]))
 
     def write(self, distances: iter[Distance], *args, **kwargs) -> None:
-        metrics = []
-        # get metrics
-        self.dataList = []
-        for d in distances:
-            if str(d.metric) not in metrics:
-                metrics.append(str(d.metric))
-            self.dataList.append(d)
         with open(self.path, 'w') as f:
+            metrics = []
+            buffer = []
+            for d in distances:
+                buffer.append(d)
+                if len(buffer) > 1:
+                    if (buffer[-1].idx, buffer[-1].idy) != (d.idx, d.idy):
+                        break
+
+            for d in buffer[:-1]:
+                if str(d.metric) not in metrics:
+                    metrics.append(str(d.metric))
+
             metricString = '\t'.join(metrics)
             metricCount = len(metrics)
             f.write(f'idx\tidy\t{metricString}\n')
-            count = metricCount
-            print('ewww')
-            if metricCount > 1:
-                scores = []
-                for distance in self.dataList:
-                    print(d)
-                    scores.append(str(distance.d) if distance.d else self.MISSING)
-                    count -= 1
-                    if len(scores) == metricCount:
-                        count = metricCount
-                        score = '\t'.join(scores)
-                        print(f'{distance.idx}\t{distance.idy}\t{score}\n')
-                        f.write(f'{distance.idx}\t{distance.idy}\t{score}\n')
-                        scores = []
-            else:
-                for distance in self.dataList:
-                    print('em')
-                    score = str(distance.d) if distance.d is not None else self.MISSING
+            scores = []
+
+            for distance in chain(buffer, distances):
+                scores.append(str(distance.d) if distance.d is not None else self.MISSING)
+                if len(scores) == metricCount:
+                    score = '\t'.join(scores)
                     f.write(f'{distance.idx}\t{distance.idy}\t{score}\n')
-            f.close()
+                    scores = []
 
 
 class Matrix(DistanceFile):
@@ -169,7 +161,6 @@ class DistanceMetric(Type):
         if self.label == 'p-distance':
             distance = calc.seq_distances_p(x, y)
         elif self.label == 'p-distance with gaps':
-            print('entered')
             distance = calc.seq_distances_p_gaps(x, y)
         elif self.label == 'jc':
             distance = calc.seq_distances_jukes_cantor(x, y)
