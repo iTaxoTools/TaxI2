@@ -36,12 +36,10 @@ class SequencePairFile(Type):
 
 
 class Tabfile(SequencePairFile):
-    #SequencePair(x=Sequence(id='id1 ', seq='ATC-'), y=Sequence(id=' id2', seq='ATG-'))
     def read(self) -> iter[SequencePair]:
         with open(self.path, 'r') as f:
             for line in f:
                 lineData = line[:-1].split('\t')
-                print(lineData)
                 idx, idy, seqX, seqY = lineData[0], lineData[1], lineData[2], lineData[3]
                 yield SequencePair(Sequence(idx, seqX),Sequence(idy, seqY))
 
