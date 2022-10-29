@@ -205,6 +205,17 @@ metric_file_tests = [
 ]
 
 
+def read_metric_tests(path) -> iter[Distance]:
+    with open(path, 'r') as f:
+        data = f.readline()
+        labels = data.strip().split('\t')[2:]
+        for line in f:
+            lineData = line[:-1].split('\t')
+            seqX, seqY, labelDistances = lineData[0], lineData[1], lineData[2:]
+            for label in range(len(labels)):
+                metric = DistanceMetric.fromLabel(labels[label])
+                yield MetricTest(metric, seqX, seqY, DistanceFile.Linear.distanceFromText(labelDistances[label]))
+
 @pytest.mark.parametrize("test", read_tests)
 def test_read_distances(test: ReadTest) -> None:
     input_path = TEST_DATA_DIR / test.input
@@ -233,6 +244,6 @@ def test_metrics(test: MetricTest) -> None:
 
 @pytest.mark.parametrize("test", metric_file_tests)
 def test_metric_files(test: MetricFileTest) -> None:
-    # path = TEST_DATA_DIR / test.file
-    # for test in read_metric_tests(path): test.check()
-    raise NotImplementedError()
+    path = TEST_DATA_DIR / test.file
+    for test in read_metric_tests(path):
+        test.check()
