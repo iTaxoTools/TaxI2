@@ -156,7 +156,11 @@ fn common_content(target: &str, query: &str) -> Option<(usize, usize)> {
     let query_end = query.rfind(is_nucleotide)?;
     let start = usize::max(target_start, query_start);
     let end = usize::min(target_end, query_end);
-    Some((start, end))
+    if (end >= start) {
+        Some((start, end))
+    } else {
+        None
+    }
 }
 
 /// Returns 4 distances between `target` and `query`.

@@ -71,6 +71,7 @@ setup(
     ],
     extras_require={
         "dev": [
+            "setuptools_rust",
             "pyinstaller",
             "pytest",
             "flake8",

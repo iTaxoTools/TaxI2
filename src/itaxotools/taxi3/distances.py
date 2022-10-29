@@ -52,7 +52,6 @@ class Linear(DistanceFile):
 
     @classmethod
     def distanceFromText(cls, text: str) -> float | None:
-        print('****', text)
         if text == cls.MISSING:
             return None
         return float(text)
@@ -67,12 +66,13 @@ class Linear(DistanceFile):
         with open(self.path, 'r') as f:
             data = f.readline()
             labels = data.strip().split('\t')[2:]
+            metrics = [DistanceMetric.fromLabel(label) for label in labels]
             for line in f:
                 lineData = line[:-1].split('\t')
                 idx, idy, labelDistances = lineData[0], lineData[1], lineData[2:]
-                for label in range(len(labels)):
-                    metric = DistanceMetric.fromLabel(labels[label])
-                    yield Distance(metric, idx, idy, self.distanceFromText(labelDistances[label]))
+                distances = (self.distanceFromText(d) for d in labelDistances)
+                for distance, metric in zip(distances, metrics):
+                    yield Distance(metric, idx, idy, distance)
 
     def write(self, distances: iter[Distance], *args, **kwargs) -> None:
         with open(self.path, 'w') as f:

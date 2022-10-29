@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from sys import stderr
 from pathlib import Path
 from typing import Callable, NamedTuple
 
@@ -49,6 +50,7 @@ class MetricTest(NamedTuple):
     seq_x: str
     seq_y: str
     d: float
+    precision: float = 0.0
 
     def check(self):
         x = Sequence('idx', self.seq_x)
@@ -57,25 +59,29 @@ class MetricTest(NamedTuple):
         assert r.metric == self.metric
         assert r.idx == 'idx'
         assert r.idy == 'idy'
-        assert r.d == self.d
-        assert r.d is None or isinstance(r.d, float)
+        if isinstance(r.d, float):
+            assert abs(r.d - self.d) <= self.precision
+        else:
+            assert r.d == self.d
+            assert r.d is None
 
 
 class MetricFileTest(NamedTuple):
     file: str
+    precision: float
 
-    def to_metric_tests(self) -> iter[MetricTest]:
+    def get_metric_tests(self) -> iter[MetricTest]:
         path = TEST_DATA_DIR / self.file
         with open(path, 'r') as f:
             data = f.readline()
             labels = data.strip().split('\t')[2:]
+            metrics = [DistanceMetric.fromLabel(label) for label in labels]
             for line in f:
                 lineData = line[:-1].split('\t')
                 seqX, seqY, labelDistances = lineData[0], lineData[1], lineData[2:]
-                for label in range(len(labels)):
-                    metric = DistanceMetric.fromLabel(labels[label])
-                    print(metric, seqX, seqY, DistanceFile.Linear.distanceFromText(labelDistances[label]))
-                    yield MetricTest(metric, seqX, seqY, DistanceFile.Linear.distanceFromText(labelDistances[label]))
+                distances = (DistanceFile.Linear.distanceFromText(d) for d in labelDistances)
+                for distance, metric in zip(distances, metrics):
+                    yield MetricTest(metric, seqX, seqY, distance, self.precision)
 
 
 def distances_simple() -> Distances:
@@ -214,7 +220,7 @@ metric_tests = [
 
 
 metric_file_tests = [
-    MetricFileTest('metrics.tsv'),
+    MetricFileTest('metrics.tsv', 0.001),
 ]
 
 
@@ -244,13 +250,15 @@ def test_metrics(test: MetricTest) -> None:
     test.check()
 
 
-def xyz(metric_file_tests):
-    for file_test in metric_file_tests:
-        for metric_test in file_test.to_metric_tests():
-            yield metric_test
-
-
-@pytest.mark.skip
-@pytest.mark.parametrize("test", list(xyz(metric_file_tests)))
+@pytest.mark.parametrize("test", metric_file_tests)
 def test_metrics_from_files(test: MetricFileTest) -> None:
-    test.check()
+    stack = []
+    for file_test in metric_file_tests:
+        for metric_test in file_test.get_metric_tests():
+            try:
+                metric_test.check()
+            except AssertionError as a:
+                stack.append(a)
+    for a in stack:
+        print(a.args[0], '\n', file=stderr)
+    assert len(stack) == 0
