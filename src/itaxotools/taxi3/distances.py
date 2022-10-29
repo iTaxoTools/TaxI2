@@ -7,7 +7,7 @@ from itertools import chain
 from .sequences import Sequence
 from .types import Container, Type
 from itaxotools.taxi3.library import calculate_distances as calc
-from math import isnan
+from math import isnan, isinf
 
 class Distance(NamedTuple):
     metric: DistanceMetric
@@ -52,6 +52,7 @@ class Linear(DistanceFile):
 
     @classmethod
     def distanceFromText(cls, text: str) -> float | None:
+        print('****', text)
         if text == cls.MISSING:
             return None
         return float(text)
@@ -156,6 +157,10 @@ class DistanceMetric(Type):
     def __str__(self):
         return self.label
 
+    @staticmethod
+    def _is_number(x):
+        return not (isnan(x) or isinf(x))
+
     def _calculate(self, x: str, y: str) -> float:
         raise NotImplementedError()
 
@@ -186,24 +191,23 @@ class Uncorrected(DistanceMetric):
 
     def _calculate(self, x: str, y: str) -> float:
         distance = calc.seq_distances_p(x, y)
+        return distance if self._is_number(distance) else None
 
-        return distance if not isnan(distance) else None
 
 class UncorrectedWithGaps(DistanceMetric):
     label = 'p-distance with gaps'
 
     def _calculate(self, x: str, y: str) -> float:
         distance = calc.seq_distances_p_gaps(x, y)
+        return distance if self._is_number(distance) else None
 
-        return distance if not isnan(distance) else None
 
 class JukesCantor(DistanceMetric):
     label = 'jc'
 
     def _calculate(self, x: str, y: str) -> float:
         distance = calc.seq_distances_jukes_cantor(x, y)
-
-        return distance if not isnan(distance) else None
+        return distance if self._is_number(distance) else None
 
 
 class Kimura2P(DistanceMetric):
@@ -211,8 +215,7 @@ class Kimura2P(DistanceMetric):
 
     def _calculate(self, x: str, y: str) -> float:
         distance = calc.seq_distances_kimura2p(x, y)
-
-        return distance if not isnan(distance) else None
+        return distance if self._is_number(distance) else None
 
 
 class NCD(DistanceMetric):
