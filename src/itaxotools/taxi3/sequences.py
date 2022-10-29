@@ -70,7 +70,6 @@ class Tabfile(SequenceFile):
                 if len(line) <= 1:
                     continue
                 data = line.strip().split('\t', maxsplit=-1)
-                print(data)
                 yield Sequence(data[idColumn], data[seqColumn])
 
 
