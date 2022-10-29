@@ -22,6 +22,7 @@ pairs = SequencesPair(target = data, query = reference)
 
 task = CalculateDistances(warn=print)
 task.sequences = pairs
+# task.alignment = Alignment.AlreadyAligned
 task.alignment = Alignment.Pairwise
 task.metrics = [
     Metric.Uncorrected,

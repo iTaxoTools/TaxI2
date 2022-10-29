@@ -253,12 +253,11 @@ def test_metrics(test: MetricTest) -> None:
 @pytest.mark.parametrize("test", metric_file_tests)
 def test_metrics_from_files(test: MetricFileTest) -> None:
     stack = []
-    for file_test in metric_file_tests:
-        for metric_test in file_test.get_metric_tests():
-            try:
-                metric_test.check()
-            except AssertionError as a:
-                stack.append(a)
+    for metric_test in test.get_metric_tests():
+        try:
+            metric_test.check()
+        except AssertionError as a:
+            stack.append(a)
     for a in stack:
         print(a.args[0], '\n', file=stderr)
     assert len(stack) == 0
