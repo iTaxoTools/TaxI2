@@ -96,7 +96,9 @@ impl AlignmentStats {
             (Nucleotide(_), Nucleotide(_)) if x == y => self.count_match(),
             (Nucleotide(Purine), Nucleotide(Purine))
             | (Nucleotide(Pyrimidine), Nucleotide(Pyrimidine)) => self.count_transition(),
-            (Nucleotide(_), Nucleotide(_)) => self.count_transversion(),
+            (Nucleotide(Pyrimidine), Nucleotide(Purine))
+            | (Nucleotide(Purine), Nucleotide(Pyrimidine)) => self.count_transversion(),
+            (Nucleotide(_), Nucleotide(_)) => {},
             _ => {}
         }
     }

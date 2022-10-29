@@ -220,7 +220,7 @@ metric_tests = [
 
 
 metric_file_tests = [
-    MetricFileTest('metrics.tsv', 0.001),
+    MetricFileTest('metrics.tsv', 0.00051),
 ]
 
 
