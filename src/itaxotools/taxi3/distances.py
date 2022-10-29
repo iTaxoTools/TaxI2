@@ -7,7 +7,7 @@ from itertools import chain
 from .sequences import Sequence
 from .types import Container, Type
 from itaxotools.taxi3.library import calculate_distances as calc
-
+from math import isnan
 
 class Distance(NamedTuple):
     metric: DistanceMetric
@@ -157,17 +157,7 @@ class DistanceMetric(Type):
         return self.label
 
     def _calculate(self, x: str, y: str) -> float:
-        distance = None
-        if self.label == 'p-distance':
-            distance = calc.seq_distances_p(x, y)
-        elif self.label == 'p-distance with gaps':
-            distance = calc.seq_distances_p_gaps(x, y)
-        elif self.label == 'jc':
-            distance = calc.seq_distances_jukes_cantor(x, y)
-        elif self.label == 'k2p':
-            distance = calc.seq_distances_kimura2p(x, y)
-
-        return distance if str(distance) != 'nan' else None
+        raise NotImplementedError()
 
     def calculate(self, x: Sequence, y: Sequence) -> Distance:
         return Distance(self, x.id, y.id, self._calculate(x.seq, y.seq))
@@ -194,17 +184,35 @@ class Unknown(DistanceMetric):
 class Uncorrected(DistanceMetric):
     label = 'p-distance'
 
+    def _calculate(self, x: str, y: str) -> float:
+        distance = calc.seq_distances_p(x, y)
+
+        return distance if not isnan(distance) else None
 
 class UncorrectedWithGaps(DistanceMetric):
     label = 'p-distance with gaps'
 
+    def _calculate(self, x: str, y: str) -> float:
+        distance = calc.seq_distances_p_gaps(x, y)
+
+        return distance if not isnan(distance) else None
 
 class JukesCantor(DistanceMetric):
     label = 'jc'
 
+    def _calculate(self, x: str, y: str) -> float:
+        distance = calc.seq_distances_jukes_cantor(x, y)
+
+        return distance if not isnan(distance) else None
+
 
 class Kimura2P(DistanceMetric):
     label = 'k2p'
+
+    def _calculate(self, x: str, y: str) -> float:
+        distance = calc.seq_distances_kimura2p(x, y)
+
+        return distance if not isnan(distance) else None
 
 
 class NCD(DistanceMetric):
