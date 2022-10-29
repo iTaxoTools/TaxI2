@@ -34,3 +34,6 @@ task.start()
 
 task.result.distance_matrix.to_csv(path_out, sep='\t')
 
+tf = perf_counter()
+
+print(f'Time taken: {tf-ts:.4f}s')
