@@ -103,7 +103,6 @@ class Linear(DistanceFile):
 
 class Matrix(DistanceFile):
     MISSING = 'NA'
-    dataList = []
 
     @classmethod
     def distanceFromText(cls, text: str) -> float | None:
@@ -125,24 +124,26 @@ class Matrix(DistanceFile):
                     yield Distance(metric, idx, idy, self.distanceFromText(label_distance))
 
     def write(self, distances: iter[Distance], *args, **kwargs) -> None:
-        self.dataList = []
-        id = {'idx': [], 'idy': []}
-        for distance in distances:
-            if distance.idx not in id['idx']:
-                id['idx'].append(distance.idx)
-            if distance.idy not in id['idy']:
-                id['idy'].append(distance.idy)
-            self.dataList.append(distance)
-
         with open(self.path, 'w') as f:
+            buffer = []
+
+            id = {'idx': [], 'idy': []}
+            for distance in distances:
+                buffer.append(distance)
+                if len(buffer) > 1:
+                    if (buffer[-1].idx) != (distance.idx):
+                        break
+                if distance.idx not in id['idx']:
+                    id['idx'].append(distance.idx)
+                if distance.idy not in id['idy']:
+                    id['idy'].append(distance.idy)
+
             idy_header = '\t'.join(id['idy'])
             f.write(f'\t{idy_header}\n')
-            count = len(id['idy'])
             scores = []
-            for distance in self.dataList:
+            for distance in buffer:
                 d = str(distance.d) if distance.d is not None else self.MISSING
                 scores.append(d)
-                count -= 1
                 if len(scores) == len(id['idy']):
                     count = len(id['idy'])
                     score = '\t'.join(scores)
