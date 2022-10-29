@@ -87,7 +87,7 @@ def test_pairs_from_product() -> None:
         assert p == t
 
 
-@pytest.mark.xfail
+
 @pytest.mark.parametrize("test", read_tests)
 def test_read_pairs(test: ReadTest) -> None:
     input_path = TEST_DATA_DIR / test.input
@@ -95,7 +95,7 @@ def test_read_pairs(test: ReadTest) -> None:
     test.validate(pairs)
 
 
-@pytest.mark.xfail
+
 @pytest.mark.parametrize("test", write_tests)
 def test_write_pairs(test: WriteTest, tmp_path: Path) -> None:
     fixed_path = TEST_DATA_DIR / test.output
