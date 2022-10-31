@@ -19,10 +19,8 @@ def calc(aligned_pairs):
             yield metric.calculate(x, y)
 
 
-def make_pairs(x, y):
-    for a in x.read(idHeader='seqid', seqHeader='sequence'):
-        for b in y.read(idHeader='seqid', seqHeader='sequence'):
-            yield SequencePair(a, b)
+def make_pairs(a, b):
+    yield from (SequencePair(x, y) for x in a for y in b)
 
 
 path_data = Path(argv[1])
@@ -31,8 +29,14 @@ path_out = Path(argv[3])
 
 ts = perf_counter()
 
-data = SequenceFile.Tabfile(path_data)
-reference = SequenceFile.Tabfile(path_reference)
+file_data = SequenceFile.Tabfile(path_data)
+file_reference = SequenceFile.Tabfile(path_reference)
+
+data = Sequences.fromFile(file_data, idHeader='seqid', seqHeader='sequence')
+reference = Sequences.fromFile(file_reference, idHeader='seqid', seqHeader='sequence')
+
+data = data.normalize()
+reference = reference.normalize()
 
 # pairs = SequencePairs.fromProduct(data, reference)
 pairs = make_pairs(data, reference)

@@ -14,11 +14,19 @@ class Sequence(NamedTuple):
     id: str
     seq: str
 
+    _tr_normalize = str.maketrans('?', 'N', '-')
+
+    def normalize(self):
+        return Sequence(self.id, self.seq.translate(self._tr_normalize).upper())
+
 
 class Sequences(Container[Sequence]):
     @classmethod
     def fromFile(cls, file: SequenceFile, *args, **kwargs) -> Sequences:
         return cls(file.read, *args, **kwargs)
+
+    def normalize(self) -> Sequences:
+        return Sequences(lambda: (seq.normalize() for seq in self))
 
 
 class SequenceFile(Type):

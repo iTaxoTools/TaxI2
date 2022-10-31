@@ -61,7 +61,7 @@ class Container(Generic[Item]):
         self.kwargs = {}
         if callable(source):
             self.callable = source
-            self.args = kwargs
+            self.args = args
             self.kwargs = kwargs
         else:  # iterable
             self.iterable = source
