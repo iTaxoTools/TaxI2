@@ -5,7 +5,7 @@ from Bio.Align import PairwiseAligner as BioPairwiseAligner
 from .pairs import SequencePair, SequencePairs
 from .sequences import Sequence
 from .types import Type
-
+from itaxotools.taxi3.library import calculate_distances as calc
 
 class Scores(dict):
     """Can access keys like attributes"""
@@ -40,7 +40,27 @@ class PairwiseAligner(Type):
 
 
 class Rust(PairwiseAligner):
-    pass
+
+    def __init__(self, scores: Scores = None):
+        super().__init__(scores)
+        self.rust_scores = dict(
+            match_score = self.scores.match_score,
+            mismatch_score = self.scores.mismatch_score,
+            end_open_gap_score = self.scores.end_gap_penalty,
+            end_extend_gap_score = self.scores.end_gap_extend_penalty,
+            internal_open_gap_score = self.scores.gap_penalty,
+            internal_extend_gap_score = self.scores.gap_extend_penalty,
+        )
+
+
+    def align(self, pair: SequencePair) -> SequencePair:
+        aligner = calc.make_aligner(**self.rust_scores)
+        alignments = calc.show_alignment(aligner, pair.x.seq, pair.y.seq)
+        aligned_x, alignment_format ,aligned_y = alignments.split('\n')
+        return SequencePair(
+            Sequence(pair.x.id, aligned_x),
+            Sequence(pair.y.id, aligned_y),
+        )
 
 
 class Biopython(PairwiseAligner):
@@ -111,6 +131,10 @@ class Biopython(PairwiseAligner):
     def align(self, pair: SequencePair) -> SequencePair:
         alignments = self.aligner.align(pair.x.seq, pair.y.seq)
         aligned_x, _, aligned_y = self._format_pretty(alignments[0])
+        print(SequencePair(
+            Sequence(pair.x.id, aligned_x),
+            Sequence(pair.y.id, aligned_y),
+        ))
         return SequencePair(
             Sequence(pair.x.id, aligned_x),
             Sequence(pair.y.id, aligned_y),
