@@ -19,7 +19,7 @@ class SequencePairs(Container[SequencePair]):
 
     @classmethod
     def fromProduct(cls, xs: Sequences, ys: Sequences) -> SequencePairs:
-        return cls(SequencePair(x, y) for x in xs for y in ys)
+        return cls(lambda: (SequencePair(x, y) for x in xs for y in ys))
 
 
 class SequencePairFile(Type):

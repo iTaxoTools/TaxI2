@@ -19,10 +19,6 @@ def calc(aligned_pairs):
             yield metric.calculate(x, y)
 
 
-def make_pairs(a, b):
-    yield from (SequencePair(x, y) for x in a for y in b)
-
-
 path_data = Path(argv[1])
 path_reference = Path(argv[2])
 path_out = Path(argv[3])
@@ -38,8 +34,7 @@ reference = Sequences.fromFile(file_reference, idHeader='seqid', seqHeader='sequ
 data = data.normalize()
 reference = reference.normalize()
 
-# pairs = SequencePairs.fromProduct(data, reference)
-pairs = make_pairs(data, reference)
+pairs = SequencePairs.fromProduct(data, reference)
 
 aligner = PairwiseAligner.Biopython()
 aligned_pairs = aligner.align_pairs(pairs)
