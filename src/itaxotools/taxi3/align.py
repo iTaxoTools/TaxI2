@@ -11,17 +11,21 @@ class Scores(dict):
     """Can access keys like attributes"""
 
     defaults = dict(
+        match_score = 1,
+        mismatch_score = -1,
         gap_penalty = -8,
         gap_extend_penalty = -1,
         end_gap_penalty = -1,
         end_gap_extend_penalty = -1,
-        match_score = 1,
-        mismatch_score = -1,
     )
 
     def __init__(self, **kwargs):
         super().__init__(self.defaults | kwargs)
         self.__dict__ = self
+
+    def __repr__(self):
+        attrs = ', '.join(f'{k}={v}' for k, v in self.items())
+        return f'<{type(self).__name__}: {attrs}>'
 
 
 class PairwiseAligner(Type):
@@ -45,10 +49,10 @@ class Biopython(PairwiseAligner):
         bio_scores = dict(
             match_score = self.scores.match_score,
             mismatch_score = self.scores.mismatch_score,
-            end_open_gap_score = self.scores.end_gap_penalty,
-            end_extend_gap_score = self.scores.end_gap_extend_penalty,
             internal_open_gap_score = self.scores.gap_penalty,
             internal_extend_gap_score = self.scores.gap_extend_penalty,
+            end_open_gap_score = self.scores.end_gap_penalty,
+            end_extend_gap_score = self.scores.end_gap_extend_penalty,
         )
         self.aligner = BioPairwiseAligner(**bio_scores)
 
