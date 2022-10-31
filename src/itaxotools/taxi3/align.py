@@ -46,12 +46,11 @@ class Rust(PairwiseAligner):
         self.rust_scores = dict(
             match_score = self.scores.match_score,
             mismatch_score = self.scores.mismatch_score,
-            end_open_gap_score = self.scores.end_gap_penalty,
-            end_extend_gap_score = self.scores.end_gap_extend_penalty,
             internal_open_gap_score = self.scores.gap_penalty,
             internal_extend_gap_score = self.scores.gap_extend_penalty,
+            end_open_gap_score = self.scores.end_gap_penalty,
+            end_extend_gap_score = self.scores.end_gap_extend_penalty,
         )
-
 
     def align(self, pair: SequencePair) -> SequencePair:
         aligner = calc.make_aligner(**self.rust_scores)

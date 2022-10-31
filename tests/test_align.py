@@ -28,7 +28,7 @@ class AlignTest(NamedTuple):
         x = Sequence('idx', self.input[0])
         y = Sequence('idy', self.input[1])
         ax, ay = aligner.align(SequencePair(x, y))
-        print(ax, ay)
+        print(ax, ay, scores)
         assert ax.id == x.id
         assert ay.id == y.id
         assert len(ax.seq) == len(ay.seq)
@@ -56,13 +56,40 @@ align_tests = [
     AlignTest(('ATCG', 'AG'), [('ATCG', 'A--G')], (1, 0, 0, 0, 0, 0)),
     AlignTest(('ATCG', 'AG'), [('ATCG', 'AG--'), ('ATCG', '--AG')], (1, 0, -2, 0, 0, 0)),
     AlignTest(('ATCG', 'AG'), [('ATCG', 'A--G')], (1, 0, -2, 0, -2, 0)),
-    AlignTest(('ATCG', 'AG'), [('ATCG', 'A--G'), ('ATCG', '-AG-')], (1, 0, -2, 0, 0, -2)),
     AlignTest(('ATCG', 'AG'), [('ATCG', '-AG-')], (0, 0, -1, 0, 0, -1)),
 
     AlignTest(('ATATA', 'AAA'), [('ATATA', 'A-A-A')], (1, 0, 0, 0, 0, 0)),
     AlignTest(('ATATA', 'AAA'), [('ATATA', 'AAA--'), ('ATATA', '--AAA')], (1, 0, -1, 0, 0, 0)),
-
     AlignTest(('ATATATATATA', 'ATTA'), [('ATATATATATA', 'AT-------TA')], (1, 0, 0, 0.1, 0, 0)),
+
+    # simple match
+    AlignTest(('ATCG', 'ATCG'), [('ATCG', 'ATCG')], (1, 0, 0, 0, 0, 0)),
+    AlignTest(('ATCG', 'AT'), [('ATCG', 'AT--')], (1, 0, 0, 0, 0, 0)),
+    AlignTest(('ATCG', 'CG'), [('ATCG', '--CG')], (1, 0, 0, 0, 0, 0)),
+    AlignTest(('ATCG', 'TC'), [('ATCG', '-TC-')], (1, 0, 0, 0, 0, 0)),
+
+    # mismatch score
+    AlignTest(('ATCG', 'GCTA'), [('ATCG', 'GCTA')], (1, 1, 0, 0, 0, 0)),
+    AlignTest(('ATCG', 'ATCG'), [('ATCG-', '-ATCG'), ('-ATCG', 'ATCG-')], (0, 1, 0, 0, 0, 0)),
+    AlignTest(('ATC', 'AGC'), [('AT-C', 'A-GC'), ('A-TC', 'AG-C')], (1, -1, 0, 0, 0, 0)),
+    AlignTest(('AAT', 'AAC'), [('AAT-', 'AA-C'), ('AA-T', 'AAC-')], (1, -1, 0, 0, 0, 0)),
+    AlignTest(('TAA', 'CAA'), [('-TAA', 'C-AA'), ('T-AA', '-CAA')], (1, -1, 0, 0, 0, 0)),
+
+    # gap penalty: internal
+    AlignTest(('AAT', 'AAC'), [('AAT', 'AAC')], (1, 0, -1, 0, 0, 0)),
+    AlignTest(('TAA', 'CAA'), [('TAA', 'CAA')], (1, 0, -1, 0, 0, 0)),
+    AlignTest(('ATC', 'AGC'), [('ATC', 'AGC')], (1, 0, -1, 0, 0, 0)),
+    AlignTest(('ATC', 'AGC'), [('ATC', 'AGC')], (1, -1, -1, 0, 0, 0)),
+    AlignTest(('AAATTTAAA', 'AAACCCAAA'), [('AAA---TTTAAA', 'AAACCC---AAA'), ('AAATTT---AAA', 'AAA---CCCAAA')], (1, -1, -1, 0, 0, 0)),
+    AlignTest(('AAATTTAAA', 'AAACCCAAA'), [('AAA---TTTAAA', 'AAACCC---AAA'), ('AAATTT---AAA', 'AAA---CCCAAA')], (1, -2, -1, 0, 0, 0)),
+    AlignTest(('AAATTTAAA', 'AAACCCAAA'), [('AAATTTAAA', 'AAACCCAAA'), ('------AAATTTAAA', 'AAACCCAAA------'), ('AAATTTAAA------', '------AAACCCAAA')], (1, -1, -2, 0, 0, 0)),
+    AlignTest(('AAACTAAA', 'AAATGAAA'), [('AAACT-AAA', 'AAA-TGAAA')], (1, -1, -1, 0, 0, 0)),
+    AlignTest(('AAACTAAA', 'AAATGAAA'), [('AAACTAAA', 'AAATGAAA')], (1, -1, -2, 0, 0, 0)),
+
+    # gap penalty: end & internal
+    AlignTest(('AAA', 'TTT'), [('AAA', 'TTT')], (1, 0, -1, 0, -1, 0)),
+
+
 ]
 
 
