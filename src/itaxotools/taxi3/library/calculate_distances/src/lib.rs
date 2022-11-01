@@ -43,6 +43,17 @@ fn align_to_str(target: &str, query: &str) -> PyResult<(String, String)> {
         .map_err(exceptions::PyUnicodeEncodeError::new_err)
 }
 
+
+/// Returns two strings that represent aligned `target` and aligned `query` respectively.
+#[pyfunction]
+#[text_signature = "(target, query, /)"]
+fn align_seq(aligner: &Aligner, target: &str, query: &str) -> PyResult<(String, String)> {
+    aligner
+        .align(target.as_bytes(), query.as_bytes())
+        .as_strings()
+        .map_err(exceptions::PyUnicodeEncodeError::new_err)
+}
+
 /// Returns two strings that represent aligned `target` and aligned `query` respectively.
 #[pyfunction]
 #[text_signature = "(aligner, target, query, /)"]
@@ -156,6 +167,7 @@ fn seq_distances_kimura2p(target: &str, query: &str) -> f64 {
 #[pymodule]
 fn calculate_distances(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(align_to_str, m)?)?;
+    m.add_function(wrap_pyfunction!(align_seq, m)?)?;
     m.add_function(wrap_pyfunction!(make_aligner, m)?)?;
     m.add_function(wrap_pyfunction!(seq_distances, m)?)?;
     m.add_function(wrap_pyfunction!(seq_distances_aligned, m)?)?;

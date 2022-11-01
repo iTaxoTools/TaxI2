@@ -46,8 +46,8 @@ class Rust(PairwiseAligner):
         self.aligner = calc.make_aligner(**self.scores)
 
     def align(self, pair: SequencePair) -> SequencePair:
-        alignments = calc.show_alignment(self.aligner, pair.x.seq, pair.y.seq)
-        aligned_x, alignment_format, aligned_y = alignments.split('\n')
+        alignments = calc.align_seq(self.aligner, pair.x.seq, pair.y.seq)
+        aligned_x, aligned_y = alignments
         return SequencePair(
             Sequence(pair.x.id, aligned_x),
             Sequence(pair.y.id, aligned_y),
