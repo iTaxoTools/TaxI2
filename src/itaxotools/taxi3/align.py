@@ -114,10 +114,6 @@ class Biopython(PairwiseAligner):
     def align(self, pair: SequencePair) -> SequencePair:
         alignments = self.aligner.align(pair.x.seq, pair.y.seq)
         aligned_x, _, aligned_y = self._format_pretty(alignments[0])
-        print(SequencePair(
-            Sequence(pair.x.id, aligned_x),
-            Sequence(pair.y.id, aligned_y),
-        ))
         return SequencePair(
             Sequence(pair.x.id, aligned_x),
             Sequence(pair.y.id, aligned_y),
