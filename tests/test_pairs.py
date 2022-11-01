@@ -22,6 +22,7 @@ class ReadTest(NamedTuple):
     def validate(self, generated: SequencePairs):
         fixture_list = list(self.fixture())
         generated_list = list(generated)
+        assert len(fixture_list) == len(generated_list)
         for pair in fixture_list:
             assert pair in generated_list
 

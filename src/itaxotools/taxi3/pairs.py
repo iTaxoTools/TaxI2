@@ -38,6 +38,7 @@ class SequencePairFile(Type):
 class Tabfile(SequencePairFile):
     def read(self) -> iter[SequencePair]:
         with open(self.path, 'r') as f:
+            l = f.readline()
             for line in f:
                 lineData = line[:-1].split('\t')
                 idx, idy, seqX, seqY = lineData[0], lineData[1], lineData[2], lineData[3]
@@ -45,14 +46,8 @@ class Tabfile(SequencePairFile):
 
     def write(self, pairs: iter[SequencePair], *args, **kwargs) -> None:
         with open(self.path, 'w') as f:
-            buffer = []
-            for p in pairs:
-                buffer.append(p)
-                if len(buffer) > 1:
-                    if (buffer[-1].x.id, buffer[-1].y.id) != (p.x.id, p.y.id):
-                        break
             f.write(f'idx\tidy\tseqx\tseqy\n')
-            for pair in chain(buffer, pairs):
+            for pair in pairs:
                 f.write(f'{pair.x.id}\t{pair.y.id}\t{pair.x.seq}\t{pair.y.seq}\n')
 
 
@@ -81,21 +76,15 @@ class Formatted(SequencePairFile):
 
                 buffer.append(line)
                 if len(buffer) == 4:
-                    idx, idy = buffer[0].strip().split('/')
+                    idx, idy = buffer[0].split(' / ')
                     seqX, seqY = buffer[1], buffer[3] # Skipping pos 2 as it is the format
                     buffer = []
-                    yield SequencePair(Sequence(idx.strip(), seqX.strip()),Sequence(idy.strip(), seqY.strip()))
+                    yield SequencePair(Sequence(idx, seqX), Sequence(idy, seqY))
 
 
     def write(self, pairs: iter[SequencePair], *args, **kwargs) -> None:
         with open(self.path, 'w') as f:
-            buffer = []
-            for p in pairs:
-                buffer.append(p)
-                if len(buffer) > 1:
-                    if (buffer[-1].x.id, buffer[-1].y.id) != (p.x.id, p.y.id):
-                        break
-            for pair in chain(buffer, pairs):
+            for pair in pairs:
                 f.write(f'{pair.x.id} / {pair.y.id}\n')
                 f.write(f'{pair.x.seq}\n')
                 f.write(f'{self._format(pair.x.seq, pair.y.seq)}\n')
