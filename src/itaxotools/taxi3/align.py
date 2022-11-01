@@ -13,10 +13,10 @@ class Scores(dict):
     defaults = dict(
         match_score = 1,
         mismatch_score = -1,
-        gap_penalty = -8,
-        gap_extend_penalty = -1,
-        end_gap_penalty = -1,
-        end_gap_extend_penalty = -1,
+        internal_open_gap_score  = -8,
+        internal_extend_gap_score = -1,
+        end_open_gap_score = -1,
+        end_extend_gap_score = -1,
     )
 
     def __init__(self, **kwargs):
@@ -43,19 +43,11 @@ class Rust(PairwiseAligner):
 
     def __init__(self, scores: Scores = None):
         super().__init__(scores)
-        self.rust_scores = dict(
-            match_score = self.scores.match_score,
-            mismatch_score = self.scores.mismatch_score,
-            internal_open_gap_score = self.scores.gap_penalty,
-            internal_extend_gap_score = self.scores.gap_extend_penalty,
-            end_open_gap_score = self.scores.end_gap_penalty,
-            end_extend_gap_score = self.scores.end_gap_extend_penalty,
-        )
+        self.aligner = calc.make_aligner(**self.scores)
 
     def align(self, pair: SequencePair) -> SequencePair:
-        aligner = calc.make_aligner(**self.rust_scores)
-        alignments = calc.show_alignment(aligner, pair.x.seq, pair.y.seq)
-        aligned_x, alignment_format ,aligned_y = alignments.split('\n')
+        alignments = calc.show_alignment(self.aligner, pair.x.seq, pair.y.seq)
+        aligned_x, alignment_format, aligned_y = alignments.split('\n')
         return SequencePair(
             Sequence(pair.x.id, aligned_x),
             Sequence(pair.y.id, aligned_y),
@@ -65,15 +57,7 @@ class Rust(PairwiseAligner):
 class Biopython(PairwiseAligner):
     def __init__(self, scores: Scores = None):
         super().__init__(scores)
-        bio_scores = dict(
-            match_score = self.scores.match_score,
-            mismatch_score = self.scores.mismatch_score,
-            internal_open_gap_score = self.scores.gap_penalty,
-            internal_extend_gap_score = self.scores.gap_extend_penalty,
-            end_open_gap_score = self.scores.end_gap_penalty,
-            end_extend_gap_score = self.scores.end_gap_extend_penalty,
-        )
-        self.aligner = BioPairwiseAligner(**bio_scores)
+        self.aligner = BioPairwiseAligner(**self.scores)
 
     def _format_pretty(self, alignment):
         # Adjusted from Bio.Align.PairwiseAlignment._format_pretty
