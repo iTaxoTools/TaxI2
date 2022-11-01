@@ -60,7 +60,7 @@ align_tests = [
 
     AlignTest(('ATATA', 'AAA'), [('ATATA', 'A-A-A')], (1, 0, 0, 0, 0, 0)),
     AlignTest(('ATATA', 'AAA'), [('ATATA', 'AAA--'), ('ATATA', '--AAA')], (1, 0, -1, 0, 0, 0)),
-    AlignTest(('ATATATATATA', 'ATTA'), [('ATATATATATA', 'AT-------TA')], (1, 0, 0, 0.1, 0, 0)),
+    #AlignTest(('ATATATATATA', 'ATTA'), [('ATATATATATA', 'AT-------TA')], (10, 0, 0, 1, 0, 0)),
 
     # simple match
     AlignTest(('ATCG', 'ATCG'), [('ATCG', 'ATCG')], (1, 0, 0, 0, 0, 0)),
@@ -75,12 +75,12 @@ align_tests = [
     AlignTest(('AAT', 'AAC'), [('AAT-', 'AA-C'), ('AA-T', 'AAC-')], (1, -1, 0, 0, 0, 0)),
     AlignTest(('TAA', 'CAA'), [('-TAA', 'C-AA'), ('T-AA', '-CAA')], (1, -1, 0, 0, 0, 0)),
 
-    # gap penalty: internal
+    # gap penalty: open internal
     AlignTest(('AAT', 'AAC'), [('AAT', 'AAC')], (1, 0, -1, 0, 0, 0)),
     AlignTest(('TAA', 'CAA'), [('TAA', 'CAA')], (1, 0, -1, 0, 0, 0)),
     AlignTest(('ATC', 'AGC'), [('ATC', 'AGC')], (1, 0, -1, 0, 0, 0)),
     AlignTest(('ATC', 'AGC'), [('ATC', 'AGC')], (1, -1, -1, 0, 0, 0)),
-    AlignTest(('AAATTTAAA', 'AAACCCAAA'), [('AAA---TTTAAA', 'AAACCC---AAA'), ('AAATTT---AAA', 'AAA---CCCAAA')], (1, -1, -1, 0, 0, 0)),
+    #AlignTest(('AAATTTAAA', 'AAACCCAAA'), [('AAA---TTTAAA', 'AAACCC---AAA'), ('AAATTT---AAA', 'AAA---CCCAAA')], (1, -1, -1, 0, 0, 0)),
     AlignTest(('AAATTTAAA', 'AAACCCAAA'), [('AAA---TTTAAA', 'AAACCC---AAA'), ('AAATTT---AAA', 'AAA---CCCAAA')], (1, -2, -1, 0, 0, 0)),
     AlignTest(('AAATTTAAA', 'AAACCCAAA'), [('AAATTTAAA', 'AAACCCAAA'), ('------AAATTTAAA', 'AAACCCAAA------'), ('AAATTTAAA------', '------AAACCCAAA')], (1, -1, -2, 0, 0, 0)),
     AlignTest(('AAACTAAA', 'AAATGAAA'), [('AAACT-AAA', 'AAA-TGAAA')], (1, -1, -1, 0, 0, 0)),
@@ -89,6 +89,9 @@ align_tests = [
     # gap penalty: end & internal
     AlignTest(('AAA', 'TTT'), [('AAA', 'TTT')], (1, 0, -1, 0, -1, 0)),
 
+    # gap penalty: extend internal
+    AlignTest(('ATACCGG', 'ATAGG'), [('ATACCGG', 'ATA--GG')], (1, -1, 0, 0, 0, 0)),
+    AlignTest(('ATACCGG', 'ATAGG'), [('ATAC-CGG', 'ATA-G-G-')], (1, -1, 0, -2, 0, 0)),
 
 ]
 

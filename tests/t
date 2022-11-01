@@ -1,0 +1,25 @@
+AAATTTAAA
+|||...|||
+AAACCCAAA
+
+score : 3
+
+AAA---TTTAAA
+|||      |||
+AAACCC---AAA
+
+Score : 4
+
+
+ATATATATATA
+||       ||
+AT-------TA #(10, 0, 0, 1, 0, 0)),
+
+Score : 46
+
+
+ATATATATATA
+|      | ||
+A------T-TA
+
+Score: 45
