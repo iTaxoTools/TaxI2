@@ -72,3 +72,6 @@ class Container(Generic[Item]):
         if self.callable:
             return self.callable(*self.args, **self.kwargs)
         return iter(self.iterable)
+
+    def __len__(self):
+        return sum(1 for _ in self)
