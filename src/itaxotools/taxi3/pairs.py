@@ -31,8 +31,12 @@ class SequencePairFile(Type):
     def read(self, *args, **kwargs) -> iter[SequencePair]:
         raise NotImplementedError()
 
-    def write(self, pairs: iter[SequencePair], *args, **kwargs) -> None:
+    def iter_write(self, pairs: iter[SequencePair], *args, **kwargs) -> iter[SequencePair]:
         raise NotImplementedError()
+
+    def write(self, pairs: iter[SequencePair], *args, **kwargs) -> None:
+        for _ in self.iter_write(pairs, *args, **kwargs):
+            pass
 
 
 class Tabfile(SequencePairFile):
@@ -44,11 +48,12 @@ class Tabfile(SequencePairFile):
                 idx, idy, seqX, seqY = lineData[0], lineData[1], lineData[2], lineData[3]
                 yield SequencePair(Sequence(idx, seqX),Sequence(idy, seqY))
 
-    def write(self, pairs: iter[SequencePair], *args, **kwargs) -> None:
+    def iter_write(self, pairs: iter[SequencePair], *args, **kwargs) -> iter[SequencePair]:
         with open(self.path, 'w') as f:
             f.write(f'idx\tidy\tseqx\tseqy\n')
             for pair in pairs:
                 f.write(f'{pair.x.id}\t{pair.y.id}\t{pair.x.seq}\t{pair.y.seq}\n')
+                yield pair
 
 
 class Formatted(SequencePairFile):
@@ -81,11 +86,12 @@ class Formatted(SequencePairFile):
                     buffer = []
                     yield SequencePair(Sequence(idx, seqX), Sequence(idy, seqY))
 
-
-    def write(self, pairs: iter[SequencePair], *args, **kwargs) -> None:
+    def iter_write(self, pairs: iter[SequencePair], *args, **kwargs) -> iter[SequencePair]:
         with open(self.path, 'w') as f:
             for pair in pairs:
                 f.write(f'{pair.x.id} / {pair.y.id}\n')
                 f.write(f'{pair.x.seq}\n')
                 f.write(f'{self._format(pair.x.seq, pair.y.seq)}\n')
                 f.write(f'{pair.y.seq}\n\n')
+                yield pair
+

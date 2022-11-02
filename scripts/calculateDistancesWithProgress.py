@@ -28,8 +28,9 @@ def progress(distances, total):
 
 path_data = Path(argv[1])
 path_reference = Path(argv[2])
-path_out = Path(argv[3])
-
+path_out_linear = Path(argv[3])
+path_out_matrixs = Path(argv[4])
+path_out_pairs = Path(argv[5])
 
 ts = perf_counter()
 
@@ -46,16 +47,25 @@ reference = reference.normalize()
 
 pairs = SequencePairs.fromProduct(data, reference)
 
-aligner = PairwiseAligner.Rust()
+aligner = PairwiseAligner.Biopython()
 aligned_pairs = aligner.align_pairs(pairs)
 
-distances = calc(pairs)
+outFile = SequencePairFile.Formatted(path_out_pairs)
+aligned_pairs = outFile.iter_write(aligned_pairs)
+
+distances = calc(aligned_pairs)
+
+
+# outFile = DistanceFile.Matrix(path_out_matrixs)
+# distances = outFile.iter_write(distances)
+
+outFile = DistanceFile.Linear(path_out_linear)
+distances = outFile.iter_write(distances)
 
 distances = progress(distances, total)
 
-outFile = DistanceFile.Linear(path_out)
-outFile.write(distances)
-
+for _ in distances:
+    pass
 
 tf = perf_counter()
 

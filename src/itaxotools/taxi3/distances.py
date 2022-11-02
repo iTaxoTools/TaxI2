@@ -31,8 +31,12 @@ class DistanceFile(Type):
     def read(self, *args, **kwargs) -> iter[Distance]:
         raise NotImplementedError()
 
-    def write(self, distances: iter[Distance], *args, **kwargs) -> None:
+    def iter_write(self, distances: iter[Distance], *args, **kwargs) -> iter[Distance]:
         raise NotImplementedError()
+
+    def write(self, distances: iter[Distance], *args, **kwargs) -> None:
+        for _ in self.iter_write(distances, *args, **kwargs):
+            pass
 
 
 class Buffer(DistanceFile):
@@ -74,7 +78,7 @@ class Linear(DistanceFile):
                 for distance, metric in zip(distances, metrics):
                     yield Distance(metric, idx, idy, distance)
 
-    def write(self, distances: iter[Distance], *args, **kwargs) -> None:
+    def iter_write(self, distances: iter[Distance], *args, **kwargs) -> iter[Distance]:
         with open(self.path, 'w') as f:
             metrics = []
             buffer = []
@@ -99,6 +103,7 @@ class Linear(DistanceFile):
                     score = '\t'.join(scores)
                     f.write(f'{distance.idx}\t{distance.idy}\t{score}\n')
                     scores = []
+                yield distance
 
 
 class Matrix(DistanceFile):
@@ -123,7 +128,7 @@ class Matrix(DistanceFile):
                     label_distance = data[1:][index]
                     yield Distance(metric, idx, idy, self.distanceFromText(label_distance))
 
-    def write(self, distances: iter[Distance], *args, **kwargs) -> None:
+    def iter_write(self, distances: iter[Distance], *args, **kwargs) -> iter[Distance]:
         with open(self.path, 'w') as f:
             buffer = []
 
@@ -149,6 +154,7 @@ class Matrix(DistanceFile):
                     score = '\t'.join(scores)
                     f.write(f'{distance.idx}\t{score}\n')
                     scores = []
+                yield distance
 
 
 class DistanceMetric(Type):
