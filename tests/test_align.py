@@ -18,6 +18,13 @@ class AlignTest(NamedTuple):
     input: tuple[str, str]
     solutions: list[tuple[str, str]]
     scores: tuple = (1, -1, -8, -1, -1, -1)
+    # Score default keys in order:
+    # - match_score
+    # - mismatch_score
+    # - internal_open_gap_score
+    # - internal_extend_gap_score
+    # - end_open_gap_score
+    # - end_extend_gap_score
 
     def scores_from_tuple(self, scores: tuple[float]):
         return Scores(**{k: v for k, v in zip(Scores.defaults, scores)})
@@ -60,7 +67,6 @@ align_tests = [
 
     AlignTest(('ATATA', 'AAA'), [('ATATA', 'A-A-A')], (1, 0, 0, 0, 0, 0)),
     AlignTest(('ATATA', 'AAA'), [('ATATA', 'AAA--'), ('ATATA', '--AAA')], (1, 0, -1, 0, 0, 0)),
-    #AlignTest(('ATATATATATA', 'ATTA'), [('ATATATATATA', 'AT-------TA')], (10, 0, 0, 1, 0, 0)),
 
     # simple match
     AlignTest(('ATCG', 'ATCG'), [('ATCG', 'ATCG')], (1, 0, 0, 0, 0, 0)),
@@ -80,23 +86,54 @@ align_tests = [
     AlignTest(('TAA', 'CAA'), [('TAA', 'CAA')], (1, 0, -1, 0, 0, 0)),
     AlignTest(('ATC', 'AGC'), [('ATC', 'AGC')], (1, 0, -1, 0, 0, 0)),
     AlignTest(('ATC', 'AGC'), [('ATC', 'AGC')], (1, -1, -1, 0, 0, 0)),
-    #AlignTest(('AAATTTAAA', 'AAACCCAAA'), [('AAA---TTTAAA', 'AAACCC---AAA'), ('AAATTT---AAA', 'AAA---CCCAAA')], (1, -1, -1, 0, 0, 0)),
     AlignTest(('AAATTTAAA', 'AAACCCAAA'), [('AAA---TTTAAA', 'AAACCC---AAA'), ('AAATTT---AAA', 'AAA---CCCAAA')], (1, -2, -1, 0, 0, 0)),
     AlignTest(('AAATTTAAA', 'AAACCCAAA'), [('AAATTTAAA', 'AAACCCAAA'), ('------AAATTTAAA', 'AAACCCAAA------'), ('AAATTTAAA------', '------AAACCCAAA')], (1, -1, -2, 0, 0, 0)),
     AlignTest(('AAACTAAA', 'AAATGAAA'), [('AAACT-AAA', 'AAA-TGAAA')], (1, -1, -1, 0, 0, 0)),
     AlignTest(('AAACTAAA', 'AAATGAAA'), [('AAACTAAA', 'AAATGAAA')], (1, -1, -2, 0, 0, 0)),
 
-    # gap penalty: end & internal
-    AlignTest(('AAA', 'TTT'), [('AAA', 'TTT')], (1, 0, -1, 0, -1, 0)),
-
     # gap penalty: extend internal
     AlignTest(('ATACCGG', 'ATAGG'), [('ATACCGG', 'ATA--GG')], (1, -1, 0, 0, 0, 0)),
     AlignTest(('ATACCGG', 'ATAGG'), [('ATAC-CGG', 'ATA-G-G-')], (1, -1, 0, -2, 0, 0)),
 
+    # gap penalty: end & internal
+    AlignTest(('AAA', 'TTT'), [('AAA', 'TTT')], (1, 0, -1, 0, -1, 0)),
+
+]
+
+
+align_tests_failing = [
+    AlignTest(('ATATATATATA', 'ATTA'), [('ATATATATATA', 'AT-------TA')], (10, 0, 0, 1, 0, 0)),
+    # Biopython: 46
+    # ATATATATATA
+    # ||       ||
+    # AT-------TA
+    #
+    # Rust: 45
+    # ATATATATATA
+    # |      | ||
+    # A------T-TA
+
+    AlignTest(('AAATTTAAA', 'AAACCCAAA'), [('AAA---TTTAAA', 'AAACCC---AAA'), ('AAATTT---AAA', 'AAA---CCCAAA')], (1, -1, -1, 0, 0, 0)),
+    # Biopython: 4
+    # AAA---TTTAAA
+    # |||      |||
+    # AAACCC---AAA
+    #
+    # Rust: 3
+    # AAATTTAAA
+    # |||...|||
+    # AAACCCAAA
 ]
 
 
 @pytest.mark.parametrize("aligner_type", aligner_types)
 @pytest.mark.parametrize("test", align_tests)
 def test_align(aligner_type: PairwiseAligner, test: AlignTest) -> None:
+    test.check(aligner_type)
+
+
+@pytest.mark.xfail
+@pytest.mark.parametrize("aligner_type", aligner_types)
+@pytest.mark.parametrize("test", align_tests_failing)
+def test_align_failing(aligner_type: PairwiseAligner, test: AlignTest) -> None:
     test.check(aligner_type)

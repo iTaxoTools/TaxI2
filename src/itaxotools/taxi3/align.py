@@ -7,13 +7,13 @@ from .sequences import Sequence
 from .types import Type
 from itaxotools.taxi3.library import calculate_distances as calc
 
-class Scores(dict):
+class Scores(dict[str, int]):
     """Can access keys like attributes"""
 
     defaults = dict(
         match_score = 1,
         mismatch_score = -1,
-        internal_open_gap_score  = -8,
+        internal_open_gap_score = -8,
         internal_extend_gap_score = -1,
         end_open_gap_score = -1,
         end_extend_gap_score = -1,
