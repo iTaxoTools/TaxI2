@@ -17,18 +17,18 @@ use crate::needle::Aligner;
 pub fn make_aligner(
     match_score: i16,
     mismatch_score: i16,
-    internal_open_gap_score: i16,
-    internal_extend_gap_score: i16,
     end_open_gap_score: i16,
     end_extend_gap_score: i16,
+    internal_open_gap_score: i16,
+    internal_extend_gap_score: i16,
 ) -> Aligner {
     Aligner {
         match_score,
         mismatch_score,
-        gap_penalty: internal_open_gap_score,
-        gap_extend_penalty: internal_extend_gap_score,
         end_gap_penalty: end_open_gap_score,
         end_gap_extend_penalty: end_extend_gap_score,
+        gap_penalty: internal_open_gap_score,
+        gap_extend_penalty: internal_extend_gap_score,
     }
 }
 
