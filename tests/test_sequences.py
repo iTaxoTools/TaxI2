@@ -47,7 +47,7 @@ read_tests = [
     ReadTest(sequences_simple, 'simple.tsv', SequenceFile.Tabfile),
     ReadTest(sequences_simple, 'simple.xlsx', SequenceFile.Excel),
     ReadTest(sequences_headers, 'headers.tsv', SequenceFile.Tabfile, dict(idHeader='seqid', seqHeader='sequences')),
-    ReadTest(sequences_headers, 'headers.xlsx', SequenceFile.Excel, dict(id='seqid', seq='sequence')),
+    ReadTest(sequences_headers, 'headers.xlsx', SequenceFile.Excel, dict(idHeader='seqid', seqHeader='sequences')),
 ]
 
 

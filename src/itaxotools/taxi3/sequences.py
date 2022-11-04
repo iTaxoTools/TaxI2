@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import NamedTuple
-
+from contextlib import contextmanager
 from Bio import SeqIO
 from Bio.SeqIO.FastaIO import SimpleFastaParser
 from openpyxl import load_workbook
@@ -57,7 +57,14 @@ class Genbank(SequenceFile):
             yield Sequence(data.id, data.seq)
 
 
-class Tabfile(SequenceFile):
+class Tabular(SequenceFile):
+    def iter_rows(self):
+        raise NotImplementedError()
+
+    @contextmanager
+    def open(self):
+        yield self.iter_rows()
+
     def read(
         self,
         idHeader: str = None,
@@ -66,69 +73,47 @@ class Tabfile(SequenceFile):
         idColumn: int = 0,
         seqColumn: int = 1,
     ) -> iter[Sequence]:
-        with open(self.path) as f:
+
+        with self.open() as rows:
+
             # Checking headers
             if idHeader and seqHeader:
                 hasHeader = True
             if hasHeader:
-                headerLine = f.readline().strip().split('\t', maxsplit=-1)
-                idColumn, seqColumn = headerLine.index(idHeader), headerLine.index(seqHeader)
+                headers = next(rows)
+                idColumn, seqColumn = headers.index(idHeader), headers.index(seqHeader)
 
             # Getting id and seq
-            for line in f:
-                if len(line) <= 1:
+            for row in rows:
+                if len(row) <= 1:
                     continue
-                data = line.strip().split('\t', maxsplit=-1)
-                id = data[idColumn]
-                seq = data[seqColumn]
+                id = row[idColumn]
+                seq = row[seqColumn]
 
                 extras = {}
                 if hasHeader:
                     extras = {
-                        k: v for c, (k, v) in enumerate(zip(headerLine, data))
+                        k: v for c, (k, v) in enumerate(zip(headers, row))
                         if c not in (idColumn, seqColumn)
                     }
 
                 yield Sequence(id, seq, extras)
 
 
-class Excel(SequenceFile):
-    def read(
-        self,
-        id: str = None,
-        seq: str = None,
-    ) -> iter[Sequence]:
+class Tabfile(Tabular, SequenceFile):
+    def iter_rows(self) -> iter[tuple[str, ...]]:
+        with open(self.path) as file:
+            for line in file:
+                yield line.strip().split('\t')
+
+
+class Excel(Tabular, SequenceFile):
+    def iter_rows(self) -> iter[tuple[str, ...]]:
         wb = load_workbook(filename=self.path, read_only=True)
         ws = wb.worksheets[0]
-        idColumn = None
-        seqColumn = None
-        numCells = 0
-        numRows = 0
-        for row in ws.rows:
-            lenRow = 0
-            for cell in row:
-                if cell.value is not None:
-                    if cell.value == 'seqid':
-                        idColumn = cell.column
-                    elif cell.value == 'sequences':
-                        seqColumn = cell.column
-                    lenRow += 1
-            if lenRow > 0:
-                numRows = lenRow
-            numCells += 1
-
-        if numRows == 2:
-            for x in range(1, numCells):
-                id = ws.cell(row=x, column=1).value
-                seq = ws.cell(row=x, column=2).value
-                if id and seq:
-                    yield Sequence(id, seq)
-
-        elif idColumn and seqColumn:
-            for x in range(2, numCells):
-                id = ws.cell(row=x, column=idColumn).value
-                seq = ws.cell(row=x, column=seqColumn).value
-                if id and seq:
-                    yield Sequence(id, seq)
-
-        wb.close()
+        for row in ws.iter_rows(values_only=True):
+            row = list(row)
+            while row and row[-1] is None:
+                del row[-1]
+            yield [x if x else '' for x in row]
+        wb.close
