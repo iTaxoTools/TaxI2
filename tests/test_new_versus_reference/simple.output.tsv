@@ -1,0 +1,7 @@
+seqid (query) voucher (query) seqid (reference) voucher (reference) organism (reference)  p-distance	p-distance with gaps	jc	k2p
+query1	x	reference1	X	A 0 0 0 0
+query1	x	reference2	Y	B 0 0 0 0
+query1	x	reference3	Z	C 0 0 0 0
+query2	y	reference1	X	A 0 0 0 0
+query2	y	reference2	Y	B 0 0 0 0
+query2	y	reference3	Z	C 0 0 0 0
