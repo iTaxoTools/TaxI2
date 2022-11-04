@@ -13,6 +13,7 @@ from .types import Container, Type
 class Sequence(NamedTuple):
     id: str
     seq: str
+    extras: dict[str, str] = dict()
 
     _tr_normalize = str.maketrans('?', 'N', '-')
 
@@ -78,7 +79,17 @@ class Tabfile(SequenceFile):
                 if len(line) <= 1:
                     continue
                 data = line.strip().split('\t', maxsplit=-1)
-                yield Sequence(data[idColumn], data[seqColumn])
+                id = data[idColumn]
+                seq = data[seqColumn]
+
+                extras = {}
+                if hasHeader:
+                    extras = {
+                        k: v for c, (k, v) in enumerate(zip(headerLine, data))
+                        if c not in (idColumn, seqColumn)
+                    }
+
+                yield Sequence(id, seq, extras)
 
 
 class Excel(SequenceFile):
@@ -88,7 +99,7 @@ class Excel(SequenceFile):
         seq: str = None,
     ) -> iter[Sequence]:
         wb = load_workbook(filename=self.path, read_only=True)
-        ws = wb['Sheet 1']
+        ws = wb.worksheets[0]
         idColumn = None
         seqColumn = None
         numCells = 0

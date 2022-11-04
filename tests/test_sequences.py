@@ -32,14 +32,22 @@ def sequences_simple() -> Sequences:
     ])
 
 
+def sequences_headers() -> Sequences:
+    return Sequences([
+        Sequence('id1', 'ATC', {'voucher': 'X'}),
+        Sequence('id2', 'ATG', {'voucher': 'Y'}),
+        Sequence('id3', 'ATA', {'voucher': 'Z'}),
+    ])
+
+
 read_tests = [
     ReadTest(sequences_simple, 'simple.fas', SequenceFile.Fasta),
     ReadTest(sequences_simple, 'simple.multi.fas', SequenceFile.Fasta),
     ReadTest(sequences_simple, 'simple.gbk', SequenceFile.Genbank),
     ReadTest(sequences_simple, 'simple.tsv', SequenceFile.Tabfile),
-    ReadTest(sequences_simple, 'simple.headers.tsv', SequenceFile.Tabfile, dict(idHeader='seqid', seqHeader='sequences')),
     ReadTest(sequences_simple, 'simple.xlsx', SequenceFile.Excel),
-    ReadTest(sequences_simple, 'simple.headers.xlsx', SequenceFile.Excel, dict(id='seqid', seq='sequence')),
+    ReadTest(sequences_headers, 'headers.tsv', SequenceFile.Tabfile, dict(idHeader='seqid', seqHeader='sequences')),
+    ReadTest(sequences_headers, 'headers.xlsx', SequenceFile.Excel, dict(id='seqid', seq='sequence')),
 ]
 
 
