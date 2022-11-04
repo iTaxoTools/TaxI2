@@ -17,6 +17,7 @@ def calc(aligned_pairs):
     ]
     for x, y in aligned_pairs:
         for metric in metrics:
+            print(time.time())
             yield metric.calculate(x, y)
 
 def progress(distances, total):
@@ -55,12 +56,11 @@ aligned_pairs = outFile.iter_write(aligned_pairs)
 
 distances = calc(aligned_pairs)
 
-
-# outFile = DistanceFile.Matrix(path_out_matrixs)
-# distances = outFile.iter_write(distances)
-
-outFile = DistanceFile.Linear(path_out_linear)
+outFile = DistanceFile.Matrix(path_out_matrixs)
 distances = outFile.iter_write(distances)
+
+# outFile = DistanceFile.Linear(path_out_linear)
+# distances = outFile.iter_write(distances)
 
 distances = progress(distances, total)
 

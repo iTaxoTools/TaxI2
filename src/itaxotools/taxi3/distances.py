@@ -84,8 +84,8 @@ class Linear(DistanceFile):
             buffer = []
             for d in distances:
                 buffer.append(d)
-                if len(buffer) > 1:
-                    if (buffer[-1].idx, buffer[-1].idy) != (d.idx, d.idy):
+                if len(buffer) > 2:
+                    if (buffer[-2].idx, buffer[-2].idy) != (d.idx, d.idy):
                         break
 
             for d in buffer[:-1]:
@@ -96,7 +96,6 @@ class Linear(DistanceFile):
             metricCount = len(metrics)
             f.write(f'idx\tidy\t{metricString}\n')
             scores = []
-
             for distance in chain(buffer, distances):
                 scores.append(str(distance.d) if distance.d is not None else self.MISSING)
                 if len(scores) == metricCount:
@@ -135,8 +134,8 @@ class Matrix(DistanceFile):
             id = {'idx': [], 'idy': []}
             for distance in distances:
                 buffer.append(distance)
-                if len(buffer) > 1:
-                    if (buffer[-1].idx) != (distance.idx):
+                if len(buffer) > 2:
+                    if (buffer[-2].idx) != (distance.idx):
                         break
                 if distance.idx not in id['idx']:
                     id['idx'].append(distance.idx)
@@ -146,7 +145,7 @@ class Matrix(DistanceFile):
             idy_header = '\t'.join(id['idy'])
             f.write(f'\t{idy_header}\n')
             scores = []
-            for distance in buffer:
+            for distance in chain(buffer, distances):
                 d = str(distance.d) if distance.d is not None else self.MISSING
                 scores.append(d)
                 if len(scores) == len(id['idy']):

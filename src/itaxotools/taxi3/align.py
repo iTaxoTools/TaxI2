@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from Bio.Align import PairwiseAligner as BioPairwiseAligner
-
+import multiprocessing
 from .pairs import SequencePair, SequencePairs
 from .sequences import Sequence
 from .types import Type
@@ -36,7 +36,9 @@ class PairwiseAligner(Type):
         raise NotImplementedError()
 
     def align_pairs(self, pairs: SequencePairs) -> SequencePairs:
-        return SequencePairs((self.align(pair) for pair in pairs))
+        with multiprocessing.Pool(processes=4, maxtasksperchild=10) as pool:
+            for x in pool.imap(self.align, pairs, chunksize=10):
+                yield x
 
 
 class Rust(PairwiseAligner):
