@@ -13,6 +13,9 @@ path_data = Path(argv[1])
 path_reference = Path(argv[2])
 path_out = Path(argv[3])
 
+def foo(obj):
+    print(f"\r Loading... {obj.current_step}/{obj.total_steps} = {(round(float(obj.current_step) / float(obj.total_steps) * 100, 2))}", end="")
+
 ts = perf_counter()
 
 data = SequenceData.from_path(ValidFilePath(path_data), TabfileReader)
@@ -22,6 +25,7 @@ pairs = SequencesPair(target = data, query = reference)
 
 task = CalculateDistances(warn=print)
 task.sequences = pairs
+task.progress_handler = foo
 # task.alignment = Alignment.AlreadyAligned
 task.alignment = Alignment.Pairwise
 task.metrics = [

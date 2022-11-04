@@ -35,11 +35,13 @@ class PairwiseAligner(Type):
     def align(self, pair: SequencePair) -> SequencePair:
         raise NotImplementedError()
 
-    def align_pairs(self, pairs: SequencePairs) -> SequencePairs:
+    def align_pairs_parallel(self, pairs: SequencePairs) -> SequencePairs:
         with multiprocessing.Pool(processes=4, maxtasksperchild=10) as pool:
-            for x in pool.imap(self.align, pairs, chunksize=10):
+            for x in pool.imap(self.align, pairs, chunksize=1000):
                 yield x
 
+    def align_pairs(self, pairs: SequencePairs) -> SequencePairs:
+        return SequencePairs((self.align(pair) for pair in pairs))
 
 class Rust(PairwiseAligner):
 

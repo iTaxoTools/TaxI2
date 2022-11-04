@@ -17,13 +17,12 @@ def calc(aligned_pairs):
     ]
     for x, y in aligned_pairs:
         for metric in metrics:
-            print(time.time())
             yield metric.calculate(x, y)
 
 def progress(distances, total):
 
     for index, distance in enumerate(distances):
-        print(f"\r Loading... {index}/{total}", end="")
+        print(f"\r Loading... {index}/{total} = {(round(float(index)/float(total)  * 100, 2))}", end="")
         yield distance
 
 
@@ -49,18 +48,18 @@ reference = reference.normalize()
 pairs = SequencePairs.fromProduct(data, reference)
 
 aligner = PairwiseAligner.Biopython()
-aligned_pairs = aligner.align_pairs(pairs)
+aligned_pairs = aligner.align_pairs_parallel(pairs)
 
 outFile = SequencePairFile.Formatted(path_out_pairs)
 aligned_pairs = outFile.iter_write(aligned_pairs)
 
 distances = calc(aligned_pairs)
 
-outFile = DistanceFile.Matrix(path_out_matrixs)
-distances = outFile.iter_write(distances)
-
-# outFile = DistanceFile.Linear(path_out_linear)
+# outFile = DistanceFile.Matrix(path_out_matrixs)
 # distances = outFile.iter_write(distances)
+
+outFile = DistanceFile.Linear(path_out_linear)
+distances = outFile.iter_write(distances)
 
 distances = progress(distances, total)
 
