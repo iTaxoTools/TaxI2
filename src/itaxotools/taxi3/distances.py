@@ -11,8 +11,8 @@ from math import isnan, isinf
 
 class Distance(NamedTuple):
     metric: DistanceMetric
-    idx: str
-    idy: str
+    x: Sequence
+    y: Sequence
     d: float | None
 
 
@@ -152,6 +152,89 @@ class Matrix(DistanceFile):
                     count = len(id['idy'])
                     score = '\t'.join(scores)
                     f.write(f'{distance.idx}\t{score}\n')
+                    scores = []
+                yield distance
+
+
+class LinearWithExtras(DistanceFile):
+    MISSING = 'NA'
+
+    @classmethod
+    def distanceFromText(cls, text: str) -> float | None:
+        if text == cls.MISSING:
+            return None
+        return float(text)
+
+    @classmethod
+    def distanceToText(cls, d: float | None) -> str:
+        if d is None:
+            return cls.MISSING
+        return str(d)
+
+    def read(
+        self, idxHeader: str = None,
+        idyHeader: str = None,
+        tagY: str = ' (reference)',
+        tagX: str = ' (query)',
+        idxColumn: int = 0,
+        idyColumn: int = 1) -> iter[Distance]:
+        with open(self.path, 'r') as f:
+            data = f.readline()
+            indexLabelStart = 0
+            dataList = data.strip().split('\t')
+            # print(dataList)
+            if idxHeader and idyHeader:
+                idxHeader = idxHeader + tagX
+                idyHeader = idyHeader + tagY
+                idxColumn, idyColumn = dataList.index(idxHeader), dataList.index(idyHeader)
+
+            for label in dataList:
+                if not DistanceMetric.fromLabel(label):
+                    indexLabelStart +=1
+                else:
+                    break
+
+            labels = dataList[indexLabelStart:]
+            metrics = [DistanceMetric.fromLabel(label) for label in labels]
+            extrasHeaderX, extrasHeaderY = dataList[idxColumn+1:idyColumn], dataList[idyColumn+1:indexLabelStart]
+
+            extrasHeaderX = [tag.removesuffix(tagX) for tag in extrasHeaderX]
+            extrasHeaderY = [tag.removesuffix(tagY) for tag in extrasHeaderY]
+
+            for line in f:
+                lineData = line[:-1].split('\t')
+                idx, idy, labelDistances = lineData[idxColumn], lineData[idyColumn], lineData[indexLabelStart:]
+                extraDataX = lineData[idxColumn+1:idyColumn]
+                extraDataY = lineData[idyColumn+1:indexLabelStart]
+                distances = (self.distanceFromText(d) for d in labelDistances)
+                extrasX = {k: v for k, v in zip(extrasHeaderX, extraDataX)}
+                extrasY = {k: v for k, v in zip(extrasHeaderY, extraDataY)}
+                for distance, metric in zip(distances, metrics):
+                    yield Distance(metric, Sequence(idx, None, extrasX), Sequence(idy, None, extrasY), distance)
+
+    def iter_write(self, distances: iter[Distance], *args, **kwargs) -> iter[Distance]:
+        with open(self.path, 'w') as f:
+            metrics = []
+            buffer = []
+            for d in distances:
+                buffer.append(d)
+                if len(buffer) > 2:
+                    if (buffer[-2].idx, buffer[-2].idy) != (d.idx, d.idy):
+                        break
+
+            for d in buffer[:-1]:
+                if str(d.metric) not in metrics:
+                    metrics.append(str(d.metric))
+
+            metricString = '\t'.join(metrics)
+            metricCount = len(metrics)
+            f.write(f'idx\tidy\t{metricString}\n')
+            scores = []
+            for distance in chain(buffer, distances):
+                scores.append(str(distance.d) if distance.d is not None else self.MISSING)
+                if len(scores) == metricCount:
+                    score = '\t'.join(scores)
+                    f.write(f'{distance.idx}\t{distance.idy}\t{score}\n')
                     scores = []
                 yield distance
 

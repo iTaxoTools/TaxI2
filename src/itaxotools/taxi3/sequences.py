@@ -18,7 +18,7 @@ class Sequence(NamedTuple):
     _tr_normalize = str.maketrans('?', 'N', '-')
 
     def normalize(self):
-        return Sequence(self.id, self.seq.translate(self._tr_normalize).upper())
+        return Sequence(self.id, self.seq.translate(self._tr_normalize).upper(), self.extras)
 
 
 class Sequences(Container[Sequence]):

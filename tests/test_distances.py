@@ -261,3 +261,8 @@ def test_metrics_from_files(test: MetricFileTest) -> None:
     for a in stack:
         print(a.args[0], '\n', file=stderr)
     assert len(stack) == 0
+
+def test_simple_xyz():
+    d = DistanceFile.LinearWithExtras(r'tests\test_new_versus_reference\simple.output.tsv')
+    for i in d.read(idxColumn=0, idyColumn=2):
+        print(i)
