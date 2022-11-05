@@ -1,16 +1,19 @@
 from __future__ import annotations
 
 import re
+from itertools import chain
+from math import isinf, isnan
 from pathlib import Path
 from typing import NamedTuple
-from itertools import chain
-from .sequences import Sequence
-from .types import Container, Type
-from itaxotools.taxi3.library import calculate_distances as calc
-from math import isnan, isinf
+
 import alfpy.bbc as bbc
 import alfpy.ncd as ncd
 from alfpy.utils.seqrecords import SeqRecords
+
+from itaxotools.taxi3.library import calculate_distances as calc
+
+from .sequences import Sequence
+from .types import Container, Type
 
 
 class Distance(NamedTuple):
@@ -153,7 +156,6 @@ class Matrix(DistanceFile):
                 d = str(distance.d) if distance.d is not None else self.MISSING
                 scores.append(d)
                 if len(scores) == len(id['idy']):
-                    count = len(id['idy'])
                     score = '\t'.join(scores)
                     f.write(f'{distance.x.id}\t{score}\n')
                     scores = []
@@ -196,13 +198,13 @@ class LinearWithExtras(DistanceFile):
 
             for label in dataList:
                 if not DistanceMetric.fromLabel(label):
-                    indexLabelStart +=1
+                    indexLabelStart += 1
                 else:
                     break
 
             labels = dataList[indexLabelStart:]
             metrics = [DistanceMetric.fromLabel(label) for label in labels]
-            extrasHeaderX, extrasHeaderY = dataList[idxColumn+1:idyColumn], dataList[idyColumn+1:indexLabelStart]
+            extrasHeaderX, extrasHeaderY = dataList[idxColumn + 1:idyColumn], dataList[idyColumn + 1:indexLabelStart]
 
             extrasHeaderX = [tag.removesuffix(tagX) for tag in extrasHeaderX]
             extrasHeaderY = [tag.removesuffix(tagY) for tag in extrasHeaderY]
@@ -210,8 +212,8 @@ class LinearWithExtras(DistanceFile):
             for line in f:
                 lineData = line[:-1].split('\t')
                 idx, idy, labelDistances = lineData[idxColumn], lineData[idyColumn], lineData[indexLabelStart:]
-                extraDataX = lineData[idxColumn+1:idyColumn]
-                extraDataY = lineData[idyColumn+1:indexLabelStart]
+                extraDataX = lineData[idxColumn + 1:idyColumn]
+                extraDataY = lineData[idyColumn + 1:indexLabelStart]
                 distances = (self.distanceFromText(d) for d in labelDistances)
                 extrasX = {k: v for k, v in zip(extrasHeaderX, extraDataX)}
                 extrasY = {k: v for k, v in zip(extrasHeaderY, extraDataY)}

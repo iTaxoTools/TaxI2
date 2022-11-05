@@ -5,7 +5,7 @@ from typing import NamedTuple
 
 from .sequences import Sequence, Sequences
 from .types import Container, Type
-from itertools import chain
+
 
 class SequencePair(NamedTuple):
     x: Sequence
@@ -42,15 +42,15 @@ class SequencePairFile(Type):
 class Tabfile(SequencePairFile):
     def read(self) -> iter[SequencePair]:
         with open(self.path, 'r') as f:
-            l = f.readline()
+            _ = f.readline()
             for line in f:
                 lineData = line[:-1].split('\t')
                 idx, idy, seqX, seqY = lineData[0], lineData[1], lineData[2], lineData[3]
-                yield SequencePair(Sequence(idx, seqX),Sequence(idy, seqY))
+                yield SequencePair(Sequence(idx, seqX), Sequence(idy, seqY))
 
     def iter_write(self, pairs: iter[SequencePair], *args, **kwargs) -> iter[SequencePair]:
         with open(self.path, 'w') as f:
-            f.write(f'idx\tidy\tseqx\tseqy\n')
+            f.write('idx\tidy\tseqx\tseqy\n')
             for pair in pairs:
                 f.write(f'{pair.x.id}\t{pair.y.id}\t{pair.x.seq}\t{pair.y.seq}\n')
                 yield pair
@@ -82,7 +82,7 @@ class Formatted(SequencePairFile):
                 buffer.append(line)
                 if len(buffer) == 4:
                     idx, idy = buffer[0].split(' / ')
-                    seqX, seqY = buffer[1], buffer[3] # Skipping pos 2 as it is the format
+                    seqX, seqY = buffer[1], buffer[3]  # Skipping pos 2 as it is the format
                     buffer = []
                     yield SequencePair(Sequence(idx, seqX), Sequence(idy, seqY))
 
@@ -94,4 +94,3 @@ class Formatted(SequencePairFile):
                 f.write(f'{self._format(pair.x.seq, pair.y.seq)}\n')
                 f.write(f'{pair.y.seq}\n\n')
                 yield pair
-

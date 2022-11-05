@@ -1,10 +1,11 @@
-from itaxotools.taxi3.distances import *
-from itaxotools.taxi3.sequences import *
-from itaxotools.taxi3.align import *
-from itaxotools.taxi3.pairs import *
 from pathlib import Path
 from sys import argv
 from time import perf_counter
+
+from itaxotools.taxi3.align import *
+from itaxotools.taxi3.distances import *
+from itaxotools.taxi3.pairs import *
+from itaxotools.taxi3.sequences import *
 
 
 def calc(aligned_pairs):
@@ -44,7 +45,6 @@ def main():
 
     outFile = DistanceFile.Linear(path_out)
     outFile.write(distances)
-
 
     tf = perf_counter()
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from sys import stderr
 from pathlib import Path
+from sys import stderr
 from typing import Callable, NamedTuple
 
 import pytest
@@ -246,6 +246,7 @@ def distances_extras() -> Distances:
             None),
     ])
 
+
 read_tests = [
     ReadTest(distances_simple, 'simple.linear', DistanceFile.Linear),
     ReadTest(distances_multiple, 'multiple.linear', DistanceFile.Linear),
@@ -253,16 +254,16 @@ read_tests = [
 
     ReadTest(distances_square_unknown, 'square.matrix', DistanceFile.Matrix),
     ReadTest(distances_square, 'square.matrix', DistanceFile.Matrix,
-        dict(metric=DistanceMetric.Uncorrected())),
+             dict(metric=DistanceMetric.Uncorrected())),
     ReadTest(distances_rectangle, 'rectangle.matrix', DistanceFile.Matrix,
-        dict(metric=DistanceMetric.Uncorrected())),
+             dict(metric=DistanceMetric.Uncorrected())),
     ReadTest(distances_missing, 'missing.matrix', DistanceFile.Matrix,
-        dict(metric=DistanceMetric.Uncorrected())),
+             dict(metric=DistanceMetric.Uncorrected())),
 
     ReadTest(distances_extras, 'extras.tsv', DistanceFile.LinearWithExtras,
-        dict(idxHeader='seqid', idyHeader='id', tagX='_x', tagY='_y')),
+             dict(idxHeader='seqid', idyHeader='id', tagX='_x', tagY='_y')),
     ReadTest(distances_extras, 'extras.tsv', DistanceFile.LinearWithExtras,
-        dict(idxColumn=0, idyColumn=2, tagX='_x', tagY='_y')),
+             dict(idxColumn=0, idyColumn=2, tagX='_x', tagY='_y')),
 ]
 
 
@@ -274,7 +275,7 @@ write_tests = [
     WriteTest(distances_rectangle, 'rectangle.matrix', DistanceFile.Matrix),
     WriteTest(distances_missing, 'missing.matrix', DistanceFile.Matrix),
     WriteTest(distances_extras, 'extras.tsv', DistanceFile.LinearWithExtras,
-        dict(idxHeader='seqid', idyHeader='id', tagX='_x', tagY='_y')),
+              dict(idxHeader='seqid', idyHeader='id', tagX='_x', tagY='_y')),
 ]
 
 

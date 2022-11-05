@@ -1,10 +1,11 @@
-from itaxotools.taxi3.distances import *
-from itaxotools.taxi3.sequences import *
-from itaxotools.taxi3.align import *
-from itaxotools.taxi3.pairs import *
 from pathlib import Path
 from sys import argv
 from time import perf_counter
+
+from itaxotools.taxi3.align import *
+from itaxotools.taxi3.distances import *
+from itaxotools.taxi3.pairs import *
+from itaxotools.taxi3.sequences import *
 
 
 def calc(aligned_pairs):
@@ -30,7 +31,7 @@ def main():
     path_data = Path(argv[1])
     path_reference = Path(argv[2])
     path_out_linear = Path(argv[3])
-    path_out_matrixs = Path(argv[4])
+    path_out_matrix = Path(argv[4])
     path_out_pairs = Path(argv[5])
 
     ts = perf_counter()
@@ -56,8 +57,8 @@ def main():
 
     distances = calc(aligned_pairs)
 
-    # outFile = DistanceFile.Matrix(path_out_matrixs)
-    # distances = outFile.iter_write(distances)
+    outFile = DistanceFile.Matrix(path_out_matrix)
+    distances = outFile.iter_write(distances)
 
     outFile = DistanceFile.LinearWithExtras(path_out_linear)
     distances = outFile.iter_write(distances)

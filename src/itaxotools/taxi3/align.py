@@ -1,11 +1,16 @@
 from __future__ import annotations
 
-from Bio.Align import PairwiseAligner as BioPairwiseAligner
 import multiprocessing
+
+from Bio.Align import PairwiseAligner as BioPairwiseAligner
+from Bio.Seq import reverse_complement
+
+from itaxotools.taxi3.library import calculate_distances as calc
+
 from .pairs import SequencePair, SequencePairs
 from .sequences import Sequence
 from .types import Type
-from itaxotools.taxi3.library import calculate_distances as calc
+
 
 class Scores(dict[str, int]):
     """Can access keys like attributes"""
@@ -43,6 +48,7 @@ class PairwiseAligner(Type):
     def align_pairs(self, pairs: SequencePairs) -> SequencePairs:
         return SequencePairs((self.align(pair) for pair in pairs))
 
+
 class Rust(PairwiseAligner):
 
     def __init__(self, scores: Scores = None):
@@ -71,7 +77,6 @@ class Biopython(PairwiseAligner):
         seq2 = alignment._convert_sequence_string(alignment.query)
         if seq2 is None:
             return alignment._format_generalized()
-        n1 = len(seq1)
         n2 = len(seq2)
         aligned_seq1 = ""
         aligned_seq2 = ""

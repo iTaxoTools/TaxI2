@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 from pathlib import Path
 from typing import NamedTuple
-from contextlib import contextmanager
+
 from Bio import SeqIO
 from Bio.SeqIO.FastaIO import SimpleFastaParser
 from openpyxl import load_workbook

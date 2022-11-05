@@ -1,15 +1,13 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Callable, NamedTuple
+from typing import NamedTuple
 
 import pytest
-from utility import assert_eq_files
 
 from itaxotools.taxi3.align import PairwiseAligner, Scores
-from itaxotools.taxi3.pairs import (
-    SequencePair, SequencePairFile, SequencePairs)
-from itaxotools.taxi3.sequences import Sequence, Sequences
+from itaxotools.taxi3.pairs import SequencePair
+from itaxotools.taxi3.sequences import Sequence
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 

@@ -88,13 +88,11 @@ def test_pairs_from_product() -> None:
         assert p == t
 
 
-
 @pytest.mark.parametrize("test", read_tests)
 def test_read_pairs(test: ReadTest) -> None:
     input_path = TEST_DATA_DIR / test.input
     pairs = test.file(input_path).read(**test.kwargs)
     test.validate(pairs)
-
 
 
 @pytest.mark.parametrize("test", write_tests)
