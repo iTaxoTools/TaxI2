@@ -19,32 +19,37 @@ def calc(aligned_pairs):
             yield metric.calculate(x, y)
 
 
-path_data = Path(argv[1])
-path_reference = Path(argv[2])
-path_out = Path(argv[3])
+def main():
+    path_data = Path(argv[1])
+    path_reference = Path(argv[2])
+    path_out = Path(argv[3])
 
-ts = perf_counter()
+    ts = perf_counter()
 
-file_data = SequenceFile.Tabfile(path_data)
-file_reference = SequenceFile.Tabfile(path_reference)
+    file_data = SequenceFile.Tabfile(path_data)
+    file_reference = SequenceFile.Tabfile(path_reference)
 
-data = Sequences.fromFile(file_data, idHeader='seqid', seqHeader='sequence')
-reference = Sequences.fromFile(file_reference, idHeader='seqid', seqHeader='sequence')
+    data = Sequences.fromFile(file_data, idHeader='seqid', seqHeader='sequence')
+    reference = Sequences.fromFile(file_reference, idHeader='seqid', seqHeader='sequence')
 
-data = data.normalize()
-reference = reference.normalize()
+    data = data.normalize()
+    reference = reference.normalize()
 
-pairs = SequencePairs.fromProduct(data, reference)
+    pairs = SequencePairs.fromProduct(data, reference)
 
-aligner = PairwiseAligner.Rust()
-aligned_pairs = aligner.align_pairs(pairs)
+    aligner = PairwiseAligner.Rust()
+    aligned_pairs = aligner.align_pairs(pairs)
 
-distances = calc(aligned_pairs)
+    distances = calc(aligned_pairs)
 
-outFile = DistanceFile.Linear(path_out)
-outFile.write(distances)
+    outFile = DistanceFile.Linear(path_out)
+    outFile.write(distances)
 
 
-tf = perf_counter()
+    tf = perf_counter()
 
-print(f'Time taken: {tf-ts:.4f}s')
+    print(f'Time taken: {tf-ts:.4f}s')
+
+
+if __name__ == '__main__':
+    main()

@@ -19,41 +19,58 @@ def calc(aligned_pairs):
         for metric in metrics:
             yield metric.calculate(x, y)
 
+
 def get_minimum(distances):
-    for k, g in groupby(distances, lambda d: d.idx):
+    for k, g in groupby(distances, lambda d: d.x.id):
         g = (d for d in g if d.d is not None)
         d = min(g, key = lambda x: x.d)
         yield d
 
 
-path_data = Path(argv[1])
-path_reference = Path(argv[2])
-path_out = Path(argv[3])
+def progress(distances, total):
 
-ts = perf_counter()
-
-file_data = SequenceFile.Tabfile(path_data)
-file_reference = SequenceFile.Tabfile(path_reference)
-
-data = Sequences.fromFile(file_data, idHeader='seqid', seqHeader='sequence')
-reference = Sequences.fromFile(file_reference, idHeader='seqid', seqHeader='sequence')
-
-data = data.normalize()
-reference = reference.normalize()
-
-pairs = SequencePairs.fromProduct(data, reference)
-
-aligner = PairwiseAligner.Biopython()
-aligned_pairs = aligner.align_pairs(pairs)
-
-distances = calc(aligned_pairs)
-
-minimums = get_minimum(distances)
-
-outFile = DistanceFile.Linear(path_out)
-outFile.write(minimums)
+    for index, distance in enumerate(distances):
+        print(f"\r Loading... {index}/{total} = {(round(float(index)/float(total)  * 100, 2))}", end="")
+        yield distance
 
 
-tf = perf_counter()
+def main():
+    path_data = Path(argv[1])
+    path_reference = Path(argv[2])
+    path_out = Path(argv[3])
 
-print(f'Time taken: {tf-ts:.4f}s')
+    ts = perf_counter()
+
+    file_data = SequenceFile.Tabfile(path_data)
+    file_reference = SequenceFile.Tabfile(path_reference)
+
+    data = Sequences.fromFile(file_data, idHeader='seqid', seqHeader='sequence')
+    reference = Sequences.fromFile(file_reference, idHeader='seqid', seqHeader='sequence')
+
+    total = len(data)
+
+    data = data.normalize()
+    reference = reference.normalize()
+
+    pairs = SequencePairs.fromProduct(data, reference)
+
+    aligner = PairwiseAligner.Biopython()
+    aligned_pairs = aligner.align_pairs(pairs)
+
+    distances = calc(aligned_pairs)
+
+    minimums = get_minimum(distances)
+
+    minimums = progress(minimums, total)
+
+    outFile = DistanceFile.LinearWithExtras(path_out)
+    outFile.write(minimums)
+
+
+    tf = perf_counter()
+
+    print(f'Time taken: {tf-ts:.4f}s')
+
+
+if __name__ == '__main__':
+    main()
