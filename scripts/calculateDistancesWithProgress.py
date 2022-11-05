@@ -58,7 +58,7 @@ distances = calc(aligned_pairs)
 # outFile = DistanceFile.Matrix(path_out_matrixs)
 # distances = outFile.iter_write(distances)
 
-outFile = DistanceFile.Linear(path_out_linear)
+outFile = DistanceFile.LinearWithExtras(path_out_linear)
 distances = outFile.iter_write(distances)
 
 distances = progress(distances, total)

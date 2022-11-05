@@ -233,7 +233,6 @@ class LinearWithExtras(DistanceFile):
             for d in distances:
                 buffer.append(d)
                 if len(buffer) > 2:
-                    print(buffer)
                     if (buffer[-2].x.id, buffer[-2].y.id) != (d.x.id, d.y.id):
                         break
 

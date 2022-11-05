@@ -57,8 +57,8 @@ class MetricTest(NamedTuple):
         y = Sequence('idy', self.seq_y)
         r = self.metric.calculate(x, y)
         assert r.metric == self.metric
-        assert r.idx == 'idx'
-        assert r.idy == 'idy'
+        assert r.x.id == 'idx'
+        assert r.y.id == 'idy'
         if isinstance(r.d, float):
             assert abs(r.d - self.d) <= self.precision
         else:
@@ -87,95 +87,95 @@ class MetricFileTest(NamedTuple):
 def distances_simple() -> Distances:
     metric = DistanceMetric.Uncorrected()
     return Distances([
-        Distance(metric, 'id1', 'id2', 0.1),
-        Distance(metric, 'id1', 'id3', 0.2),
-        Distance(metric, 'id1', 'id4', 0.3),
+        Distance(metric, Sequence('id1', None), Sequence('id2', None), 0.1),
+        Distance(metric, Sequence('id1', None), Sequence('id3', None), 0.2),
+        Distance(metric, Sequence('id1', None), Sequence('id4', None), 0.3),
     ])
 
 
 def distances_multiple() -> Distances:
     return Distances([
-        Distance(DistanceMetric.Uncorrected(), 'id1', 'id2', 0.11),
-        Distance(DistanceMetric.UncorrectedWithGaps(), 'id1', 'id2', 0.12),
-        Distance(DistanceMetric.JukesCantor(), 'id1', 'id2', 0.13),
-        Distance(DistanceMetric.Kimura2P(), 'id1', 'id2', 0.14),
-        Distance(DistanceMetric.NCD(), 'id1', 'id2', 0.15),
-        Distance(DistanceMetric.BBC(0), 'id1', 'id2', 0.16),
+        Distance(DistanceMetric.Uncorrected(), Sequence('id1', None), Sequence('id2', None), 0.11),
+        Distance(DistanceMetric.UncorrectedWithGaps(), Sequence('id1', None), Sequence('id2', None), 0.12),
+        Distance(DistanceMetric.JukesCantor(), Sequence('id1', None), Sequence('id2', None), 0.13),
+        Distance(DistanceMetric.Kimura2P(), Sequence('id1', None), Sequence('id2', None), 0.14),
+        Distance(DistanceMetric.NCD(), Sequence('id1', None), Sequence('id2', None), 0.15),
+        Distance(DistanceMetric.BBC(0), Sequence('id1', None), Sequence('id2', None), 0.16),
 
-        Distance(DistanceMetric.Uncorrected(), 'id1', 'id3', 0.21),
-        Distance(DistanceMetric.UncorrectedWithGaps(), 'id1', 'id3', 0.22),
-        Distance(DistanceMetric.JukesCantor(), 'id1', 'id3', 0.23),
-        Distance(DistanceMetric.Kimura2P(), 'id1', 'id3', 0.24),
-        Distance(DistanceMetric.NCD(), 'id1', 'id3', 0.25),
-        Distance(DistanceMetric.BBC(0), 'id1', 'id3', 0.26),
+        Distance(DistanceMetric.Uncorrected(), Sequence('id1', None), Sequence('id3', None), 0.21),
+        Distance(DistanceMetric.UncorrectedWithGaps(), Sequence('id1', None), Sequence('id3', None), 0.22),
+        Distance(DistanceMetric.JukesCantor(), Sequence('id1', None), Sequence('id3', None), 0.23),
+        Distance(DistanceMetric.Kimura2P(), Sequence('id1', None), Sequence('id3', None), 0.24),
+        Distance(DistanceMetric.NCD(), Sequence('id1', None), Sequence('id3', None), 0.25),
+        Distance(DistanceMetric.BBC(0), Sequence('id1', None), Sequence('id3', None), 0.26),
 
-        Distance(DistanceMetric.Uncorrected(), 'id1', 'id4', 0.31),
-        Distance(DistanceMetric.UncorrectedWithGaps(), 'id1', 'id4', 0.32),
-        Distance(DistanceMetric.JukesCantor(), 'id1', 'id4', 0.33),
-        Distance(DistanceMetric.Kimura2P(), 'id1', 'id4', 0.34),
-        Distance(DistanceMetric.NCD(), 'id1', 'id4', 0.35),
-        Distance(DistanceMetric.BBC(0), 'id1', 'id4', 0.36),
+        Distance(DistanceMetric.Uncorrected(), Sequence('id1', None), Sequence('id4', None), 0.31),
+        Distance(DistanceMetric.UncorrectedWithGaps(), Sequence('id1', None), Sequence('id4', None), 0.32),
+        Distance(DistanceMetric.JukesCantor(), Sequence('id1', None), Sequence('id4', None), 0.33),
+        Distance(DistanceMetric.Kimura2P(), Sequence('id1', None), Sequence('id4', None), 0.34),
+        Distance(DistanceMetric.NCD(), Sequence('id1', None), Sequence('id4', None), 0.35),
+        Distance(DistanceMetric.BBC(0), Sequence('id1', None), Sequence('id4', None), 0.36),
     ])
 
 
 def distances_square() -> Distances:
     metric = DistanceMetric.Uncorrected()
     return Distances([
-        Distance(metric, 'id1', 'id1', 0.0),
-        Distance(metric, 'id1', 'id2', 0.1),
-        Distance(metric, 'id1', 'id3', 0.2),
+        Distance(metric, Sequence('id1', None), Sequence('id1', None), 0.0),
+        Distance(metric, Sequence('id1', None), Sequence('id2', None), 0.1),
+        Distance(metric, Sequence('id1', None), Sequence('id3', None), 0.2),
 
-        Distance(metric, 'id2', 'id1', 0.1),
-        Distance(metric, 'id2', 'id2', 0.0),
-        Distance(metric, 'id2', 'id3', 0.3),
+        Distance(metric, Sequence('id2', None), Sequence('id1', None), 0.1),
+        Distance(metric, Sequence('id2', None), Sequence('id2', None), 0.0),
+        Distance(metric, Sequence('id2', None), Sequence('id3', None), 0.3),
 
-        Distance(metric, 'id3', 'id1', 0.2),
-        Distance(metric, 'id3', 'id2', 0.3),
-        Distance(metric, 'id3', 'id3', 0.0),
+        Distance(metric, Sequence('id3', None), Sequence('id1', None), 0.2),
+        Distance(metric, Sequence('id3', None), Sequence('id2', None), 0.3),
+        Distance(metric, Sequence('id3', None), Sequence('id3', None), 0.0),
     ])
 
 
 def distances_square_unknown() -> Distances:
     metric = DistanceMetric.Unknown()
     return Distances([
-        Distance(metric, dis.idx, dis.idy, dis.d) for dis in distances_square()
+        Distance(metric, dis.x, dis.y, dis.d) for dis in distances_square()
     ])
 
 
 def distances_rectangle() -> Distances:
     metric = DistanceMetric.Uncorrected()
     return Distances([
-        Distance(metric, 'id1', 'id4', 0.14),
-        Distance(metric, 'id1', 'id5', 0.15),
-        Distance(metric, 'id1', 'id6', 0.16),
-        Distance(metric, 'id1', 'id7', 0.17),
-        Distance(metric, 'id1', 'id8', 0.18),
-        Distance(metric, 'id1', 'id9', 0.19),
+        Distance(metric, Sequence('id1', None), Sequence('id4', None), 0.14),
+        Distance(metric, Sequence('id1', None), Sequence('id5', None), 0.15),
+        Distance(metric, Sequence('id1', None), Sequence('id6', None), 0.16),
+        Distance(metric, Sequence('id1', None), Sequence('id7', None), 0.17),
+        Distance(metric, Sequence('id1', None), Sequence('id8', None), 0.18),
+        Distance(metric, Sequence('id1', None), Sequence('id9', None), 0.19),
 
-        Distance(metric, 'id2', 'id4', 0.24),
-        Distance(metric, 'id2', 'id5', 0.25),
-        Distance(metric, 'id2', 'id6', 0.26),
-        Distance(metric, 'id2', 'id7', 0.27),
-        Distance(metric, 'id2', 'id8', 0.28),
-        Distance(metric, 'id2', 'id9', 0.29),
+        Distance(metric, Sequence('id2', None), Sequence('id4', None), 0.24),
+        Distance(metric, Sequence('id2', None), Sequence('id5', None), 0.25),
+        Distance(metric, Sequence('id2', None), Sequence('id6', None), 0.26),
+        Distance(metric, Sequence('id2', None), Sequence('id7', None), 0.27),
+        Distance(metric, Sequence('id2', None), Sequence('id8', None), 0.28),
+        Distance(metric, Sequence('id2', None), Sequence('id9', None), 0.29),
 
-        Distance(metric, 'id3', 'id4', 0.34),
-        Distance(metric, 'id3', 'id5', 0.35),
-        Distance(metric, 'id3', 'id6', 0.36),
-        Distance(metric, 'id3', 'id7', 0.37),
-        Distance(metric, 'id3', 'id8', 0.38),
-        Distance(metric, 'id3', 'id9', 0.39),
+        Distance(metric, Sequence('id3', None), Sequence('id4', None), 0.34),
+        Distance(metric, Sequence('id3', None), Sequence('id5', None), 0.35),
+        Distance(metric, Sequence('id3', None), Sequence('id6', None), 0.36),
+        Distance(metric, Sequence('id3', None), Sequence('id7', None), 0.37),
+        Distance(metric, Sequence('id3', None), Sequence('id8', None), 0.38),
+        Distance(metric, Sequence('id3', None), Sequence('id9', None), 0.39),
     ])
 
 
 def distances_missing() -> Distances:
     metric = DistanceMetric.Uncorrected()
     return Distances([
-        Distance(metric, 'id1', 'id1', 0.0),
-        Distance(metric, 'id1', 'id2', None),
+        Distance(metric, Sequence('id1', None), Sequence('id1', None), 0.0),
+        Distance(metric, Sequence('id1', None), Sequence('id2', None), None),
 
-        Distance(metric, 'id2', 'id1', None),
-        Distance(metric, 'id2', 'id2', 0.0),
+        Distance(metric, Sequence('id2', None), Sequence('id1', None), None),
+        Distance(metric, Sequence('id2', None), Sequence('id2', None), 0.0),
     ])
 
 
