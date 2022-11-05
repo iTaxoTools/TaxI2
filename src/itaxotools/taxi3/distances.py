@@ -8,6 +8,10 @@ from .sequences import Sequence
 from .types import Container, Type
 from itaxotools.taxi3.library import calculate_distances as calc
 from math import isnan, isinf
+import alfpy.bbc as bbc
+import alfpy.ncd as ncd
+from alfpy.utils.seqrecords import SeqRecords
+
 
 class Distance(NamedTuple):
     metric: DistanceMetric
@@ -270,7 +274,7 @@ class DistanceMetric(Type):
 
     @staticmethod
     def _is_number(x):
-        return not (isnan(x) or isinf(x))
+        return not (x is None or isnan(x) or isinf(x))
 
     def _calculate(self, x: str, y: str) -> float:
         raise NotImplementedError()
@@ -332,15 +336,31 @@ class Kimura2P(DistanceMetric):
 class NCD(DistanceMetric):
     label = 'ncd'
 
+    def _calculate(self, x: str, y: str) -> float:
+        records = SeqRecords((0, 1), (x, y))
+        distance = ncd.Distance(records)
+        d = distance.pairwise_distance(0, 1)
+        return d if self._is_number(d) else None
+
 
 class BBC(DistanceMetric):
     label = 'bbc({})'
 
-    def __init__(self, arg):
-        self.arg = arg
+    def __init__(self, k=10):
+        self.k = k
 
     def __str__(self):
-        return self.label.format(self.arg)
+        return self.label.format(self.k)
 
     def __eq__(self, other):
-        return super().__eq__(other) and self.arg == other.arg
+        return super().__eq__(other) and self.k == other.k
+
+    def _calculate(self, x: str, y: str) -> float:
+        records = SeqRecords((0, 1), (x, y))
+        try:
+            vector = bbc.create_vectors(records, k=self.k)
+            distance = bbc.Distance(vector)
+            d = distance.pairwise_distance(0, 1)
+        except Exception:
+            d = None
+        return d if self._is_number(d) else None
