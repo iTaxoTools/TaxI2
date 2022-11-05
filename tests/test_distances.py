@@ -31,6 +31,7 @@ class WriteTest(NamedTuple):
     fixture: Callable[[], Distances]
     output: str
     file: DistanceFile
+    kwargs: dict = {}
 
     def generate(self) -> Distances:
         return self.fixture()
@@ -179,14 +180,89 @@ def distances_missing() -> Distances:
     ])
 
 
+def distances_extras() -> Distances:
+    return Distances([
+        Distance(
+            DistanceMetric.Uncorrected(),
+            Sequence('query1', None, dict(voucher='K')),
+            Sequence('reference1', None, dict(voucher='X', organism='A')),
+            0.11),
+        Distance(
+            DistanceMetric.UncorrectedWithGaps(),
+            Sequence('query1', None, dict(voucher='K')),
+            Sequence('reference1', None, dict(voucher='X', organism='A')),
+            0.12),
+        Distance(
+            DistanceMetric.JukesCantor(),
+            Sequence('query1', None, dict(voucher='K')),
+            Sequence('reference1', None, dict(voucher='X', organism='A')),
+            0.13),
+        Distance(
+            DistanceMetric.Kimura2P(),
+            Sequence('query1', None, dict(voucher='K')),
+            Sequence('reference1', None, dict(voucher='X', organism='A')),
+            0.14),
+
+        Distance(
+            DistanceMetric.Uncorrected(),
+            Sequence('query1', None, dict(voucher='K')),
+            Sequence('reference2', None, dict(voucher='Y', organism='B')),
+            0.21),
+        Distance(
+            DistanceMetric.UncorrectedWithGaps(),
+            Sequence('query1', None, dict(voucher='K')),
+            Sequence('reference2', None, dict(voucher='Y', organism='B')),
+            0.22),
+        Distance(
+            DistanceMetric.JukesCantor(),
+            Sequence('query1', None, dict(voucher='K')),
+            Sequence('reference2', None, dict(voucher='Y', organism='B')),
+            0.23),
+        Distance(
+            DistanceMetric.Kimura2P(),
+            Sequence('query1', None, dict(voucher='K')),
+            Sequence('reference2', None, dict(voucher='Y', organism='B')),
+            0.24),
+
+        Distance(
+            DistanceMetric.Uncorrected(),
+            Sequence('query2', None, dict(voucher='L')),
+            Sequence('reference3', None, dict(voucher='Z', organism='C')),
+            0.31),
+        Distance(
+            DistanceMetric.UncorrectedWithGaps(),
+            Sequence('query2', None, dict(voucher='L')),
+            Sequence('reference3', None, dict(voucher='Z', organism='C')),
+            0.32),
+        Distance(
+            DistanceMetric.JukesCantor(),
+            Sequence('query2', None, dict(voucher='L')),
+            Sequence('reference3', None, dict(voucher='Z', organism='C')),
+            0.33),
+        Distance(
+            DistanceMetric.Kimura2P(),
+            Sequence('query2', None, dict(voucher='L')),
+            Sequence('reference3', None, dict(voucher='Z', organism='C')),
+            None),
+    ])
+
 read_tests = [
     ReadTest(distances_simple, 'simple.linear', DistanceFile.Linear),
     ReadTest(distances_multiple, 'multiple.linear', DistanceFile.Linear),
     ReadTest(distances_missing, 'missing.linear', DistanceFile.Linear),
+
     ReadTest(distances_square_unknown, 'square.matrix', DistanceFile.Matrix),
-    ReadTest(distances_square, 'square.matrix', DistanceFile.Matrix, dict(metric=DistanceMetric.Uncorrected())),
-    ReadTest(distances_rectangle, 'rectangle.matrix', DistanceFile.Matrix, dict(metric=DistanceMetric.Uncorrected())),
-    ReadTest(distances_missing, 'missing.matrix', DistanceFile.Matrix, dict(metric=DistanceMetric.Uncorrected())),
+    ReadTest(distances_square, 'square.matrix', DistanceFile.Matrix,
+        dict(metric=DistanceMetric.Uncorrected())),
+    ReadTest(distances_rectangle, 'rectangle.matrix', DistanceFile.Matrix,
+        dict(metric=DistanceMetric.Uncorrected())),
+    ReadTest(distances_missing, 'missing.matrix', DistanceFile.Matrix,
+        dict(metric=DistanceMetric.Uncorrected())),
+
+    ReadTest(distances_extras, 'extras.tsv', DistanceFile.LinearWithExtras,
+        dict(idxHeader='seqid', idyHeader='id', tagX='_x', tagY='_y')),
+    ReadTest(distances_extras, 'extras.tsv', DistanceFile.LinearWithExtras,
+        dict(idxColumn=0, idyColumn=2, tagX='_x', tagY='_y')),
 ]
 
 
@@ -197,6 +273,8 @@ write_tests = [
     WriteTest(distances_square, 'square.matrix', DistanceFile.Matrix),
     WriteTest(distances_rectangle, 'rectangle.matrix', DistanceFile.Matrix),
     WriteTest(distances_missing, 'missing.matrix', DistanceFile.Matrix),
+    WriteTest(distances_extras, 'extras.tsv', DistanceFile.LinearWithExtras,
+        dict(idxHeader='seqid', idyHeader='id', tagX='_x', tagY='_y')),
 ]
 
 
@@ -236,7 +314,7 @@ def test_write_distances(test: WriteTest, tmp_path: Path) -> None:
     fixed_path = TEST_DATA_DIR / test.output
     output_path = tmp_path / test.output
     distances = iter(test.generate())
-    test.file(output_path).write(distances)
+    test.file(output_path).write(distances, **test.kwargs)
     assert_eq_files(output_path, fixed_path)
 
 
@@ -261,8 +339,3 @@ def test_metrics_from_files(test: MetricFileTest) -> None:
     for a in stack:
         print(a.args[0], '\n', file=stderr)
     assert len(stack) == 0
-
-def test_simple_xyz():
-    d = DistanceFile.LinearWithExtras(r'tests\test_new_versus_reference\simple.output.tsv')
-    for i in d.read(idxColumn=0, idyColumn=2):
-        print(i)
