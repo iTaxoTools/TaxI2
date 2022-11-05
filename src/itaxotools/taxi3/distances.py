@@ -76,7 +76,7 @@ class Linear(DistanceFile):
                 idx, idy, labelDistances = lineData[0], lineData[1], lineData[2:]
                 distances = (self.distanceFromText(d) for d in labelDistances)
                 for distance, metric in zip(distances, metrics):
-                    yield Distance(metric, idx, idy, distance)
+                    yield Distance(metric, Sequence(idx, None), Sequence(idy, None), distance)
 
     def iter_write(self, distances: iter[Distance], *args, **kwargs) -> iter[Distance]:
         with open(self.path, 'w') as f:
@@ -85,7 +85,7 @@ class Linear(DistanceFile):
             for d in distances:
                 buffer.append(d)
                 if len(buffer) > 2:
-                    if (buffer[-2].idx, buffer[-2].idy) != (d.idx, d.idy):
+                    if (buffer[-2].x.id, buffer[-2].y.id) != (d.x.id, d.y.id):
                         break
 
             for d in buffer[:-1]:
@@ -100,7 +100,7 @@ class Linear(DistanceFile):
                 scores.append(str(distance.d) if distance.d is not None else self.MISSING)
                 if len(scores) == metricCount:
                     score = '\t'.join(scores)
-                    f.write(f'{distance.idx}\t{distance.idy}\t{score}\n')
+                    f.write(f'{distance.x.id}\t{distance.y.id}\t{score}\n')
                     scores = []
                 yield distance
 
@@ -125,7 +125,7 @@ class Matrix(DistanceFile):
                 for index in range(len(data[1:])):
                     idy = id_to_compare[index]
                     label_distance = data[1:][index]
-                    yield Distance(metric, idx, idy, self.distanceFromText(label_distance))
+                    yield Distance(metric, Sequence(idx, None), Sequence(idy, None), self.distanceFromText(label_distance))
 
     def iter_write(self, distances: iter[Distance], *args, **kwargs) -> iter[Distance]:
         with open(self.path, 'w') as f:
@@ -135,12 +135,12 @@ class Matrix(DistanceFile):
             for distance in distances:
                 buffer.append(distance)
                 if len(buffer) > 2:
-                    if (buffer[-2].idx) != (distance.idx):
+                    if (buffer[-2].x.id) != (distance.x.id):
                         break
-                if distance.idx not in id['idx']:
-                    id['idx'].append(distance.idx)
-                if distance.idy not in id['idy']:
-                    id['idy'].append(distance.idy)
+                if distance.x.id not in id['idx']:
+                    id['idx'].append(distance.x.id)
+                if distance.y.id not in id['idy']:
+                    id['idy'].append(distance.y.id)
 
             idy_header = '\t'.join(id['idy'])
             f.write(f'\t{idy_header}\n')
@@ -151,7 +151,7 @@ class Matrix(DistanceFile):
                 if len(scores) == len(id['idy']):
                     count = len(id['idy'])
                     score = '\t'.join(scores)
-                    f.write(f'{distance.idx}\t{score}\n')
+                    f.write(f'{distance.x.id}\t{score}\n')
                     scores = []
                 yield distance
 
@@ -172,12 +172,14 @@ class LinearWithExtras(DistanceFile):
         return str(d)
 
     def read(
-        self, idxHeader: str = None,
+        self,
+        idxHeader: str = None,
         idyHeader: str = None,
-        tagY: str = ' (reference)',
         tagX: str = ' (query)',
+        tagY: str = ' (reference)',
         idxColumn: int = 0,
-        idyColumn: int = 1) -> iter[Distance]:
+        idyColumn: int = 1,
+    ) -> iter[Distance]:
         with open(self.path, 'r') as f:
             data = f.readline()
             indexLabelStart = 0
@@ -212,29 +214,49 @@ class LinearWithExtras(DistanceFile):
                 for distance, metric in zip(distances, metrics):
                     yield Distance(metric, Sequence(idx, None, extrasX), Sequence(idy, None, extrasY), distance)
 
-    def iter_write(self, distances: iter[Distance], *args, **kwargs) -> iter[Distance]:
+    def iter_write(
+        self,
+        distances: iter[Distance],
+        idxHeader: str = 'seqid',
+        idyHeader: str = 'seqid',
+        tagX: str = ' (query)',
+        tagY: str = ' (reference)',
+    ) -> iter[Distance]:
         with open(self.path, 'w') as f:
             metrics = []
             buffer = []
+
             for d in distances:
                 buffer.append(d)
                 if len(buffer) > 2:
-                    if (buffer[-2].idx, buffer[-2].idy) != (d.idx, d.idy):
+                    print(buffer)
+                    if (buffer[-2].x.id, buffer[-2].y.id) != (d.x.id, d.y.id):
                         break
 
             for d in buffer[:-1]:
                 if str(d.metric) not in metrics:
                     metrics.append(str(d.metric))
-
-            metricString = '\t'.join(metrics)
             metricCount = len(metrics)
-            f.write(f'idx\tidy\t{metricString}\n')
+
+            extrasHeaderX = buffer[0].x.extras.keys()
+            extrasHeaderY = buffer[0].y.extras.keys()
+            headersX = [idxHeader] + list(extrasHeaderX)
+            headersY = [idyHeader] + list(extrasHeaderY)
+            headersX = [x + tagX for x in headersX]
+            headersY = [y + tagY for y in headersY]
+            headers = headersX + headersY + metrics
+            headerString = '\t'.join(headers)
+
+            f.write(f'{headerString}\n')
+
             scores = []
             for distance in chain(buffer, distances):
                 scores.append(str(distance.d) if distance.d is not None else self.MISSING)
                 if len(scores) == metricCount:
                     score = '\t'.join(scores)
-                    f.write(f'{distance.idx}\t{distance.idy}\t{score}\n')
+                    extrasX = '\t'.join([distance.x.extras[k] for k in extrasHeaderX])
+                    extrasY = '\t'.join([distance.y.extras[k] for k in extrasHeaderY])
+                    f.write(f'{distance.x.id}\t{extrasX}\t{distance.y.id}\t{extrasY}\t{score}\n')
                     scores = []
                 yield distance
 
@@ -254,7 +276,7 @@ class DistanceMetric(Type):
         raise NotImplementedError()
 
     def calculate(self, x: Sequence, y: Sequence) -> Distance:
-        return Distance(self, x.id, y.id, self._calculate(x.seq, y.seq))
+        return Distance(self, x, y, self._calculate(x.seq, y.seq))
 
     @classmethod
     def fromLabel(cls, label: str):
