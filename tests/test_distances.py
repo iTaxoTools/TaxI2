@@ -254,16 +254,16 @@ read_tests = [
 
     ReadTest(distances_square_unknown, 'square.matrix', DistanceFile.Matrix),
     ReadTest(distances_square, 'square.matrix', DistanceFile.Matrix,
-             dict(metric=DistanceMetric.Uncorrected())),
+        dict(metric=DistanceMetric.Uncorrected())),
     ReadTest(distances_rectangle, 'rectangle.matrix', DistanceFile.Matrix,
-             dict(metric=DistanceMetric.Uncorrected())),
+        dict(metric=DistanceMetric.Uncorrected())),
     ReadTest(distances_missing, 'missing.matrix', DistanceFile.Matrix,
-             dict(metric=DistanceMetric.Uncorrected())),
+        dict(metric=DistanceMetric.Uncorrected())),
 
     ReadTest(distances_extras, 'extras.tsv', DistanceFile.LinearWithExtras,
-             dict(idxHeader='seqid', idyHeader='id', tagX='_x', tagY='_y')),
+        dict(idxHeader='seqid', idyHeader='id', tagX='_x', tagY='_y')),
     ReadTest(distances_extras, 'extras.tsv', DistanceFile.LinearWithExtras,
-             dict(idxColumn=0, idyColumn=2, tagX='_x', tagY='_y')),
+        dict(idxColumn=0, idyColumn=2, tagX='_x', tagY='_y')),
 ]
 
 
@@ -275,7 +275,13 @@ write_tests = [
     WriteTest(distances_rectangle, 'rectangle.matrix', DistanceFile.Matrix),
     WriteTest(distances_missing, 'missing.matrix', DistanceFile.Matrix),
     WriteTest(distances_extras, 'extras.tsv', DistanceFile.LinearWithExtras,
-              dict(idxHeader='seqid', idyHeader='id', tagX='_x', tagY='_y')),
+        dict(idxHeader='seqid', idyHeader='id', tagX='_x', tagY='_y')),
+    WriteTest(distances_missing, 'missing.formatted.linear', DistanceFile.Linear,
+        dict(format='{:.2e}', missing='nan')),
+    WriteTest(distances_missing, 'missing.formatted.linear', DistanceFile.LinearWithExtras,
+        dict(format='{:.2e}', missing='nan')),
+    WriteTest(distances_missing, 'missing.formatted.matrix', DistanceFile.Matrix,
+        dict(format='{:.2e}', missing='nan')),
 ]
 
 
