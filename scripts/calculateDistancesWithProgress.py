@@ -49,8 +49,8 @@ def main():
 
     pairs = SequencePairs.fromProduct(data, reference)
 
-    aligner = PairwiseAligner.Biopython()
-    aligned_pairs = aligner.align_pairs_parallel(pairs)
+    aligner = PairwiseAligner.Rust()
+    aligned_pairs = aligner.align_pairs(pairs)
 
     outFile = SequencePairFile.Formatted(path_out_pairs)
     aligned_pairs = outFile.iter_write(aligned_pairs)

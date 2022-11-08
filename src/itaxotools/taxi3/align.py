@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import multiprocessing
+from warnings import warn
 
 from Bio.Align import PairwiseAligner as BioPairwiseAligner
 from Bio.Seq import reverse_complement
@@ -53,6 +54,7 @@ class Rust(PairwiseAligner):
 
     def __init__(self, scores: Scores = None):
         super().__init__(scores)
+        warn('PairwiseAligner.Rust does not always find the best alignment!', RuntimeWarning)
         self.aligner = calc.make_aligner(**self.scores)
 
     def align(self, pair: SequencePair) -> SequencePair:

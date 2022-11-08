@@ -92,9 +92,26 @@ align_tests = [
     # gap penalty: extend internal
     AlignTest(('ATACCGG', 'ATAGG'), [('ATACCGG', 'ATA--GG')], (1, -1, 0, 0, 0, 0)),
     AlignTest(('ATACCGG', 'ATAGG'), [('ATAC-CGG', 'ATA-G-G-')], (1, -1, 0, -2, 0, 0)),
+    AlignTest(('ATATACGCGCATATA', 'ATATAGGATATA'), [('ATATACGCGCATATA', 'ATATA-G-G-ATATA')], (10, 0, 0, 0, 0, 0)),
+    AlignTest(('ATATACGCGCATATA', 'ATATAGGATATA'), [('ATATACGCGCATATA', 'ATATA---GGATATA'), ('ATATACGCGCATATA', 'ATATAGG---ATATA')], (10, 0, -10, 0, 0, 0)),
+    AlignTest(('ATATACGCGCATATA', 'ATATAGGATATA'), [('ATATACGCGCATATA', 'ATATA-G-G-ATATA')], (10, 0, -10, -6, 0, 0)),
+    AlignTest(('ATACCCCATA', 'ATACATA'), [('ATACCCCATA', 'AT-A-C-ATA'), ('ATACCCCATA', 'ATA-C-A-TA')], (1, 0, 0, -2, 0, 0)),
+    AlignTest(('GCCCCATA', 'GCATA'), [('GCCCCATA', 'G-C-A-TA')], (1, 0, 0, -2, -1, 0)),
 
-    # gap penalty: end & internal
+    # gap penalty: open end
+    AlignTest(('ATC', 'ATG'), [('ATC', 'ATG')], (1, 0, 0, 0, -1, 0)),
+    AlignTest(('ATC', 'ATG'), [('ATC', 'ATG')], (1, -1, 0, 0, -2, 0)),
+    AlignTest(('ATCG', 'ATC'), [('ATCG', 'AT-C')], (1, 0, 0, 0, -2, 0)),
+    AlignTest(('ATCG', 'TCG'), [('ATCG', 'T-CG')], (1, 0, 0, 0, -2, 0)),
+    AlignTest(('ATTA', 'TT'), [('ATTA', 'T--T')], (1, 0, 0, 0, -2, 0)),
+    AlignTest(('ATTTTTTTTTTA', 'TT'), [('ATTTTTTTTTTA', 'T----------T')], (1, 0, 0, 0, -2, 0)),
+    AlignTest(('A', 'T'), [('-A', 'T-'), ('A-', '-T')], (1, 0, 0, 0, 1, 0)),
     AlignTest(('AAA', 'TTT'), [('AAA', 'TTT')], (1, 0, -1, 0, -1, 0)),
+
+    # gap penalty: extend end
+    AlignTest(('AATT', 'TTCC'), [('AATT-', '-TTCC')], (1, 0, -1, 0, 0, -1)),
+    AlignTest(('ATATACCCC', 'ATA'), [('ATATACCCC', '--ATA----')], (1, 0, -8, 0, 0, -1)),
+    AlignTest(('ATCG', 'TC'), [('--ATCG', 'TC----'), ('ATCG--', '----TC')], (1, 0, 0, 0, 0, 1)),
 
 ]
 
@@ -121,6 +138,17 @@ align_tests_failing = [
     # AAATTTAAA
     # |||...|||
     # AAACCCAAA
+
+    AlignTest(('ATCG', 'AT'), [('ATCG', '-AT-')], (1, 0, -2, 0, 0, -3)),
+    # Biopython: 0
+    # ATCG
+    #  ..
+    # -AT-
+    #
+    # Rust: -1
+    # ATCG
+    #  ..
+    # AT--
 ]
 
 
