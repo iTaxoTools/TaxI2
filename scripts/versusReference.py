@@ -9,16 +9,20 @@ from itaxotools.taxi3.pairs import *
 from itaxotools.taxi3.sequences import *
 
 
-def calc(aligned_pairs):
+def calc(aligned_pairs, metric=DistanceMetric.Uncorrected()):
+    for x, y in aligned_pairs:
+        yield metric.calculate(x, y)
+
+def calAll(disctances):
     metrics = [
-        DistanceMetric.Uncorrected(),
         DistanceMetric.UncorrectedWithGaps(),
         DistanceMetric.JukesCantor(),
         DistanceMetric.Kimura2P(),
     ]
-    for x, y in aligned_pairs:
+    for disctance in disctances:
+        yield disctance
         for metric in metrics:
-            yield metric.calculate(x, y)
+            yield metric.calculate(disctance.x, disctance.y)
 
 
 def get_minimum(distances):
@@ -62,10 +66,12 @@ def main():
 
     minimums = get_minimum(distances)
 
-    minimums = progress(minimums, total)
+    alldistance = calAll(minimums)
+
+    distances = progress(alldistance, total)
 
     outFile = DistanceFile.LinearWithExtras(path_out)
-    outFile.write(minimums)
+    outFile.write(distances)
 
     tf = perf_counter()
 
