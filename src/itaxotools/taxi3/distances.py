@@ -87,6 +87,8 @@ class Linear(DistanceFile):
 
     def iter_write(self, distances: iter[Distance], *args, **kwargs) -> iter[Distance]:
         with open(self.path, 'w') as f:
+            self.MISSING = kwargs.get('missing', 'NA')
+            scroreFormat = kwargs.get('formatScore', None)
             metrics = []
             buffer = []
             for d in distances:
@@ -104,9 +106,10 @@ class Linear(DistanceFile):
             f.write(f'idx\tidy\t{metricString}\n')
             scores = []
             for distance in chain(buffer, distances):
-                scores.append(str(distance.d) if distance.d is not None else self.MISSING)
+                scores.append(str(scroreFormat.format(float(distance.d)) if scroreFormat else distance.d) if distance.d is not None else self.MISSING)
                 if len(scores) == metricCount:
                     score = '\t'.join(scores)
+                    print(f'{distance.x.id}\t{distance.y.id}\t{score}\n')
                     f.write(f'{distance.x.id}\t{distance.y.id}\t{score}\n')
                     scores = []
                 yield distance
@@ -137,6 +140,8 @@ class Matrix(DistanceFile):
     def iter_write(self, distances: iter[Distance], *args, **kwargs) -> iter[Distance]:
         with open(self.path, 'w') as f:
             buffer = []
+            self.MISSING = kwargs.get('missing', 'NA')
+            scroreFormat = kwargs.get('formatScore', None)
 
             id = {'idx': [], 'idy': []}
             for distance in distances:
@@ -153,7 +158,7 @@ class Matrix(DistanceFile):
             f.write(f'\t{idy_header}\n')
             scores = []
             for distance in chain(buffer, distances):
-                d = str(distance.d) if distance.d is not None else self.MISSING
+                d = str(scroreFormat.format(float(distance.d)) if scroreFormat else distance.d) if distance.d is not None else self.MISSING
                 scores.append(d)
                 if len(scores) == len(id['idy']):
                     score = '\t'.join(scores)
@@ -227,10 +232,13 @@ class LinearWithExtras(DistanceFile):
         idyHeader: str = 'seqid',
         tagX: str = ' (query)',
         tagY: str = ' (reference)',
-    ) -> iter[Distance]:
+        *args,
+        **kwargs) -> iter[Distance]:
         with open(self.path, 'w') as f:
             metrics = []
             buffer = []
+            self.MISSING = kwargs.get('missing', 'NA')
+            scroreFormat = kwargs.get('formatScore', None)
 
             for d in distances:
                 buffer.append(d)
@@ -256,7 +264,7 @@ class LinearWithExtras(DistanceFile):
 
             scores = []
             for distance in chain(buffer, distances):
-                scores.append(str(distance.d) if distance.d is not None else self.MISSING)
+                scores.append(str(scroreFormat.format(float(distance.d)) if scroreFormat else distance.d) if distance.d is not None else self.MISSING)
                 if len(scores) == metricCount:
                     score = '\t'.join(scores)
                     extrasX = '\t'.join([distance.x.extras[k] for k in extrasHeaderX])

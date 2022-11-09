@@ -277,11 +277,11 @@ write_tests = [
     WriteTest(distances_extras, 'extras.tsv', DistanceFile.LinearWithExtras,
         dict(idxHeader='seqid', idyHeader='id', tagX='_x', tagY='_y')),
     WriteTest(distances_missing, 'missing.formatted.linear', DistanceFile.Linear,
-        dict(format='{:.2e}', missing='nan')),
+        dict(formatScore='{:.2e}', missing='nan')),
     WriteTest(distances_missing, 'missing.formatted.linear', DistanceFile.LinearWithExtras,
-        dict(format='{:.2e}', missing='nan')),
+        dict(formatScore='{:.2e}', missing='nan')),
     WriteTest(distances_missing, 'missing.formatted.matrix', DistanceFile.Matrix,
-        dict(format='{:.2e}', missing='nan')),
+        dict(formatScore='{:.2e}', missing='nan')),
 ]
 
 
