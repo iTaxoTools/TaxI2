@@ -30,7 +30,6 @@ class Sequences(Container[Sequence]):
     def normalize(self) -> Sequences:
         return Sequences(lambda: (seq.normalize() for seq in self))
 
-
 class SequenceFile(Type):
     """Handlers for sequence files"""
 
@@ -42,7 +41,6 @@ class SequenceFile(Type):
 
     def write(self, distances: iter[Sequence], *args, **kwargs) -> None:
         raise NotImplementedError()
-
 
 class Fasta(SequenceFile):
     def read(self) -> iter[Sequence]:
@@ -100,6 +98,9 @@ class Tabular(SequenceFile):
 
                 yield Sequence(id, seq, extras)
 
+    def getHeader(self):
+        with open(self.path) as file:
+            print(file.readline())
 
 class Tabfile(Tabular, SequenceFile):
     def iter_rows(self) -> iter[tuple[str, ...]]:
@@ -107,6 +108,9 @@ class Tabfile(Tabular, SequenceFile):
             for line in file:
                 yield line.strip().split('\t')
 
+    def getHeader(self):
+        with open(self.path) as file:
+            return file.readline().strip().split('\t')
 
 class Excel(Tabular, SequenceFile):
     def iter_rows(self) -> iter[tuple[str, ...]]:
