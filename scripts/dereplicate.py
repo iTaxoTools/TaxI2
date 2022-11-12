@@ -11,6 +11,8 @@ from itaxotools.taxi3.sequences import *
 
 def calc(aligned_pairs, metric=DistanceMetric.Uncorrected()):
     for x, y in aligned_pairs:
+        if x.id == y.id:
+            continue
         yield metric.calculate(x, y)
 
 
@@ -21,29 +23,35 @@ def progress(distances, total):
         yield distance
 
 
-def derepSeq(disctances, dereplicatedPath, excludedPath, trashold=0.06):
+def derepSeq(disctances, dereplicatedPath, excludedPath, headers, similarity=0.07):
     excludedSet = set()
-    includeSet = set()
 
-    for disctance in disctances:
-        extras = [v for k, v in disctance.y.extras.items()]
-        extrasString = '\t'.join(extras)
+    with open(excludedPath, 'w') as excludeFile, open(dereplicatedPath, 'w') as derepFile, open('summaryDrep.txt', 'w') as summryFile:
 
-        if disctance.d <= trashold:
-            with open(excludedPath, 'a') as f:
-                if disctance.x.id != disctance.y.id and disctance.x.id not in excludedSet:
-                    f.write(f"\n{disctance.y.id}\t{extrasString}\t{disctance.y.seq}")
-                    excludedSet.add(disctance.y.id)
-        else:
-            with open(dereplicatedPath, 'a') as f:
-                if disctance.x.id not in includeSet and disctance.x.id not in excludedSet:
-                    f.write(f"\n{disctance.x.id}\t{extrasString}\t{disctance.x.seq}")
-                    includeSet.add(disctance.x.id)
+        excludeFile.write('\t'.join(headers))
+        derepFile.write('\t'.join(headers))
+        summryFile.write("seqid_query\tclosest possible calc\tdistance\tis_replicated")
 
-        yield disctance
+        for disctance in disctances:
+            isReplicated = disctance.d <= similarity
+            extras = [v for v in disctance.x.extras.values()]
+            extrasString = '\t'.join(extras)
 
+            if isReplicated and disctance.y.id not in excludedSet:
+                excludeFile.write(f"\n{disctance.x.id}\t{extrasString}\t{disctance.x.seq}")
+                excludedSet.add(disctance.x.id)
+            else:
+                derepFile.write(f"\n{disctance.x.id}\t{extrasString}\t{disctance.x.seq}")
 
+            summryFile.write(f'\n{disctance.x.id}\t{disctance.y.id}\t{disctance.d}\t{isReplicated}')
 
+            yield disctance
+
+def get_minimum(distances):
+    for k, g in groupby(distances, lambda d: d.x.id):
+        g = (d for d in g if d.d is not None)
+        d = min(g, key = lambda x: x.d)
+        yield d
 
 def main():
 
@@ -68,17 +76,11 @@ def main():
 
     distances = calc(aligned_pairs)
 
+    minimums = get_minimum(distances)
+
     headers = file_data.getHeader()
 
-    if not os.path.exists(excludedPath):
-        with open(excludedPath, 'w') as f:
-            f.write('\t'.join(headers))
-
-    if not os.path.exists(dereplicatedPath):
-        with open(dereplicatedPath, 'w') as f:
-            f.write('\t'.join(headers))
-
-    d = derepSeq(distances, dereplicatedPath, excludedPath)
+    d = derepSeq(minimums, dereplicatedPath, excludedPath, headers)
 
     distance = progress(d, total)
 
