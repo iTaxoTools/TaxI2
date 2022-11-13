@@ -8,6 +8,18 @@ from itaxotools.taxi3.distances import *
 from itaxotools.taxi3.pairs import *
 from itaxotools.taxi3.sequences import *
 
+# if not os.path.exists(contaminatePath):
+#     with open(contaminatePath, 'w') as f:
+#         f.write('\t'.join(headers))
+#
+# if not os.path.exists(summaryPath):
+#     with open(summaryPath, 'w') as f:
+#         f.write("seqid_query\tclosest possible contaminant\tdistance\tis_contaminant")
+#
+# if not os.path.exists(decontaminatePath):
+#     with open(decontaminatePath, 'w') as f:
+#         f.write('\t'.join(headers))
+
 
 def calc(aligned_pairs, metric=DistanceMetric.Uncorrected()):
     for x, y in aligned_pairs:
@@ -19,36 +31,33 @@ def calc(aligned_pairs, metric=DistanceMetric.Uncorrected()):
 def progress(distances, total):
 
     for index, distance in enumerate(distances):
-        print(f"\r Loading... {index}/{total} = {(round(float(index)/float(total)  * 100, 2))} ", end="")
+        index+=1
+        print(f"\r Loading... {int(index)}/{total} = {(round(float(index)/float(total)  * 100, 2))} ", end="")
         yield distance
 
 
-def decontaminateSeq(disctances, contaminatePath, decontaminatePath, summaryPath,similarity=0.09):
+def decontaminateSeq(disctances, contaminatePath, decontaminatePath, summaryPath, headers, similarity=0.09):
     excludedSet = set()
-    includeSet = set()
 
-    for disctance in disctances:
-        extras = [v for k, v in disctance.y.extras.items()]
-        extrasString = '\t'.join(extras)
+    with open(decontaminatePath, 'w') as decontaminatedFile, open(contaminatePath, 'w') as contaminatedFile, open(summaryPath, 'w') as summryFile:
+        summryFile.write("seqid_query\tclosest possible contaminant\tdistance\tis_contaminant")
+        decontaminatedFile.write('\t'.join(headers))
+        contaminatedFile.write('\t'.join(headers))
 
-        if disctance.d <= similarity:
-            with open(decontaminatePath, 'a') as f:
-                if disctance.x.id != disctance.y.id:
-                    if disctance.x.id not in excludedSet:
-                        f.write(f"\n{disctance.x.id}\t{extrasString}\t{disctance.x.seq}")
-                        excludedSet.add(disctance.x.id)
-        else:
-            with open(contaminatePath, 'a') as f:
-                if disctance.x.id not in excludedSet:
-                    if disctance.x.id not in includeSet:
-                        f.write(f"\n{disctance.x.id}\t{extrasString}\t{disctance.x.seq}")
-                    includeSet.add(disctance.x.id)
+        for p, disctance in disctances:
+            isContaminate = disctance.d <= similarity
+            extras = [v for k, v in disctance.y.extras.items()]
+            extrasString = '\t'.join(extras)
 
-        with open(summaryPath, 'a') as f:
-            isContaminate = True if disctance.x.id in includeSet else False
-            f.write(f'\n{disctance.x.id}\t{disctance.y.id}\t{disctance.d}\t{isContaminate}')
+            if isContaminate and disctance.x.id not in excludedSet:
+                decontaminatedFile.write(f"\n{disctance.x.id}\t{extrasString}\t{p.x.seq}")
+                excludedSet.add(disctance.x.id)
+            else:
+                contaminatedFile.write(f"\n{disctance.x.id}\t{extrasString}\t{p.x.seq}")
 
-        yield disctance
+            summryFile.write(f'\n{disctance.x.id}\t{disctance.y.id}\t{disctance.d}\t{isContaminate}')
+
+            yield disctance
 
 
 def get_minimum(distances):
@@ -56,6 +65,11 @@ def get_minimum(distances):
         g = (d for d in g if d.d is not None)
         d = min(g, key = lambda x: x.d)
         yield d
+
+
+def multiply(g, n):
+    return (x for x in g for i in range(n))
+
 
 def main():
 
@@ -80,6 +94,8 @@ def main():
 
     pairs = SequencePairs.fromProduct(data, reference)
 
+    pairs = multiply(pairs, 2)
+
     aligner = PairwiseAligner.Biopython()
     aligned_pairs = aligner.align_pairs(pairs)
 
@@ -87,21 +103,12 @@ def main():
 
     minimums = get_minimum(distances)
 
+    allPairs = zip(pairs, minimums)
+
     headers = file_data.getHeader()
 
-    if not os.path.exists(contaminatePath):
-        with open(contaminatePath, 'w') as f:
-            f.write('\t'.join(headers))
 
-    if not os.path.exists(summaryPath):
-        with open(summaryPath, 'w') as f:
-            f.write("seqid_query\tclosest possible contaminant\tdistance\tis_contaminant")
-
-    if not os.path.exists(decontaminatePath):
-        with open(decontaminatePath, 'w') as f:
-            f.write('\t'.join(headers))
-
-    d = decontaminateSeq(minimums, contaminatePath, decontaminatePath, summaryPath)
+    d = decontaminateSeq(allPairs, contaminatePath, decontaminatePath, summaryPath, headers)
 
     distance = progress(d, total)
 
