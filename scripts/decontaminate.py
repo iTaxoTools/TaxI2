@@ -8,18 +8,6 @@ from itaxotools.taxi3.distances import *
 from itaxotools.taxi3.pairs import *
 from itaxotools.taxi3.sequences import *
 
-# if not os.path.exists(contaminatePath):
-#     with open(contaminatePath, 'w') as f:
-#         f.write('\t'.join(headers))
-#
-# if not os.path.exists(summaryPath):
-#     with open(summaryPath, 'w') as f:
-#         f.write("seqid_query\tclosest possible contaminant\tdistance\tis_contaminant")
-#
-# if not os.path.exists(decontaminatePath):
-#     with open(decontaminatePath, 'w') as f:
-#         f.write('\t'.join(headers))
-
 
 def calc(aligned_pairs, metric=DistanceMetric.Uncorrected()):
     for x, y in aligned_pairs:
