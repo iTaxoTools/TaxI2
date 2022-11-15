@@ -25,23 +25,21 @@ def progress(distances, total):
 def decontaminateSeq(allpairs, contaminatePath, decontaminatePath, summaryPath, headers, outgroup_weight=1.0):
 
     with open(decontaminatePath, 'w') as decontaminatedFile, open(contaminatePath, 'w') as contaminatedFile, open(summaryPath, 'w') as summryFile:
-        summryFile.write("seqid_query\tclosest possible contaminant\tdistance\tis_contaminant")
+        summryFile.write("seqid_query\tclosest possible inGroup id\tingroup distance\tclosest possible outGroup id\toutgroup distance\tis_contaminant")
         decontaminatedFile.write('\t'.join(headers))
         contaminatedFile.write('\t'.join(headers))
 
-        for ingroup_pair, ingroup_disctance, outgroup_pair, outgroup_disctance in allpairs:
+        for inputData, ingroup_disctance, outgroup_disctance in allpairs:
             isContaminate = ingroup_disctance.d > (outgroup_weight * outgroup_disctance.d)
-            extras = [v for k, v in ingroup_pair.x.extras.items()]
+            extras = [v for k, v in inputData.extras.items()]
             extrasString = '\t'.join(extras)
-            print(f'\nthis is distance ingroup: {ingroup_disctance.x.id} {ingroup_disctance.y.id}')
-            print(f'this is distance outgroup: {outgroup_disctance.x.id} {outgroup_disctance.y.id}\n')
 
             if isContaminate:
-                decontaminatedFile.write(f"\n{ingroup_disctance.x.id}\t{extrasString}\t{ingroup_pair.x.seq}")
+                decontaminatedFile.write(f"\n{ingroup_disctance.x.id}\t{extrasString}\t{inputData.seq}")
             else:
-                contaminatedFile.write(f"\n{ingroup_disctance.x.id}\t{extrasString}\t{ingroup_pair.x.seq}")
+                contaminatedFile.write(f"\n{ingroup_disctance.x.id}\t{extrasString}\t{inputData.seq}")
 
-            summryFile.write(f'\n{ingroup_disctance.x.id}\t{ingroup_disctance.y.id}\t{ingroup_disctance.d}\t{isContaminate}')
+            summryFile.write(f'\n{ingroup_disctance.x.id}\t{ingroup_disctance.y.id}\t{ingroup_disctance.d}\t{outgroup_disctance.y.id}\t{outgroup_disctance.d}\t{isContaminate}')
 
             yield ingroup_disctance
 
@@ -55,6 +53,11 @@ def get_minimum(distances):
 
 def multiply(g, n):
     return (x for x in g for i in range(n))
+
+
+def normalizePairs(pairs):
+    for pair in pairs:
+        yield SequencePair(pair.x.normalize(), pair.y.normalize())
 
 
 def main():
@@ -78,30 +81,27 @@ def main():
 
     total = len(data)
 
-    data = data.normalize()
-
-    ingroup_refe = ingroup_reference.normalize()
-    outgroup_refe = outgroup_reference.normalize()
-
-    in_pairs = SequencePairs.fromProduct(data, ingroup_refe)
-    out_pairs = SequencePairs.fromProduct(data, outgroup_refe)
+    in_pairs = SequencePairs.fromProduct(data, ingroup_reference)
+    out_pairs = SequencePairs.fromProduct(data, outgroup_reference)
 
     #Ingroup
+    normalizeInPair = normalizePairs(in_pairs)
     aligner = PairwiseAligner.Biopython()
-    aligned_in_pairs = aligner.align_pairs(in_pairs)
+    aligned_in_pairs = aligner.align_pairs(normalizeInPair)
 
     in_distances = calc(aligned_in_pairs)
 
     in_minimums = get_minimum(in_distances)
 
     #outGroup
-    aligned_out_pairs = aligner.align_pairs(out_pairs)
+    normalizeOutPair = normalizePairs(out_pairs)
+    aligned_out_pairs = aligner.align_pairs(normalizeOutPair)
 
     out_distances = calc(aligned_out_pairs)
 
     out_minimums = get_minimum(out_distances)
 
-    allPairs = zip(in_pairs, in_minimums, out_pairs, out_minimums)
+    allPairs = zip(data, in_minimums, out_minimums)
 
     headers = file_data.getHeader()
 

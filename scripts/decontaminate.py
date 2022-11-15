@@ -25,7 +25,6 @@ def progress(distances, total):
 
 
 def decontaminateSeq(disctances, contaminatePath, decontaminatePath, summaryPath, headers, similarity=0.09):
-    excludedSet = set()
 
     with open(decontaminatePath, 'w') as decontaminatedFile, open(contaminatePath, 'w') as contaminatedFile, open(summaryPath, 'w') as summryFile:
         summryFile.write("seqid_query\tclosest possible contaminant\tdistance\tis_contaminant")
@@ -37,9 +36,8 @@ def decontaminateSeq(disctances, contaminatePath, decontaminatePath, summaryPath
             extras = [v for k, v in disctance.y.extras.items()]
             extrasString = '\t'.join(extras)
 
-            if isContaminate and disctance.x.id not in excludedSet:
+            if isContaminate:
                 decontaminatedFile.write(f"\n{disctance.x.id}\t{extrasString}\t{p.x.seq}")
-                excludedSet.add(disctance.x.id)
             else:
                 contaminatedFile.write(f"\n{disctance.x.id}\t{extrasString}\t{p.x.seq}")
 
@@ -57,6 +55,11 @@ def get_minimum(distances):
 
 def multiply(g, n):
     return (x for x in g for i in range(n))
+
+
+def normalizePairs(pairs):
+    for pair in pairs:
+        yield SequencePair(pair.x.normalize(), pair.y.normalize())
 
 
 def main():
@@ -77,15 +80,14 @@ def main():
 
     total = len(data)
 
-    data = data.normalize()
-    reference = reference.normalize()
-
     pairs = SequencePairs.fromProduct(data, reference)
 
     pairs = multiply(pairs, 2)
 
+    normalizePair = normalizePairs(pairs)
+
     aligner = PairwiseAligner.Biopython()
-    aligned_pairs = aligner.align_pairs(pairs)
+    aligned_pairs = aligner.align_pairs(normalizePair)
 
     distances = calc(aligned_pairs)
 
@@ -94,7 +96,6 @@ def main():
     allPairs = zip(pairs, minimums)
 
     headers = file_data.getHeader()
-
 
     d = decontaminateSeq(allPairs, contaminatePath, decontaminatePath, summaryPath, headers)
 
