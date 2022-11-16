@@ -35,7 +35,7 @@ def spartition_simple() -> SequencePairs:
 
 
 read_tests = [
-    ReadTest(spartition_simple, 'simple.tsv', Spartition.Tabfile),
+    ReadTest(spartition_simple, 'simple.tsv', SpartitionFile.Tabfile, dict(idHeader='seqid', subsetHeader='organism')),
 ]
 
 
