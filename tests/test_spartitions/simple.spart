@@ -1,0 +1,21 @@
+begin spart;
+
+project_name = simple_test;
+
+date = 2022-10-02T12:00:00;
+
+n_spartitions = 2 : spartition_1 / spartition_2 ;
+
+n_individuals = 7 / 7 ;
+
+n_subsets = 3 / 1 ;
+
+individual_assignment =
+sample1 : 1 / 1
+sample2 : 1 / 1
+sample3 : 1 / 1
+sample4 : 1 / 1
+sample5 : 2 / 1
+sample6 : 2 / 1
+sample7 : 3 / 1 ;
+end;

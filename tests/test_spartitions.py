@@ -19,6 +19,7 @@ class ReadTest(NamedTuple):
 
     def validate(self, generated: Spartition):
         fixture = self.fixture()
+        print(generated)
         assert fixture == generated
 
 
@@ -34,8 +35,22 @@ def spartition_simple() -> SequencePairs:
     }
 
 
+def spartition_matricial() -> SequencePairs:
+    return {
+        'sample1': '1',
+        'sample2': '1',
+        'sample3': '1',
+        'sample4': '1',
+        'sample5': '2',
+        'sample6': '2',
+        'sample7': '3',
+    }
+
+
 read_tests = [
     ReadTest(spartition_simple, 'simple.tsv', SpartitionFile.Tabfile, dict(idHeader='seqid', subsetHeader='organism')),
+    ReadTest(spartition_simple, 'simple.xml', SpartitionFile.Spart),
+    ReadTest(spartition_matricial, 'simple.spart', SpartitionFile.Spart),
 ]
 
 

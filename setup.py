@@ -58,10 +58,11 @@ setup(
     ],
     python_requires=">=3.9, <4",
     install_requires=[
+        "DNAconvert",
+        "spart_parser",
         "alfpy",
         "appdirs",
         "BioPython",
-        "DNAconvert",
         "numpy",
         "networkx",
         "openpyxl",
