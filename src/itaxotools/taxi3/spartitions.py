@@ -22,12 +22,12 @@ class SpartitionFile(Type):
     def __init__(self, path: Path):
         self.path = path
 
-    def get(self, *args, **kwargs) -> Spartition:
+    def read(self, *args, **kwargs) -> iter[tuple[str, str]]:
         raise NotImplementedError()
 
-    def read(self, *args, **kwargs) -> iter[tuple[str, str]]:
+    def get(self, *args, **kwargs) -> Spartition:
         spartition = Spartition()
-        for individual, subset in self.get(*args, **kwargs):
+        for individual, subset in self.read(*args, **kwargs):
             spartition[individual] = subset
         return spartition
 
@@ -41,7 +41,7 @@ class Tabular(SpartitionFile):
     def open(self):
         yield self.iter_rows()
 
-    def get(
+    def read(
         self,
         idHeader: str = None,
         subsetHeader: str = None,
@@ -89,7 +89,7 @@ class Excel(Tabular, SpartitionFile):
 
 
 class Spart(SpartitionFile):
-    def get(self, spartition=None) -> Spartition:
+    def read(self, spartition=None) -> Spartition:
         spart = SpartParserSpart.fromPath(self.path)
 
         if spartition is None:

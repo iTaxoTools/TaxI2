@@ -57,5 +57,5 @@ read_tests = [
 @pytest.mark.parametrize("test", read_tests)
 def test_read_pairs(test: ReadTest) -> None:
     input_path = TEST_DATA_DIR / test.input
-    spartition = test.file(input_path).read(**test.kwargs)
+    spartition = test.file(input_path).get(**test.kwargs)
     test.validate(spartition)
