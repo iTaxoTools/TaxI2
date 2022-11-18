@@ -112,6 +112,18 @@ class Tabfile(Tabular, SequenceFile):
         with open(self.path) as file:
             return file.readline().strip().split('\t')
 
+    def writeCo(self):
+       with open(self.path, 'w') as file:
+           try:
+               while True:
+                   sequence = yield  # Yield expression
+                   file.write(f"\n{sequence.id}\t{sequence.seq}")
+           except GeneratorExit:
+               return
+
+
+
+
 class Excel(Tabular, SequenceFile):
     def iter_rows(self) -> iter[tuple[str, ...]]:
         wb = load_workbook(filename=self.path, read_only=True)

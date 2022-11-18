@@ -108,19 +108,21 @@ def excludeReplicate(groupSimilar, includeSet, excludedSet):
 
 
 def dereplicate(generatorObject, excludedSet, dereplicatedPath, excludedPath, headers):
-    with open(excludedPath, 'w') as excludeFile, open(dereplicatedPath, 'w') as derepFile:
-        excludeFile.write('\t'.join(headers))
-        derepFile.write('\t'.join(headers))
+        derepFile = SequenceFile.Tabfile(dereplicatedPath)
+        derepCoroutine = derepFile.writeCo()
+        next(derepCoroutine)
+        excFile = SequenceFile.Tabfile(excludedPath)
+        excludedCourotine = excFile.writeCo()
+        next(excludedCourotine)
         for p, _ in generatorObject:
-            extras = [v for v in p.x.extras.values()]
-            extrasString = '\t'.join(extras)
-            if p.x.id in excludedSet:
-                excludeFile.write(f"\n{p.x.id}\t{extrasString}\t{p.x.seq}")
+
+            isExcluded = p.x.id in excludedSet
+
+            if isExcluded:
+                excludedCourotine.send(p.x)
             else:
-                derepFile.write(f"\n{p.x.id}\t{extrasString}\t{p.x.seq}")
-
+                derepCoroutine.send(p.x)
             yield p
-
 
 def main():
     global graph, vertices_no
