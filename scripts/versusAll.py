@@ -16,6 +16,14 @@ class SubsetDistance(NamedTuple):
     subY: str
     d: float
 
+class Stats(NamedTuple):
+    minStat: float
+    maxStat: float
+    sumStat: float
+    length: int
+    @property
+    def mean(self):
+        return self.sumStat/self.length
 
 def calc(aligned_pairs, metric=DistanceMetric.Uncorrected()):
     for x, y in aligned_pairs:
@@ -58,7 +66,23 @@ def getSubsetPairs(subsetDistances, pairDict):
             pairDict[(subsetDistance.subX, subsetDistance.subY)] = []
         pairDict[(subsetDistance.subX, subsetDistance.subY)].append(subsetDistance.d)
 
+
         yield subsetDistance
+
+
+def getStats(pairDict):
+    minStat = float('inf')
+    maxStat = float('-inf')
+    sumPairs = 0
+    for key, val in pairDict.items():
+        length = len(val)
+        for stat in val:
+            sumPairs += float(stat)
+            minStat = min(minStat, float(stat))
+            maxStat = max(maxStat, float(stat))
+        pairDict.update([(key, (minStat, maxStat, sumPairs/length))])
+
+
 
 def main():
     path_data = Path(argv[1])
@@ -90,6 +114,9 @@ def main():
 
     for subset_pair in subset_pairs:
         pass
+
+    subset_pairs = getStats(pairDict)
+
 
     print(pairDict)
 
