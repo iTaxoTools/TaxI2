@@ -108,27 +108,23 @@ def excludeReplicate(groupSimilar, includeSet, excludedSet):
 
 
 def dereplicate(generatorObject, excludedSet, dereplicatedPath, excludedPath, headers):
-        derepFile = SequenceFile.Tabfile(dereplicatedPath)
-        derepCoroutine = derepFile.writeCo()
-        next(derepCoroutine)
-        excFile = SequenceFile.Tabfile(excludedPath)
-        excludedCourotine = excFile.writeCo()
-        next(excludedCourotine)
+    derepFile = SequenceFile.Tabfile(dereplicatedPath)
+    excFile = SequenceFile.Tabfile(excludedPath)
+    with derepFile.open('w') as derepHandler, excFile.open('w') as exclHandler:
         for p, _ in generatorObject:
 
-            isExcluded = p.x.id in excludedSet
-
-            if isExcluded:
-                excludedCourotine.send(p.x)
+            if p.x.id in excludedSet:
+                exclHandler.write(p.x)
             else:
-                derepCoroutine.send(p.x)
+                derepHandler.write(p.x)
             yield p
+
 
 def main():
     global graph, vertices_no
-    path_data = Path(argv[1])
-    dereplicatedPath = 'dereplicated.txt'
-    excludedPath = 'excluded.txt'
+    dataPath = Path(argv[1])
+    dereplicatedPath = Path(argv[2])
+    excludedPath = Path(argv[3])
     lenTrashold = 10
     similarityThreshold = 0.07
     ts = perf_counter()
@@ -136,7 +132,7 @@ def main():
     excludedSet = set()
     includeSet = set()
 
-    file_data = SequenceFile.Tabfile(path_data)
+    file_data = SequenceFile.Tabfile(dataPath)
 
     data = Sequences.fromFile(file_data, idHeader='seqid', seqHeader='sequence')
 

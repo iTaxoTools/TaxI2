@@ -30,6 +30,7 @@ class Sequences(Container[Sequence]):
     def normalize(self) -> Sequences:
         return Sequences(lambda: (seq.normalize() for seq in self))
 
+
 class SequenceFile(Type):
     """Handlers for sequence files"""
 
@@ -41,6 +42,19 @@ class SequenceFile(Type):
 
     def write(self, distances: iter[Sequence], *args, **kwargs) -> None:
         raise NotImplementedError()
+
+
+class SequenceFileHandler:
+    def __init__(self, file: SequenceFile):
+        self.coroutine = file.iter_write()
+        next(self.coroutine)
+
+    def write(self, sequence: Sequence) -> None:
+        self.coroutine.send(sequence)
+
+    def close(self) -> None:
+        self.coroutine.close()
+
 
 class Fasta(SequenceFile):
     def read(self) -> iter[Sequence]:
@@ -60,9 +74,19 @@ class Tabular(SequenceFile):
     def iter_rows(self):
         raise NotImplementedError()
 
+    def iter_write(self):
+        raise NotImplementedError()
+
     @contextmanager
-    def open(self):
-        yield self.iter_rows()
+    def open(self, mode='r'):
+        if mode == 'r':
+            yield self.iter_rows()
+        elif mode == 'w':
+            handler = SequenceFileHandler(self)
+            yield handler
+            handler.close()
+        else:
+            raise Exception('Unknown mode')
 
     def read(
         self,
@@ -102,6 +126,7 @@ class Tabular(SequenceFile):
         with open(self.path) as file:
             print(file.readline())
 
+
 class Tabfile(Tabular, SequenceFile):
     def iter_rows(self) -> iter[tuple[str, ...]]:
         with open(self.path) as file:
@@ -112,7 +137,7 @@ class Tabfile(Tabular, SequenceFile):
         with open(self.path) as file:
             return file.readline().strip().split('\t')
 
-    def writeCo(self):
+    def iter_write(self):
        with open(self.path, 'w') as file:
            try:
                while True:
@@ -120,8 +145,6 @@ class Tabfile(Tabular, SequenceFile):
                    file.write(f"\n{sequence.id}\t{sequence.seq}")
            except GeneratorExit:
                return
-
-
 
 
 class Excel(Tabular, SequenceFile):

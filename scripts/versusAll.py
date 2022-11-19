@@ -83,7 +83,6 @@ def getStats(pairDict):
         pairDict.update([(key, (minStat, maxStat, sumPairs/length))])
 
 
-
 def main():
     path_data = Path(argv[1])
 
