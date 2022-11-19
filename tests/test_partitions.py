@@ -6,7 +6,7 @@ from typing import Callable, NamedTuple
 import pytest
 from utility import assert_eq_files
 
-from itaxotools.taxi3.spartitions import Spartition, SpartitionFile
+from itaxotools.taxi3.partitions import Partition, PartitionFile
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 
@@ -14,10 +14,10 @@ TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 class ReadTest(NamedTuple):
     fixture: Callable[[], SequencePairs]
     input: str
-    file: SpartitionFile
+    file: PartitionFile
     kwargs: dict = {}
 
-    def validate(self, generated: Spartition):
+    def validate(self, generated: Partition):
         fixture = self.fixture()
         print(generated)
         assert fixture == generated
@@ -48,9 +48,9 @@ def spartition_matricial() -> SequencePairs:
 
 
 read_tests = [
-    ReadTest(spartition_simple, 'simple.tsv', SpartitionFile.Tabfile, dict(idHeader='seqid', subsetHeader='organism')),
-    ReadTest(spartition_simple, 'simple.xml', SpartitionFile.Spart),
-    ReadTest(spartition_matricial, 'simple.spart', SpartitionFile.Spart),
+    ReadTest(spartition_simple, 'simple.tsv', PartitionFile.Tabfile, dict(idHeader='seqid', subsetHeader='organism')),
+    ReadTest(spartition_simple, 'simple.xml', PartitionFile.Spart),
+    ReadTest(spartition_matricial, 'simple.spart', PartitionFile.Spart),
 ]
 
 

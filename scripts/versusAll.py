@@ -7,7 +7,7 @@ from itaxotools.taxi3.align import *
 from itaxotools.taxi3.distances import *
 from itaxotools.taxi3.pairs import *
 from itaxotools.taxi3.sequences import *
-from itaxotools.taxi3.spartitions import *
+from itaxotools.taxi3.partitions import *
 from typing import NamedTuple
 
 
@@ -81,15 +81,25 @@ def getStats(pairDict):
             minStat = min(minStat, float(stat))
             maxStat = max(maxStat, float(stat))
         pairDict.update([(key, (minStat, maxStat, sumPairs/length))])
+        minStat = float('inf')
+        maxStat = float('-inf')
+        sumPairs = 0
 
+
+def multiply(g, n):
+    return (x for x in g for i in range(n))
 
 def main():
     path_data = Path(argv[1])
 
     ts = perf_counter()
 
-    spartition_file = SpartitionFile.Tabfile(path_data)
-    spartition = Spartition.fromFile(spartition_file, idHeader='seqid', subsetHeader='organism')
+    spartition_file = PartitionFile.Tabfile(path_data)
+    gpartition_file = PartitionFile.Tabfile.Genus(path_data)
+    spartition = Partition.fromFile(spartition_file, idHeader='seqid', subsetHeader='organism')
+    gpartition = Partition.fromFile(gpartition_file, idHeader='seqid', subsetHeader='organism')
+
+
 
 
     file_data = SequenceFile.Tabfile(path_data)
@@ -106,18 +116,29 @@ def main():
     aligned_pairs = aligner.align_pairs(pairs)
 
     distances = calc(aligned_pairs)
+    distances = multiply(distances, 2)
+
     pairDict = {}
     subset_distances = getSubsetDistances(distances, spartition)
 
     subset_pairs = getSubsetPairs(subset_distances, pairDict)
 
-    for subset_pair in subset_pairs:
+
+    gpairDict = {}
+    gdistances = getSubsetDistances(distances, gpartition)
+
+    genus_pairs = getSubsetPairs(gdistances, gpairDict)
+
+    for subset_pair in zip(subset_pairs, genus_pairs):
         pass
 
-    subset_pairs = getStats(pairDict)
+
+    getStats(pairDict)
+    getStats(gpairDict)
 
 
     print(pairDict)
+    print(gpairDict)
 
 
     return

@@ -10,13 +10,13 @@ from .sequences import Sequence, Sequences
 from .types import Container, Type
 
 
-class Spartition(dict[str, str]):
+class Partition(dict[str, str]):
     @classmethod
-    def fromFile(cls, file: SpartitionFile, *args, **kwargs) -> Spartition:
+    def fromFile(cls, file: PartitionFile, *args, **kwargs) -> Partition:
         return file.get(*args, **kwargs)
 
 
-class SpartitionFile(Type):
+class PartitionFile(Type):
     """Handlers for spartition files"""
 
     def __init__(self, path: Path):
@@ -25,14 +25,14 @@ class SpartitionFile(Type):
     def read(self, *args, **kwargs) -> iter[tuple[str, str]]:
         raise NotImplementedError()
 
-    def get(self, *args, **kwargs) -> Spartition:
-        spartition = Spartition()
+    def get(self, *args, **kwargs) -> Partition:
+        spartition = Partition()
         for individual, subset in self.read(*args, **kwargs):
             spartition[individual] = subset
         return spartition
 
 
-class Tabular(SpartitionFile):
+class Tabular(PartitionFile):
 
     def iter_rows(self):
         raise NotImplementedError()
@@ -48,7 +48,7 @@ class Tabular(SpartitionFile):
         hasHeader: bool = False,
         idColumn: int = 0,
         subsetColumn: int = 1,
-    ) -> Spartition:
+    ) -> Partition:
 
         with self.open() as rows:
 
@@ -69,14 +69,17 @@ class Tabular(SpartitionFile):
                 yield (id, sub)
 
 
-class Tabfile(Tabular, SpartitionFile):
+
+
+
+class Tabfile(Tabular, PartitionFile):
     def iter_rows(self) -> iter[tuple[str, ...]]:
         with open(self.path) as file:
             for line in file:
                 yield line.strip().split('\t')
 
 
-class Excel(Tabular, SpartitionFile):
+class Excel(Tabular, PartitionFile):
     def iter_rows(self) -> iter[tuple[str, ...]]:
         wb = load_workbook(filename=self.path, read_only=True)
         ws = wb.worksheets[0]
@@ -88,8 +91,8 @@ class Excel(Tabular, SpartitionFile):
         wb.close
 
 
-class Spart(SpartitionFile):
-    def read(self, spartition=None) -> Spartition:
+class Spart(PartitionFile):
+    def read(self, spartition=None) -> Partition:
         spart = SpartParserSpart.fromPath(self.path)
 
         if spartition is None:
@@ -98,3 +101,11 @@ class Spart(SpartitionFile):
         for subset in spart.getSpartitionSubsets(spartition):
             for individual in spart.getSubsetIndividuals(spartition, subset):
                 yield (individual, subset)
+
+
+class Genus(Tabfile):
+
+    def read(self,*args, **kwargs) -> Partition:
+         for id, organism in super().read(*args, **kwargs):
+             genus = organism.split()[0]
+             yield (id, genus)
