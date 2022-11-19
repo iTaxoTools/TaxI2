@@ -90,41 +90,50 @@ def removeIdentical(pairs):
             yield pair
 
 
-def excludeReplicate(groupSimilar, includeSet, excludedSet):
-    for g in groupSimilar:
-        first = next(g)
-        maxSeq = (first[0].x)
-        maxlen = len(maxSeq.seq)
-        for p, similar in chain([first], g):
-            if similar:
-                maxlen = max(maxlen, len(p.y.seq))
-                if maxlen == len(p.y.seq):
-                    if maxSeq.id in includeSet:
-                        includeSet.remove(maxSeq.id)
-                    excludedSet.add(maxSeq.id)
-                    maxSeq = p.y
-        yield first
-        includeSet.add(maxSeq.id)
+def excludeReplicate(groupSimilar, includeSet, excludedSet, summaryPath):
+    with open(summaryPath, 'w') as summaryFile:
+        summaryFile.write('seqid_query\tis_replicant\tseqid_replicant\tdistance\tlength\n')
+        for g in groupSimilar:
+            first = next(g)
+            maxSeq = (first[0].x)
+            maxlen = len(maxSeq.seq)
+            querySequence = first[0].x
+            for p, similar, distance in chain([first], g):
+                if similar:
+                    maxlen = max(maxlen, len(p.y.seq))
+                    if maxlen == len(p.y.seq):
+                        # we are excluding this
+                        summaryFile.write(f'{maxSeq.id}\t{True}\t{p.y.id}\t{distance.d:.4f}\t{len(maxSeq.seq)}\n')
+                        excludedSet.add(maxSeq.id)
+                        maxSeq = p.y
+            if querySequence.id not in excludedSet:
+                # we are including this
+                summaryFile.write(f'{querySequence.id}\t{False}\t{None}\t{None}\t{len(querySequence.seq)}\n')
+            yield querySequence
 
 
-def dereplicate(generatorObject, excludedSet, dereplicatedPath, excludedPath, headers):
+def dereplicate(sequences, excludedSet, dereplicatedPath, excludedPath):
     derepFile = SequenceFile.Tabfile(dereplicatedPath)
     excFile = SequenceFile.Tabfile(excludedPath)
-    with derepFile.open('w') as derepHandler, excFile.open('w') as exclHandler:
-        for p, _ in generatorObject:
+    with (
+        derepFile.open('w') as derepHandler,
+        excFile.open('w') as exclHandler,
+    ):
+        for sequence in sequences:
 
-            if p.x.id in excludedSet:
-                exclHandler.write(p.x)
+            if sequence.id in excludedSet:
+                exclHandler.write(sequence)
             else:
-                derepHandler.write(p.x)
-            yield p
+                derepHandler.write(sequence)
+            yield sequence
 
 
 def main():
-    global graph, vertices_no
     dataPath = Path(argv[1])
     dereplicatedPath = Path(argv[2])
     excludedPath = Path(argv[3])
+    summaryPath = Path(argv[4])
+
     lenTrashold = 10
     similarityThreshold = 0.07
     ts = perf_counter()
@@ -155,22 +164,21 @@ def main():
     aligned_pairs = aligner.align_pairs(normalizePair)
 
     distances = calc(aligned_pairs)
+    distances = multiply(distances, 2)
 
     isSimilar = getSimilar(distances, similarityThreshold)
 
-    allPairs = zip(pairs, isSimilar)
+    allPairs = zip(pairs, isSimilar, distances)
 
     groupSimilar = groupSimilars(allPairs)
 
-    pairData = excludeReplicate(groupSimilar, includeSet, excludedSet)
+    sequences = excludeReplicate(groupSimilar, includeSet, excludedSet, summaryPath)
 
-    headers = file_data.getHeader()
+    sequences = dereplicate(sequences, excludedSet, dereplicatedPath, excludedPath)
 
-    d = dereplicate(pairData, excludedSet, dereplicatedPath, excludedPath, headers)
+    sequences = progress(sequences, total)
 
-    distance = progress(d, total)
-
-    for _ in distance:
+    for _ in sequences:
         pass
 
     tf = perf_counter()
