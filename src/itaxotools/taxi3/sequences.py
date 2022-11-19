@@ -137,14 +137,20 @@ class Tabfile(Tabular, SequenceFile):
         with open(self.path) as file:
             return file.readline().strip().split('\t')
 
-    def iter_write(self):
-       with open(self.path, 'w') as file:
-           try:
-               while True:
-                   sequence = yield  # Yield expression
-                   file.write(f"\n{sequence.id}\t{sequence.seq}")
-           except GeneratorExit:
-               return
+    def iter_write(self, idHeader='seqid', seqHeader='sequence'):
+        with open(self.path, 'w') as file:
+            try:
+                sequence = yield
+                extraHeaders = sequence.extras.keys()
+                extraHeadersString = '\t'.join(extraHeaders)
+                file.write(f'{idHeader}\t{extraHeadersString}\t{seqHeader}\n')
+                while True:
+                    extras = sequence.extras.values()
+                    extrasString = '\t'.join(extras)
+                    file.write(f'{sequence.id}\t{extrasString}\t{sequence.seq}\n')
+                    sequence = yield  # Yield expression
+            except GeneratorExit:
+                return
 
 
 class Excel(Tabular, SequenceFile):
