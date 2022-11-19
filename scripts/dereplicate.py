@@ -1,4 +1,4 @@
-from itertools import groupby
+from itertools import groupby, chain
 from pathlib import Path
 from sys import argv
 from time import perf_counter
@@ -11,16 +11,32 @@ from itaxotools.taxi3.sequences import *
 
 def calc(aligned_pairs, metric=DistanceMetric.Uncorrected()):
     for x, y in aligned_pairs:
-        if x.id == y.id:
-            continue
         yield metric.calculate(x, y)
 
 
 def progress(distances, total):
 
     for index, distance in enumerate(distances):
-        print(f"\r Loading... {index}/{total} = {(round(float(index)/float(total)  * 100, 2))} ", end="")
+        print(f"\r Processing... {int(index) + 1}/{total} = {(round(float(index)/float(total)  * 100 + 10, 2))} ", end="")
         yield distance
+
+
+def dropShortest(data, lenTrashold):
+
+    for d in data:
+        if len(d.seq) >= lenTrashold:
+            yield d
+
+
+def getNotExcludedPair(pairs, excludedSet):
+    for pair in pairs:
+        if pair.x.id not in excludedSet and pair.y.id not in excludedSet:
+            yield pair
+
+
+def normalizePairs(pairs):
+    for pair in pairs:
+        yield SequencePair(pair.x.normalize(), pair.y.normalize())
 
 
 def derepSeq(disctances, dereplicatedPath, excludedPath, headers, similarity=0.07):
@@ -47,40 +63,110 @@ def derepSeq(disctances, dereplicatedPath, excludedPath, headers, similarity=0.0
 
             yield disctance
 
-def get_minimum(distances):
-    for k, g in groupby(distances, lambda d: d.x.id):
-        g = (d for d in g if d.d is not None)
-        d = min(g, key = lambda x: x.d)
-        yield d
+
+def getSimilar(distances, similarityThreshold):
+
+    for distance in distances:
+        if distance.d <= similarityThreshold:
+            yield True
+        else:
+            yield False
+
+
+def groupSimilars(pairs):
+
+    for k, g in groupby(pairs, lambda p: p[0].x.id):
+        yield g
+
+
+def multiply(g, n):
+    return (x for x in g for i in range(n))
+
+
+def removeIdentical(pairs):
+
+    for pair in pairs:
+        if pair.x.id != pair.y.id:
+            yield pair
+
+
+def excludeReplicate(groupSimilar, includeSet, excludedSet):
+    for g in groupSimilar:
+        first = next(g)
+        maxSeq = (first[0].x)
+        maxlen = len(maxSeq.seq)
+        for p, similar in chain([first], g):
+            if similar:
+                maxlen = max(maxlen, len(p.y.seq))
+                if maxlen == len(p.y.seq):
+                    if maxSeq.id in includeSet:
+                        includeSet.remove(maxSeq.id)
+                    excludedSet.add(maxSeq.id)
+                    maxSeq = p.y
+        yield first
+        includeSet.add(maxSeq.id)
+
+
+def dereplicate(generatorObject, excludedSet, dereplicatedPath, excludedPath, headers):
+    derepFile = SequenceFile.Tabfile(dereplicatedPath)
+    excFile = SequenceFile.Tabfile(excludedPath)
+    with derepFile.open('w') as derepHandler, excFile.open('w') as exclHandler:
+        for p, _ in generatorObject:
+
+            if p.x.id in excludedSet:
+                exclHandler.write(p.x)
+            else:
+                derepHandler.write(p.x)
+            yield p
+
 
 def main():
-
-    path_data = Path(argv[1])
-    dereplicatedPath = 'dereplicated.txt'
-    excludedPath = 'excluded.txt'
-
+    global graph, vertices_no
+    dataPath = Path(argv[1])
+    dereplicatedPath = Path(argv[2])
+    excludedPath = Path(argv[3])
+    lenTrashold = 10
+    similarityThreshold = 0.07
     ts = perf_counter()
 
-    file_data = SequenceFile.Tabfile(path_data)
+    excludedSet = set()
+    includeSet = set()
+
+    file_data = SequenceFile.Tabfile(dataPath)
 
     data = Sequences.fromFile(file_data, idHeader='seqid', seqHeader='sequence')
 
     total = len(data)
 
-    data = data.normalize()
+    data = Sequences(lambda data, lenTrashold:dropShortest(data, lenTrashold), data, lenTrashold)
 
     pairs = SequencePairs.fromProduct(data, data)
 
+    pairs = getNotExcludedPair(pairs, excludedSet)
+
+    pairs = removeIdentical(pairs)
+
+    pairs = multiply(pairs, 2)
+
+    normalizePair = normalizePairs(pairs)
+
     aligner = PairwiseAligner.Biopython()
-    aligned_pairs = aligner.align_pairs(pairs)
+
+    aligned_pairs = aligner.align_pairs(normalizePair)
 
     distances = calc(aligned_pairs)
 
-    minimums = get_minimum(distances)
+    isSimilar = getSimilar(distances, similarityThreshold)
+
+    allPairs = zip(pairs, isSimilar)
+
+    groupSimilar = groupSimilars(allPairs)
+
+    pairData = excludeReplicate(groupSimilar, includeSet, excludedSet)
 
     headers = file_data.getHeader()
 
-    d = derepSeq(minimums, dereplicatedPath, excludedPath, headers)
+    d = dereplicate(pairData, excludedSet, dereplicatedPath, excludedPath, headers)
 
     distance = progress(d, total)
 
