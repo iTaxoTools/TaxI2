@@ -34,7 +34,7 @@ class Sequences(Container[Sequence]):
 class SequenceFile(Type):
     """Handlers for sequence files"""
 
-    def __init__(self, path: Path):
+    def __init__(self, path: Path) -> object:
         self.path = path
 
     def read(self, *args, **kwargs) -> iter[Sequence]:
@@ -42,6 +42,13 @@ class SequenceFile(Type):
 
     def write(self, distances: iter[Sequence], *args, **kwargs) -> None:
         raise NotImplementedError()
+
+    @classmethod
+    def identifyFile(cls, file):
+        file_map = {'tab': Tabfile, 'csv': Excel, 'fas': Fasta, 'gbk': Genbank}
+        file_type = str(file).strip().split('.')[1]
+        return file_map[file_type](file)
+
 
 
 class SequenceFileHandler:
