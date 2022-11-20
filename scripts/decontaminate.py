@@ -24,22 +24,22 @@ def progress(distances, total):
         yield distance
 
 
-def decontaminateSeq(disctances, contaminatePath, decontaminatePath, summaryPath, headers, similarity=0.09):
+def decontaminateSeq(disctances, contaminatePath, decontaminatePath, summaryPath, similarity=0.09):
 
-    with open(decontaminatePath, 'w') as decontaminatedFile, open(contaminatePath, 'w') as contaminatedFile, open(summaryPath, 'w') as summryFile:
+    decontFile = SequenceFile.Tabfile(decontaminatePath)
+    contFile = SequenceFile.Tabfile(contaminatePath)
+
+    with decontFile.open('w') as decontHandler, contFile.open('w') as contHandler, open(summaryPath, 'w') as summryFile:
+
         summryFile.write("seqid_query\tclosest possible contaminant\tdistance\tis_contaminant")
-        decontaminatedFile.write('\t'.join(headers))
-        contaminatedFile.write('\t'.join(headers))
 
         for p, disctance in disctances:
             isContaminate = disctance.d <= similarity
-            extras = [v for k, v in disctance.y.extras.items()]
-            extrasString = '\t'.join(extras)
 
             if isContaminate:
-                decontaminatedFile.write(f"\n{disctance.x.id}\t{extrasString}\t{p.x.seq}")
+                decontHandler.write(p.x)
             else:
-                contaminatedFile.write(f"\n{disctance.x.id}\t{extrasString}\t{p.x.seq}")
+                contHandler.write(p.x)
 
             summryFile.write(f'\n{disctance.x.id}\t{disctance.y.id}\t{disctance.d}\t{isContaminate}')
 
@@ -66,9 +66,9 @@ def main():
 
     path_data = Path(argv[1])
     path_reference = Path(argv[2])
-    contaminatePath = 'contaminates.txt'
-    decontaminatePath = 'decontaminated.txt'
-    summaryPath = 'summary.txt'
+    contaminatePath = Path(argv[3])
+    decontaminatePath = Path(argv[4])
+    summaryPath = Path(argv[5])
 
     ts = perf_counter()
 
@@ -95,9 +95,7 @@ def main():
 
     allPairs = zip(pairs, minimums)
 
-    headers = file_data.getHeader()
-
-    d = decontaminateSeq(allPairs, contaminatePath, decontaminatePath, summaryPath, headers)
+    d = decontaminateSeq(allPairs, contaminatePath, decontaminatePath, summaryPath)
 
     distance = progress(d, total)
 

@@ -115,12 +115,8 @@ def excludeReplicate(groupSimilar, includeSet, excludedSet, summaryPath):
 def dereplicate(sequences, excludedSet, dereplicatedPath, excludedPath):
     derepFile = SequenceFile.Tabfile(dereplicatedPath)
     excFile = SequenceFile.Tabfile(excludedPath)
-    with (
-        derepFile.open('w') as derepHandler,
-        excFile.open('w') as exclHandler,
-    ):
+    with derepFile.open('w') as derepHandler, excFile.open('w') as exclHandler:
         for sequence in sequences:
-
             if sequence.id in excludedSet:
                 exclHandler.write(sequence)
             else:
