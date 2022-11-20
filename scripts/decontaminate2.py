@@ -22,22 +22,21 @@ def progress(distances, total):
         yield distance
 
 
-def decontaminateSeq(allpairs, contaminatePath, decontaminatePath, summaryPath, headers, outgroup_weight=1.0):
+def decontaminateSeq(allpairs, contaminatePath, decontaminatePath, summaryPath, outgroup_weight=1.0):
 
-    with open(decontaminatePath, 'w') as decontaminatedFile, open(contaminatePath, 'w') as contaminatedFile, open(summaryPath, 'w') as summryFile:
+    decontFile = SequenceFile.Tabfile(decontaminatePath)
+    contFile = SequenceFile.Tabfile(contaminatePath)
+
+    with decontFile.open('w') as decontHandler, contFile.open('w') as contHandler, open(summaryPath, 'w') as summryFile:
         summryFile.write("seqid_query\tclosest possible inGroup id\tingroup distance\tclosest possible outGroup id\toutgroup distance\tis_contaminant")
-        decontaminatedFile.write('\t'.join(headers))
-        contaminatedFile.write('\t'.join(headers))
 
         for inputData, ingroup_disctance, outgroup_disctance in allpairs:
             isContaminate = ingroup_disctance.d > (outgroup_weight * outgroup_disctance.d)
-            extras = [v for k, v in inputData.extras.items()]
-            extrasString = '\t'.join(extras)
 
             if isContaminate:
-                decontaminatedFile.write(f"\n{ingroup_disctance.x.id}\t{extrasString}\t{inputData.seq}")
+                decontHandler.write(inputData)
             else:
-                contaminatedFile.write(f"\n{ingroup_disctance.x.id}\t{extrasString}\t{inputData.seq}")
+                contHandler.write(inputData)
 
             summryFile.write(f'\n{ingroup_disctance.x.id}\t{ingroup_disctance.y.id}\t{ingroup_disctance.d}\t{outgroup_disctance.y.id}\t{outgroup_disctance.d}\t{isContaminate}')
 
@@ -65,9 +64,9 @@ def main():
     path_data = Path(argv[1])
     path_ingroup_reference = Path(argv[2])
     path_outgroup_reference = Path(argv[3])
-    contaminatePath = 'contaminates.txt'
-    decontaminatePath = 'decontaminated.txt'
-    summaryPath = 'summary.txt'
+    contaminatePath = Path(argv[4])
+    decontaminatePath = Path(argv[5])
+    summaryPath = Path(argv[6])
 
     ts = perf_counter()
 
@@ -103,9 +102,7 @@ def main():
 
     allPairs = zip(data, in_minimums, out_minimums)
 
-    headers = file_data.getHeader()
-
-    d = decontaminateSeq(allPairs, contaminatePath, decontaminatePath, summaryPath, headers)
+    d = decontaminateSeq(allPairs, contaminatePath, decontaminatePath, summaryPath)
 
     distance = progress(d, total)
 
