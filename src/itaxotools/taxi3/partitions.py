@@ -69,9 +69,6 @@ class Tabular(PartitionFile):
                 yield (id, sub)
 
 
-
-
-
 class Tabfile(Tabular, PartitionFile):
     def iter_rows(self) -> iter[tuple[str, ...]]:
         with open(self.path) as file:
@@ -104,8 +101,7 @@ class Spart(PartitionFile):
 
 
 class Genus(Tabfile):
-
-    def read(self,*args, **kwargs) -> Partition:
+    def read(self, *args, **kwargs) -> Partition:
          for id, organism in super().read(*args, **kwargs):
              genus = organism.split()[0]
              yield (id, genus)
