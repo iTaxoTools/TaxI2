@@ -101,27 +101,20 @@ class Tabular(SequenceFile):
         seqColumn: int = 1,
     ) -> iter[Sequence]:
 
-        with self.protocol.open(self.path) as rows:
+        if idHeader and seqHeader:
+            columns = (idHeader, seqHeader)
+            hasHeader = True
+        else:
+            columns = (idColumn, seqColumn)
 
-            if idHeader and seqHeader:
-                hasHeader = True
-
-            if hasHeader:
-                headers = next(rows)
-                idColumn, seqColumn = headers.index(idHeader), headers.index(seqHeader)
-
-            # Getting id and seq
+        with self.protocol.open(self.path, has_headers=hasHeader, columns=columns, get_all_columns=True) as rows:
+            headers = rows.headers
+            extras = dict()
             for row in rows:
-                id = row[idColumn]
-                seq = row[seqColumn]
-
-                extras = {}
-                if hasHeader:
-                    extras = {
-                        k: v for c, (k, v) in enumerate(zip(headers, row))
-                        if c not in (idColumn, seqColumn)
-                    }
-
+                id = row[0]
+                seq = row[1]
+                if headers is not None:
+                    extras = { k: v for (k, v) in zip(headers[2:], row[2:]) }
                 yield Sequence(id, seq, extras)
 
     def getHeader(self):
