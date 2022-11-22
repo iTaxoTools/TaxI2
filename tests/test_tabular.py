@@ -131,10 +131,14 @@ def items_simple() -> tuple:
 
 @pytest.mark.parametrize(
     "test", [
-    ReadTest(items_simple, ReadTest.assert_all, 'simple.tsv', Tabular),
-    ReadTest(items_simple, ReadTest.assert_all, 'headers.tsv', Tabular, dict(has_headers=True)),
-    ReadTest(items_simple, ReadTest.assert_0_2, 'headers.tsv', Tabular, dict(columns=[0, 2])),
-    ReadTest(items_simple, ReadTest.assert_0_2, 'headers.tsv', Tabular, dict(columns=['header_1', 'header_3'])),
+    ReadTest(items_simple, ReadTest.assert_all, 'simple.tsv', Tabular.Tabfile),
+    ReadTest(items_simple, ReadTest.assert_all, 'headers.tsv', Tabular.Tabfile, dict(has_headers=True)),
+    ReadTest(items_simple, ReadTest.assert_0_2, 'headers.tsv', Tabular.Tabfile, dict(columns=[0, 2])),
+    ReadTest(items_simple, ReadTest.assert_0_2, 'headers.tsv', Tabular.Tabfile, dict(columns=['header_1', 'header_3'])),
+    ReadTest(items_simple, ReadTest.assert_all, 'simple.xlsx', Tabular.Excel),
+    ReadTest(items_simple, ReadTest.assert_all, 'headers.xlsx', Tabular.Excel, dict(has_headers=True)),
+    ReadTest(items_simple, ReadTest.assert_0_2, 'headers.xlsx', Tabular.Excel, dict(columns=[0, 2])),
+    ReadTest(items_simple, ReadTest.assert_0_2, 'headers.xlsx', Tabular.Excel, dict(columns=['header_1', 'header_3'])),
 ])
 @pytest.mark.parametrize(
     "validator", [
@@ -148,26 +152,28 @@ def test_read_tabular(test: ReadTest, validator: Callable) -> None:
 
 
 def test_read_tabular_missing_header() -> None:
-    test = ReadTest(items_simple, ReadTest.assert_all, 'headers.tsv', Tabular, dict(columns=['header_X']))
+    test = ReadTest(items_simple, ReadTest.assert_all, 'headers.tsv', Tabular.Tabfile, dict(columns=['header_X']))
     with pytest.raises(ValueError):
         test.validate_context_iter()
 
 
 def test_read_tabular_zero_columns() -> None:
-    test = ReadTest(items_simple, ReadTest.assert_all, 'headers.tsv', Tabular, dict(columns=[]))
+    test = ReadTest(items_simple, ReadTest.assert_all, 'headers.tsv', Tabular.Tabfile, dict(columns=[]))
     with pytest.raises(ValueError):
         test.validate_context_iter()
 
 
 def test_read_tabular_early_close() -> None:
     path = TEST_DATA_DIR / 'simple.tsv'
-    file = Tabular.open(path)
+    file = Tabular.Tabfile.open(path)
     file.read()
     file.close()
 
+
 @pytest.mark.parametrize(
     "test", [
-    HeaderTest(items_simple, 'headers.tsv', Tabular),
+    HeaderTest(items_simple, 'headers.tsv', Tabular.Tabfile),
+    HeaderTest(items_simple, 'headers.xlsx', Tabular.Excel),
 ])
 def test_read_tabular_headers(test: HeaderTest) -> None:
     test.validate()
@@ -175,8 +181,8 @@ def test_read_tabular_headers(test: HeaderTest) -> None:
 
 @pytest.mark.parametrize(
     "test", [
-    WriteTest(items_simple, 'simple.tsv', Tabular),
-    WriteTest(items_simple, 'headers.tsv', Tabular, dict(columns=['header_1', 'header_2', 'header_3'])),
+    WriteTest(items_simple, 'simple.tsv', Tabular.Tabfile),
+    WriteTest(items_simple, 'headers.tsv', Tabular.Tabfile, dict(columns=['header_1', 'header_2', 'header_3'])),
 ])
 @pytest.mark.parametrize(
     "validator", [

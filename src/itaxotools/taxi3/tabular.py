@@ -4,6 +4,10 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import NamedTuple, Generator
 
+from openpyxl import load_workbook
+
+from .types import Type
+
 
 class ReadHandler:
     def __init__(
@@ -38,9 +42,7 @@ class ReadHandler:
         self.it.close()
 
     def _iter_read_rows(self) -> iter[tuple[str, ...]]:
-        with open(self.path, 'r') as file:
-            for line in file:
-                yield tuple(line.strip().split('\t'))
+        raise NotImplementedError()
 
     def iter_read(self) -> iter[tuple[str, ...]]:
         rows = self._iter_read_rows()
@@ -91,14 +93,7 @@ class WriteHandler:
         self.gen.close()
 
     def _gen_write_rows(self) -> Generator[None, tuple[str, ...], None]:
-        with open(self.path, 'w') as file:
-            try:
-                while True:
-                    row = yield
-                    text = '\t'.join(row)
-                    file.write(text + '\n')
-            except GeneratorExit:
-                return
+        raise NotImplementedError()
 
     def gen_write(self) -> Generator[None, tuple[str, ...], None]:
         rows = self._gen_write_rows()
@@ -116,16 +111,61 @@ class WriteHandler:
         self.gen.send(row)
 
 
-class Tabular:
+class Tabular(Type):
+    read_handler = ReadHandler
+    write_handler = WriteHandler
+
     @classmethod
     def open(cls, path: Path, mode: 'r' | 'w' = 'r', *args, **kwargs) -> ReadHandler | WriteHandler:
         if mode == 'r':
-            return ReadHandler(path, *args, **kwargs)
+            return cls.read_handler(path, *args, **kwargs)
         elif mode == 'w':
-            return WriteHandler(path, *args, **kwargs)
+            return cls.write_handler(path, *args, **kwargs)
         raise ValueError('Mode must be "r" or "w"')
 
     @classmethod
     def headers(cls, path: Path) -> tuple[str, ...]:
-        with ReadHandler(path) as handler:
+        with cls.read_handler(path) as handler:
             return handler.read()
+
+
+class TabfileReadHandler(ReadHandler):
+    def _iter_read_rows(self) -> iter[tuple[str, ...]]:
+        with open(self.path, 'r') as file:
+            for line in file:
+                yield tuple(line.strip().split('\t'))
+
+
+class TabfileWriteHandler(WriteHandler):
+    def _gen_write_rows(self) -> Generator[None, tuple[str, ...], None]:
+        with open(self.path, 'w') as file:
+            try:
+                while True:
+                    row = yield
+                    text = '\t'.join(row)
+                    file.write(text + '\n')
+            except GeneratorExit:
+                return
+
+
+class Tabfile(Tabular):
+    read_handler = TabfileReadHandler
+    write_handler = TabfileWriteHandler
+
+
+class ExcelReadHandler(ReadHandler):
+    def _iter_read_rows(self) -> iter[tuple[str, ...]]:
+        wb = load_workbook(filename=self.path, read_only=True)
+        try:
+            ws = wb.worksheets[0]
+            for row in ws.iter_rows(values_only=True):
+                row = list(row)
+                while row and row[-1] is None:
+                    del row[-1]
+                yield tuple(x if x else '' for x in row)
+        finally:
+            wb.close()
+
+
+class Excel(Tabular):
+    read_handler = ExcelReadHandler
