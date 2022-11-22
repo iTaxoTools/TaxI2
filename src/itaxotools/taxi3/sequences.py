@@ -6,9 +6,9 @@ from typing import NamedTuple
 
 from Bio import SeqIO
 from Bio.SeqIO.FastaIO import SimpleFastaParser
-from openpyxl import load_workbook
 
 from .types import Container, Type
+from .tabular import Tabular as TabularProtocol
 
 
 class Sequence(NamedTuple):
@@ -50,7 +50,6 @@ class SequenceFile(Type):
         return file_map[file_type](file)
 
 
-
 class SequenceFileHandler:
     def __init__(self, file: SequenceFile):
         self.coroutine = file.iter_write()
@@ -78,11 +77,7 @@ class Genbank(SequenceFile):
 
 
 class Tabular(SequenceFile):
-    def iter_rows(self):
-        raise NotImplementedError()
-
-    def iter_write(self):
-        raise NotImplementedError()
+    protocol = TabularProtocol
 
     @contextmanager
     def open(self, mode='r'):
@@ -90,8 +85,10 @@ class Tabular(SequenceFile):
             yield self.iter_rows()
         elif mode == 'w':
             handler = SequenceFileHandler(self)
-            yield handler
-            handler.close()
+            try:
+                yield handler
+            finally:
+                handler.close()
         else:
             raise Exception('Unknown mode')
 
@@ -104,19 +101,17 @@ class Tabular(SequenceFile):
         seqColumn: int = 1,
     ) -> iter[Sequence]:
 
-        with self.open() as rows:
+        with self.protocol.open(self.path) as rows:
 
-            # Checking headers
             if idHeader and seqHeader:
                 hasHeader = True
+
             if hasHeader:
                 headers = next(rows)
                 idColumn, seqColumn = headers.index(idHeader), headers.index(seqHeader)
 
             # Getting id and seq
             for row in rows:
-                if len(row) <= 1:
-                    continue
                 id = row[idColumn]
                 seq = row[seqColumn]
 
@@ -130,19 +125,11 @@ class Tabular(SequenceFile):
                 yield Sequence(id, seq, extras)
 
     def getHeader(self):
-        with open(self.path) as file:
-            print(file.readline())
+        return cls.protocol.headers(self.path)
 
 
 class Tabfile(Tabular, SequenceFile):
-    def iter_rows(self) -> iter[tuple[str, ...]]:
-        with open(self.path) as file:
-            for line in file:
-                yield line.strip().split('\t')
-
-    def getHeader(self):
-        with open(self.path) as file:
-            return file.readline().strip().split('\t')
+    protocol = TabularProtocol.Tabfile
 
     def iter_write(self, idHeader='seqid', seqHeader='sequence'):
         with open(self.path, 'w') as file:
@@ -161,12 +148,4 @@ class Tabfile(Tabular, SequenceFile):
 
 
 class Excel(Tabular, SequenceFile):
-    def iter_rows(self) -> iter[tuple[str, ...]]:
-        wb = load_workbook(filename=self.path, read_only=True)
-        ws = wb.worksheets[0]
-        for row in ws.iter_rows(values_only=True):
-            row = list(row)
-            while row and row[-1] is None:
-                del row[-1]
-            yield [x if x else '' for x in row]
-        wb.close
+    protocol = TabularProtocol.Excel

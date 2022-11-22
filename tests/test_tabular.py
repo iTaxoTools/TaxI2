@@ -6,21 +6,20 @@ from typing import Callable, NamedTuple
 import pytest
 from utility import assert_eq_files
 
-from itaxotools.taxi3.tabular import Tabular
+from itaxotools.taxi3.tabular import Tabular, Row
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 
+Item = Row
 
-Item = tuple[str]
 
 class Items(NamedTuple):
-    headers: Item
+    headers: Item | None
     items: list[Item]
 
 
 class ReadTest(NamedTuple):
     fixture: Callable[[], Items]
-    asserter: Callable[[Item, Item], bool]
     input: str
     protocol: Tabular
     kwargs: dict = {}
@@ -36,13 +35,13 @@ class ReadTest(NamedTuple):
     def validate_context_iter(self):
         with self.protocol.open(self.input_path, **self.kwargs) as file:
             for item, fixed in zip(file, self.fixed.items):
-                self.asserter(item, fixed)
+                assert item == fixed
 
     def validate_context_read(self):
         with self.protocol.open(self.input_path, **self.kwargs) as file:
             for fixed in self.fixed.items:
                 item = file.read()
-                self.asserter(item, fixed)
+                assert item == fixed
 
     def validate_context_exhaust(self):
         with self.protocol.open(self.input_path, **self.kwargs) as file:
@@ -52,21 +51,17 @@ class ReadTest(NamedTuple):
                 if item is None:
                     break
                 fixed = next(fixed_iter)
-                self.asserter(item, fixed)
+                assert item == fixed
 
     def validate_open_iter(self):
         file = self.protocol.open(self.input_path, **self.kwargs)
         for item, fixed in zip(file, self.fixed.items):
-            self.asserter(item, fixed)
+            assert item == fixed
         file.close()
 
-    @staticmethod
-    def assert_all(item: Item, fixed: Item) -> bool:
-        assert item == fixed
-
-    @staticmethod
-    def assert_0_2(item: Item, fixed: Item) -> bool:
-        assert item == (fixed[0], fixed[2])
+    def validate_headers(self):
+        with self.protocol.open(self.input_path, **self.kwargs) as file:
+            assert file.headers == self.fixed.headers
 
 
 class HeaderTest(NamedTuple):
@@ -118,7 +113,7 @@ class WriteTest(NamedTuple):
         assert_eq_files(output_path, self.fixed_path)
 
 
-def items_simple() -> tuple:
+def items_simple_headers_all() -> tuple:
     return Items(
         headers = ('header_1', 'header_2', 'header_3'),
         items = [
@@ -129,16 +124,80 @@ def items_simple() -> tuple:
     )
 
 
+def items_simple_plain_all() -> tuple:
+    return Items(
+        headers = None,
+        items = [
+            ('item_1_1', 'item_1_2', 'item_1_3'),
+            ('item_2_1', 'item_2_2', 'item_2_3'),
+            ('item_3_1', 'item_3_2', 'item_3_3'),
+        ]
+    )
+
+
+def items_simple_headers_0_2() -> tuple:
+    return Items(
+        headers = ('header_1', 'header_3'),
+        items = [
+            ('item_1_1', 'item_1_3'),
+            ('item_2_1', 'item_2_3'),
+            ('item_3_1', 'item_3_3'),
+        ]
+    )
+
+
+def items_simple_plain_0_2() -> tuple:
+    return Items(
+        headers = None,
+        items = [
+            ('item_1_1', 'item_1_3'),
+            ('item_2_1', 'item_2_3'),
+            ('item_3_1', 'item_3_3'),
+        ]
+    )
+
+
+def items_simple_headers_0_2_1() -> tuple:
+    return Items(
+        headers = ('header_1', 'header_3', 'header_2'),
+        items = [
+            ('item_1_1', 'item_1_3', 'item_1_2'),
+            ('item_2_1', 'item_2_3', 'item_2_2'),
+            ('item_3_1', 'item_3_3', 'item_3_2'),
+        ]
+    )
+
+
+def items_simple_plain_0_2_1() -> tuple:
+    return Items(
+        headers = None,
+        items = [
+            ('item_1_1', 'item_1_3', 'item_1_2'),
+            ('item_2_1', 'item_2_3', 'item_2_2'),
+            ('item_3_1', 'item_3_3', 'item_3_2'),
+        ]
+    )
+
+
 @pytest.mark.parametrize(
     "test", [
-    ReadTest(items_simple, ReadTest.assert_all, 'simple.tsv', Tabular.Tabfile),
-    ReadTest(items_simple, ReadTest.assert_all, 'headers.tsv', Tabular.Tabfile, dict(has_headers=True)),
-    ReadTest(items_simple, ReadTest.assert_0_2, 'headers.tsv', Tabular.Tabfile, dict(columns=[0, 2])),
-    ReadTest(items_simple, ReadTest.assert_0_2, 'headers.tsv', Tabular.Tabfile, dict(columns=['header_1', 'header_3'])),
-    ReadTest(items_simple, ReadTest.assert_all, 'simple.xlsx', Tabular.Excel),
-    ReadTest(items_simple, ReadTest.assert_all, 'headers.xlsx', Tabular.Excel, dict(has_headers=True)),
-    ReadTest(items_simple, ReadTest.assert_0_2, 'headers.xlsx', Tabular.Excel, dict(columns=[0, 2])),
-    ReadTest(items_simple, ReadTest.assert_0_2, 'headers.xlsx', Tabular.Excel, dict(columns=['header_1', 'header_3'])),
+    ReadTest(items_simple_plain_all, 'simple.tsv', Tabular.Tabfile),
+    ReadTest(items_simple_plain_0_2, 'simple.tsv', Tabular.Tabfile, dict(columns=[0, 2])),
+    ReadTest(items_simple_plain_0_2_1, 'simple.tsv', Tabular.Tabfile, dict(columns=[0, 2], get_all_columns=True)),
+    ReadTest(items_simple_headers_all, 'headers.tsv', Tabular.Tabfile, dict(has_headers=True)),
+    ReadTest(items_simple_headers_0_2, 'headers.tsv', Tabular.Tabfile, dict(columns=[0, 2], has_headers=True)),
+    ReadTest(items_simple_headers_0_2_1, 'headers.tsv', Tabular.Tabfile, dict(columns=[0, 2], has_headers=True, get_all_columns=True)),
+    ReadTest(items_simple_headers_0_2, 'headers.tsv', Tabular.Tabfile, dict(columns=['header_1', 'header_3'])),
+    ReadTest(items_simple_headers_0_2_1, 'headers.tsv', Tabular.Tabfile, dict(columns=['header_1', 'header_3'], get_all_columns=True)),
+
+    ReadTest(items_simple_plain_all, 'simple.xlsx', Tabular.Excel),
+    ReadTest(items_simple_plain_0_2, 'simple.xlsx', Tabular.Excel, dict(columns=[0, 2])),
+    ReadTest(items_simple_plain_0_2_1, 'simple.xlsx', Tabular.Excel, dict(columns=[0, 2], get_all_columns=True)),
+    ReadTest(items_simple_headers_all, 'headers.xlsx', Tabular.Excel, dict(has_headers=True)),
+    ReadTest(items_simple_headers_0_2, 'headers.xlsx', Tabular.Excel, dict(columns=[0, 2], has_headers=True)),
+    ReadTest(items_simple_headers_0_2_1, 'headers.xlsx', Tabular.Excel, dict(columns=[0, 2], has_headers=True, get_all_columns=True)),
+    ReadTest(items_simple_headers_0_2, 'headers.xlsx', Tabular.Excel, dict(columns=['header_1', 'header_3'])),
+    ReadTest(items_simple_headers_0_2_1, 'headers.xlsx', Tabular.Excel, dict(columns=['header_1', 'header_3'], get_all_columns=True)),
 ])
 @pytest.mark.parametrize(
     "validator", [
@@ -146,19 +205,20 @@ def items_simple() -> tuple:
     ReadTest.validate_context_read,
     ReadTest.validate_context_exhaust,
     ReadTest.validate_open_iter,
+    ReadTest.validate_headers,
 ])
 def test_read_tabular(test: ReadTest, validator: Callable) -> None:
     validator(test)
 
 
 def test_read_tabular_missing_header() -> None:
-    test = ReadTest(items_simple, ReadTest.assert_all, 'headers.tsv', Tabular.Tabfile, dict(columns=['header_X']))
+    test = ReadTest(items_simple_headers_all, 'headers.tsv', Tabular.Tabfile, dict(columns=['header_X']))
     with pytest.raises(ValueError):
         test.validate_context_iter()
 
 
 def test_read_tabular_zero_columns() -> None:
-    test = ReadTest(items_simple, ReadTest.assert_all, 'headers.tsv', Tabular.Tabfile, dict(columns=[]))
+    test = ReadTest(items_simple_headers_all, 'headers.tsv', Tabular.Tabfile, dict(columns=[]))
     with pytest.raises(ValueError):
         test.validate_context_iter()
 
@@ -172,8 +232,8 @@ def test_read_tabular_early_close() -> None:
 
 @pytest.mark.parametrize(
     "test", [
-    HeaderTest(items_simple, 'headers.tsv', Tabular.Tabfile),
-    HeaderTest(items_simple, 'headers.xlsx', Tabular.Excel),
+    HeaderTest(items_simple_headers_all, 'headers.tsv', Tabular.Tabfile),
+    HeaderTest(items_simple_headers_all, 'headers.xlsx', Tabular.Excel),
 ])
 def test_read_tabular_headers(test: HeaderTest) -> None:
     test.validate()
@@ -181,8 +241,8 @@ def test_read_tabular_headers(test: HeaderTest) -> None:
 
 @pytest.mark.parametrize(
     "test", [
-    WriteTest(items_simple, 'simple.tsv', Tabular.Tabfile),
-    WriteTest(items_simple, 'headers.tsv', Tabular.Tabfile, dict(columns=['header_1', 'header_2', 'header_3'])),
+    WriteTest(items_simple_plain_all, 'simple.tsv', Tabular.Tabfile),
+    WriteTest(items_simple_headers_all, 'headers.tsv', Tabular.Tabfile, dict(columns=['header_1', 'header_2', 'header_3'])),
 ])
 @pytest.mark.parametrize(
     "validator", [
