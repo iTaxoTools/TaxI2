@@ -25,20 +25,28 @@ class ReadTest(NamedTuple):
     protocol: Tabular
     kwargs: dict = {}
 
-    def validate_context_iter(self, path: Path, fixture: Items):
-        with self.protocol.open(path, **self.kwargs) as file:
-            for item, fixed in zip(file, fixture.items):
+    @property
+    def input_path(self) -> Path:
+        return TEST_DATA_DIR / self.input
+
+    @property
+    def fixed(self) -> Path:
+        return self.fixture()
+
+    def validate_context_iter(self):
+        with self.protocol.open(self.input_path, **self.kwargs) as file:
+            for item, fixed in zip(file, self.fixed.items):
                 self.asserter(item, fixed)
 
-    def validate_context_read(self, path: Path, fixture: Items):
-        with self.protocol.open(path, **self.kwargs) as file:
-            for fixed in fixture.items:
+    def validate_context_read(self):
+        with self.protocol.open(self.input_path, **self.kwargs) as file:
+            for fixed in self.fixed.items:
                 item = file.read()
                 self.asserter(item, fixed)
 
-    def validate_context_exhaust(self, path: Path, fixture: Items):
-        with self.protocol.open(path, **self.kwargs) as file:
-            fixed_iter = (item for item in fixture.items)
+    def validate_context_exhaust(self):
+        with self.protocol.open(self.input_path, **self.kwargs) as file:
+            fixed_iter = (item for item in self.fixed.items)
             while True:
                 item = file.read()
                 if item is None:
@@ -46,9 +54,9 @@ class ReadTest(NamedTuple):
                 fixed = next(fixed_iter)
                 self.asserter(item, fixed)
 
-    def validate_open_iter(self, path: Path, fixture: Items):
-        file = self.protocol.open(path, **self.kwargs)
-        for item, fixed in zip(file, fixture.items):
+    def validate_open_iter(self):
+        file = self.protocol.open(self.input_path, **self.kwargs)
+        for item, fixed in zip(file, self.fixed.items):
             self.asserter(item, fixed)
         file.close()
 
@@ -61,24 +69,53 @@ class ReadTest(NamedTuple):
         assert item == (fixed[0], fixed[2])
 
 
+class HeaderTest(NamedTuple):
+    fixture: Callable[[], Items]
+    input: str
+    protocol: Tabular
+
+    @property
+    def input_path(self) -> Path:
+        return TEST_DATA_DIR / self.input
+
+    @property
+    def fixed(self) -> Path:
+        return self.fixture()
+
+    def validate(self):
+        headers = self.protocol.headers(self.input_path)
+        assert headers == self.fixed.headers
+
+
 class WriteTest(NamedTuple):
     fixture: Callable[[], Items]
     output: str
     protocol: Tabular
     kwargs: dict = {}
 
-    def validate_context(self, fixed_path: Path, output_path: Path, fixture: Items):
-        with self.protocol.open(output_path, 'w', **self.kwargs) as file:
-            for item in fixture.items:
-                file.write(item)
-        assert_eq_files(output_path, fixed_path)
+    @property
+    def fixed_path(self) -> Path:
+        return TEST_DATA_DIR / self.output
 
-    def validate_open(self, fixed_path: Path, output_path: Path, fixture: Items):
+    @property
+    def fixed(self) -> Path:
+        return self.fixture()
+
+    def get_output_path(self, tmp_path) -> Path:
+        return tmp_path / self.output
+
+    def validate_context(self, output_path: Path):
+        with self.protocol.open(output_path, 'w', **self.kwargs) as file:
+            for item in self.fixed.items:
+                file.write(item)
+        assert_eq_files(output_path, self.fixed_path)
+
+    def validate_open(self, output_path: Path):
         file = self.protocol.open(output_path, 'w', **self.kwargs)
-        for item in fixture.items:
+        for item in self.fixed.items:
             file.write(item)
         file.close()
-        assert_eq_files(output_path, fixed_path)
+        assert_eq_files(output_path, self.fixed_path)
 
 
 def items_simple() -> tuple:
@@ -107,25 +144,19 @@ def items_simple() -> tuple:
     ReadTest.validate_open_iter,
 ])
 def test_read_tabular(test: ReadTest, validator: Callable) -> None:
-    path = TEST_DATA_DIR / test.input
-    fixture = test.fixture()
-    validator(test, path, fixture)
+    validator(test)
 
 
 def test_read_tabular_missing_header() -> None:
     test = ReadTest(items_simple, ReadTest.assert_all, 'headers.tsv', Tabular, dict(columns=['header_X']))
-    path = TEST_DATA_DIR / test.input
-    fixture = test.fixture()
     with pytest.raises(ValueError):
-        test.validate_context_iter(path, fixture)
+        test.validate_context_iter()
 
 
 def test_read_tabular_zero_columns() -> None:
     test = ReadTest(items_simple, ReadTest.assert_all, 'headers.tsv', Tabular, dict(columns=[]))
-    path = TEST_DATA_DIR / test.input
-    fixture = test.fixture()
     with pytest.raises(ValueError):
-        test.validate_context_iter(path, fixture)
+        test.validate_context_iter()
 
 
 def test_read_tabular_early_close() -> None:
@@ -134,11 +165,18 @@ def test_read_tabular_early_close() -> None:
     file.read()
     file.close()
 
+@pytest.mark.parametrize(
+    "test", [
+    HeaderTest(items_simple, 'headers.tsv', Tabular),
+])
+def test_read_tabular_headers(test: HeaderTest) -> None:
+    test.validate()
+
 
 @pytest.mark.parametrize(
     "test", [
-        WriteTest(items_simple, 'simple.tsv', Tabular),
-        WriteTest(items_simple, 'headers.tsv', Tabular, dict(columns=['header_1', 'header_2', 'header_3'])),
+    WriteTest(items_simple, 'simple.tsv', Tabular),
+    WriteTest(items_simple, 'headers.tsv', Tabular, dict(columns=['header_1', 'header_2', 'header_3'])),
 ])
 @pytest.mark.parametrize(
     "validator", [
@@ -146,7 +184,5 @@ def test_read_tabular_early_close() -> None:
     WriteTest.validate_open,
 ])
 def test_write_tabular(test: WriteTest, validator: Callable, tmp_path: Path) -> None:
-    fixed_path = TEST_DATA_DIR / test.output
-    output_path = tmp_path / test.output
-    fixture = test.fixture()
-    validator(test, fixed_path, output_path, fixture)
+    output_path = test.get_output_path(tmp_path)
+    validator(test, output_path)

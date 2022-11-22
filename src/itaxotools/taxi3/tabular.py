@@ -124,3 +124,8 @@ class Tabular:
         elif mode == 'w':
             return WriteHandler(path, *args, **kwargs)
         raise ValueError('Mode must be "r" or "w"')
+
+    @classmethod
+    def headers(cls, path: Path) -> tuple[str, ...]:
+        with ReadHandler(path) as handler:
+            return handler.read()
