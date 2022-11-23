@@ -8,7 +8,7 @@ from Bio import SeqIO
 from Bio.SeqIO.FastaIO import SimpleFastaParser
 
 from .types import Container, Type
-from .tabular import FileHandler, TabularHandler, TabfileHandler, ExcelHandler
+from .handlers import FileHandler, TabularHandler, TabfileHandler, ExcelHandler
 
 
 class Sequence(NamedTuple):
