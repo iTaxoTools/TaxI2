@@ -16,11 +16,20 @@ class ReadTest(NamedTuple):
     file: SequenceFile
     kwargs: dict = {}
 
-    def validate(self, generated: Sequences):
-        fixture_list = list(self.fixture())
-        generated_list = list(generated)
-        assert len(fixture_list) == len(generated_list)
-        for sequence in fixture_list:
+    @property
+    def input_path(self) -> Path:
+        return TEST_DATA_DIR / self.input
+
+    @property
+    def fixed(self) -> Path:
+        return self.fixture()
+
+    def validate(self):
+        sequences = self.file(self.input_path).open(**self.kwargs)
+        generated_list = list(sequences)
+        fixed_list = list(self.fixed)
+        assert len(fixed_list) == len(generated_list)
+        for sequence in fixed_list:
             assert sequence in generated_list
 
 
@@ -53,6 +62,4 @@ read_tests = [
 
 @pytest.mark.parametrize("test", read_tests)
 def test_read_sequences(test: ReadTest) -> None:
-    input_path = TEST_DATA_DIR / test.input
-    sequences = test.file(input_path).read(**test.kwargs)
-    test.validate(sequences)
+    test.validate()

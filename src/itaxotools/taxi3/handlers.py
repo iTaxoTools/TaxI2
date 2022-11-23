@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from pathlib import Path
-from typing import NamedTuple, Generator, TypeVar
+from typing import NamedTuple, Generator, Generic, TypeVar
 from itertools import chain
 
 from openpyxl import load_workbook
@@ -13,7 +13,7 @@ Item = TypeVar('Item')
 Row = tuple[str, ...]
 
 
-class FileHandler:
+class FileHandler(Generic[Item]):
 
     def __init__(self, *args, **kwargs):
         self._open(*args, **kwargs)
@@ -70,18 +70,20 @@ class FileHandler:
         return self.mode == 'w'
 
     def _iter_read(self) -> iter[Item]:
-        # raise NotImplementedError()
+        raise NotImplementedError()
+
+        # Override example:
         yield  # ready
-        yield from range(10)
-        # while True:
-        #     yield None
+        while True:
+            yield None
 
     def _iter_write(self) -> Generator[None, Item, None]:
-        # raise NotImplementedError()
+        raise NotImplementedError()
+        
+        # Override example:
         try:
             while True:
-                x = yield
-                print('<<', x)
+                _ = yield
         except GeneratorExit:
             return
 

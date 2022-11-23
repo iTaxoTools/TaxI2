@@ -25,23 +25,110 @@ class Sequence(NamedTuple):
 class Sequences(Container[Sequence]):
     @classmethod
     def fromFile(cls, file: SequenceFile, *args, **kwargs) -> Sequences:
-        return cls(file.read, *args, **kwargs)
+        return cls(file.open, *args, **kwargs)
 
     def normalize(self) -> Sequences:
         return Sequences(lambda: (seq.normalize() for seq in self))
 
 
-class SequenceFile(Type):
-    """Handlers for sequence files"""
+class Handler(Type, FileHandler[Sequence]):
+    pass
 
-    def __init__(self, path: Path) -> object:
+
+class Fasta(Handler):
+    def _iter_read(self) -> iter[Sequence]:
+        with open(self.path, 'r') as handle:
+            yield  # ready
+            for data in SimpleFastaParser(handle):
+                yield Sequence(*data)
+
+
+class Genbank(Handler):
+    def _iter_read(self) -> iter[Sequence]:
+        # Bio.GenBank.Scanner
+        file = SeqIO.parse(self.path, 'genbank')
+        yield  # ready
+        for data in file:
+            yield Sequence(data.id, data.seq)
+
+
+class Tabular(Handler):
+    subhandler = TabularHandler
+
+    def _open_readable(
+        self,
+        idHeader: str = None,
+        seqHeader: str = None,
+        hasHeader: bool = False,
+        idColumn: int = 0,
+        seqColumn: int = 1,
+    ):
+        if idHeader and seqHeader:
+            columns = (idHeader, seqHeader)
+            hasHeader = True
+        else:
+            columns = (idColumn, seqColumn)
+
+        self.columns = columns
+        self.hasHeader = hasHeader
+        super()._open_readable()
+
+    def _iter_read(self) -> iter[Sequence]:
+        with self.subhandler(
+            self.path,
+            has_headers=self.hasHeader,
+            columns=self.columns,
+            get_all_columns=True,
+        ) as rows:
+            headers = rows.headers
+            extras = dict()
+            yield
+            for row in rows:
+                id = row[0]
+                seq = row[1]
+                if headers is not None:
+                    extras = { k: v for (k, v) in zip(headers[2:], row[2:]) }
+                yield Sequence(id, seq, extras)
+
+
+class Tabfile(Handler.Tabular, Handler):
+    subhandler = TabfileHandler
+
+    def _open_writable(
+        self,
+        idHeader='seqid',
+        seqHeader='sequence',
+    ):
+        self.idHeader = idHeader
+        self.seqHeader = seqHeader
+        super()._open_writable()
+
+    def _iter_write(self, idHeader='seqid', seqHeader='sequence'):
+        with self.subhandler(self.path, 'w') as file:
+            try:
+                sequence = yield
+                extraHeaders = tuple(sequence.extras.keys())
+                file.write((self.idHeader,) + extraHeaders + (self.seqHeader,))
+                while True:
+                    extras = tuple(sequence.extras.values())
+                    file.write((sequence.id,) + extras + (sequence.seq,))
+                    sequence = yield
+            except GeneratorExit:
+                return
+
+
+class Excel(Handler.Tabular, Handler):
+    subhandler = ExcelHandler
+
+
+class SequenceFile(Type):
+    handler = Handler
+
+    def __init__(self, path: Path):
         self.path = path
 
-    def read(self, *args, **kwargs) -> iter[Sequence]:
-        raise NotImplementedError()
-
-    def write(self, distances: iter[Sequence], *args, **kwargs) -> None:
-        raise NotImplementedError()
+    def open(self, *args, **kwargs) -> Handler:
+        return self.handler(self.path, *args, **kwargs)
 
     @classmethod
     def identifyFile(cls, file):
@@ -50,94 +137,17 @@ class SequenceFile(Type):
         return file_map[file_type](file)
 
 
-class SequenceFileHandler:
-    def __init__(self, file: SequenceFile):
-        self.coroutine = file.iter_write()
-        next(self.coroutine)
-
-    def write(self, sequence: Sequence) -> None:
-        self.coroutine.send(sequence)
-
-    def close(self) -> None:
-        self.coroutine.close()
-
-
 class Fasta(SequenceFile):
-    def read(self) -> iter[Sequence]:
-        with open(self.path, 'r') as handle:
-            for data in SimpleFastaParser(handle):
-                yield Sequence(*data)
+    handler = Handler.Fasta
 
 
 class Genbank(SequenceFile):
-    def read(self) -> iter[Sequence]:
-        # Bio.GenBank.Scanner
-        for data in SeqIO.parse(self.path, 'genbank'):
-            yield Sequence(data.id, data.seq)
+    handler = Handler.Genbank
 
 
-class Tabular(SequenceFile):
-    protocol = TabularHandler
-
-    def open(self, mode='r') -> FileHandler:
-        if mode == 'r':
-            yield self.iter_rows()
-        elif mode == 'w':
-            handler = SequenceFileHandler(self)
-            try:
-                yield handler
-            finally:
-                handler.close()
-        else:
-            raise Exception('Unknown mode')
-
-    def read(
-        self,
-        idHeader: str = None,
-        seqHeader: str = None,
-        hasHeader: bool = False,
-        idColumn: int = 0,
-        seqColumn: int = 1,
-    ) -> iter[Sequence]:
-
-        if idHeader and seqHeader:
-            columns = (idHeader, seqHeader)
-            hasHeader = True
-        else:
-            columns = (idColumn, seqColumn)
-
-        with self.protocol(self.path, has_headers=hasHeader, columns=columns, get_all_columns=True) as rows:
-            headers = rows.headers
-            extras = dict()
-            for row in rows:
-                id = row[0]
-                seq = row[1]
-                if headers is not None:
-                    extras = { k: v for (k, v) in zip(headers[2:], row[2:]) }
-                yield Sequence(id, seq, extras)
-
-    def getHeader(self):
-        return cls.protocol.headers(self.path)
+class Tabfile(SequenceFile):
+    handler = Handler.Tabfile
 
 
-class Tabfile(Tabular, SequenceFile):
-    protocol = TabfileHandler
-
-    def iter_write(self, idHeader='seqid', seqHeader='sequence'):
-        with open(self.path, 'w') as file:
-            try:
-                sequence = yield
-                extraHeaders = sequence.extras.keys()
-                extraHeadersString = '\t'.join(extraHeaders)
-                file.write(f'{idHeader}\t{extraHeadersString}\t{seqHeader}\n')
-                while True:
-                    extras = sequence.extras.values()
-                    extrasString = '\t'.join(extras)
-                    file.write(f'{sequence.id}\t{extrasString}\t{sequence.seq}\n')
-                    sequence = yield  # Yield expression
-            except GeneratorExit:
-                return
-
-
-class Excel(Tabular, SequenceFile):
-    protocol = ExcelHandler
+class Excel(SequenceFile):
+    handler = Handler.Excel
