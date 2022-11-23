@@ -79,7 +79,7 @@ class FileHandler(Generic[Item]):
 
     def _iter_write(self) -> Generator[None, Item, None]:
         raise NotImplementedError()
-        
+
         # Override example:
         try:
             while True:
@@ -111,7 +111,12 @@ class TabularHandler(FileHandler):
     def _iter_read(self) -> iter[Row]:
         rows = self._iter_read_rows()
         if self.has_headers:
-            self._header_row = next(rows)
+            try:
+                self._header_row = next(rows)
+            except StopIteration:
+                self._header_row = None
+                yield  # ready
+                return
         if self.columns is None:
             yield  # ready
             yield from rows

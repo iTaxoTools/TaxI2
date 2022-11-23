@@ -128,7 +128,7 @@ class WriteTest(NamedTuple):
         assert_eq_files(output_path, self.fixed_path)
 
 
-def items_simple_headers_all() -> tuple:
+def items_simple_headers_all() -> Items:
     return Items(
         headers = ('header_1', 'header_2', 'header_3'),
         items = [
@@ -139,7 +139,7 @@ def items_simple_headers_all() -> tuple:
     )
 
 
-def items_simple_plain_all() -> tuple:
+def items_simple_plain_all() -> Items:
     return Items(
         headers = None,
         items = [
@@ -150,7 +150,7 @@ def items_simple_plain_all() -> tuple:
     )
 
 
-def items_simple_headers_0_2() -> tuple:
+def items_simple_headers_0_2() -> Items:
     return Items(
         headers = ('header_1', 'header_3'),
         items = [
@@ -161,7 +161,7 @@ def items_simple_headers_0_2() -> tuple:
     )
 
 
-def items_simple_plain_0_2() -> tuple:
+def items_simple_plain_0_2() -> Items:
     return Items(
         headers = None,
         items = [
@@ -172,7 +172,7 @@ def items_simple_plain_0_2() -> tuple:
     )
 
 
-def items_simple_headers_0_2_1() -> tuple:
+def items_simple_headers_0_2_1() -> Items:
     return Items(
         headers = ('header_1', 'header_3', 'header_2'),
         items = [
@@ -183,7 +183,7 @@ def items_simple_headers_0_2_1() -> tuple:
     )
 
 
-def items_simple_plain_0_2_1() -> tuple:
+def items_simple_plain_0_2_1() -> Items:
     return Items(
         headers = None,
         items = [
@@ -191,6 +191,13 @@ def items_simple_plain_0_2_1() -> tuple:
             ('item_2_1', 'item_2_3', 'item_2_2'),
             ('item_3_1', 'item_3_3', 'item_3_2'),
         ]
+    )
+
+
+def items_empty() -> Items:
+    return Items(
+        headers = None,
+        items = [],
     )
 
 
@@ -213,6 +220,11 @@ def items_simple_plain_0_2_1() -> tuple:
     ReadTest(items_simple_headers_0_2_1, 'headers.xlsx', ExcelHandler, dict(columns=[0, 2], has_headers=True, get_all_columns=True)),
     ReadTest(items_simple_headers_0_2, 'headers.xlsx', ExcelHandler, dict(columns=['header_1', 'header_3'])),
     ReadTest(items_simple_headers_0_2_1, 'headers.xlsx', ExcelHandler, dict(columns=['header_1', 'header_3'], get_all_columns=True)),
+
+    ReadTest(items_empty, 'empty.tsv', TabfileHandler),
+    ReadTest(items_empty, 'empty.tsv', TabfileHandler, dict(has_headers=True)),
+    ReadTest(items_empty, 'empty.tsv', TabfileHandler, dict(columns=[0, 2])),
+    ReadTest(items_empty, 'empty.tsv', TabfileHandler, dict(columns=['header_1', 'header_3'])),
 ])
 @pytest.mark.parametrize(
     "validator", [
