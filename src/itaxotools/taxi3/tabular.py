@@ -2,20 +2,93 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from pathlib import Path
-from typing import NamedTuple, Generator
+from typing import NamedTuple, Generator, TypeVar
 from itertools import chain
 
 from openpyxl import load_workbook
 
 from .types import Type
 
+Item = TypeVar('Item')
 Row = tuple[str, ...]
 
 
-class ReadHandler:
-    def __init__(
+class FileHandler:
+
+    def __init__(self, *args, **kwargs):
+        self._open(*args, **kwargs)
+        next(self.it)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, tb):
+        self.close()
+
+    def __iter__(self):
+        assert self.readable()
+        return self
+
+    def __next__(self):
+        assert self.readable()
+        return next(self.it)
+
+    def _open(self, path: Path, mode: 'r' | 'w' = 'r', *args, **kwargs):
+        self.path = path
+        self.mode = mode
+        if mode == 'r':
+            self._open_readable(*args, **kwargs)
+        elif mode == 'w':
+            self._open_writable(*args, **kwargs)
+        else:
+            raise ValueError('Mode must be "r" or "w"')
+        self.closed = False
+
+    def _open_readable(self, *args, **kwargs):
+        self.it = self._iter_read()
+
+    def _open_writable(self, *args, **kwargs):
+        self.it = self._iter_write()
+
+    def close(self):
+        self.it.close()
+        self.closed = True
+
+    def read(self) -> Item | None:
+        try:
+            return next(self.it)
+        except StopIteration:
+            return None
+
+    def write(self, item: Item) -> None:
+        self.it.send(item)
+
+    def readable(self) -> bool:
+        return self.mode == 'r'
+
+    def writable(self) -> bool:
+        return self.mode == 'w'
+
+    def _iter_read(self) -> iter[Item]:
+        # raise NotImplementedError()
+        yield  # ready
+        yield from range(10)
+        # while True:
+        #     yield None
+
+    def _iter_write(self) -> Generator[None, Item, None]:
+        # raise NotImplementedError()
+        try:
+            while True:
+                x = yield
+                print('<<', x)
+        except GeneratorExit:
+            return
+
+
+class TabularHandler(FileHandler):
+    def _open_readable(
         self,
-        path: Path,
         columns: iter[int | str] = None,
         has_headers: bool = False,
         get_all_columns: bool = False,
@@ -26,34 +99,14 @@ class ReadHandler:
                 raise ValueError('Columns argument must contain at least one item')
             if isinstance(columns[0], str):
                 has_headers = True
-        self.path = path
         self.columns = columns
         self.has_headers = has_headers
         self.get_all_columns = get_all_columns
         self._header_row = None
         self._column_order = None
-        self.it = self.iter_read()
-        next(self.it)  # get ready
+        super()._open_readable()
 
-    def __enter__(self):
-        return self
-
-    def __exit__(self, type, value, tb):
-        self.close()
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        return next(self.it)
-
-    def close(self) -> None:
-        self.it.close()
-
-    def _iter_read_rows(self) -> iter[Row]:
-        raise NotImplementedError()
-
-    def iter_read(self) -> iter[Row]:
+    def _iter_read(self) -> iter[Row]:
         rows = self._iter_read_rows()
         if self.has_headers:
             self._header_row = next(rows)
@@ -62,6 +115,9 @@ class ReadHandler:
             yield from rows
         else:
             yield from self._iter_columns(rows)
+
+    def _iter_read_rows(self) -> iter[Row]:
+        raise NotImplementedError()
 
     def _iter_columns(self, rows: iter[Row]) -> iter[Row]:
         columns = self.columns
@@ -85,50 +141,19 @@ class ReadHandler:
         for row in rows:
             yield tuple(row[x] for x in columns)
 
-    def read(self) -> Row | None:
-        try:
-            return next(self.it)
-        except StopIteration:
-            return None
-
-    @property
-    def headers(self) -> Row | None:
-        if not self.has_headers:
-            return None
-        if self._column_order:
-            return tuple(self._header_row[x] for x in self._column_order)
-        return self._header_row
-
-
-class WriteHandler:
-    def __init__(
+    def _open_writable(
         self,
-        path: Path,
         columns: iter[str] = None,
     ):
         if columns is not None:
             columns = tuple(columns)
             if not len(columns):
                 raise ValueError('Columns argument must contain at least one item')
-        self.path = path
         self.columns = columns
-        self.gen = self.gen_write()
-        next(self.gen)
+        super()._open_writable()
 
-    def __enter__(self):
-        return self
-
-    def __exit__(self, type, value, tb):
-        self.close()
-
-    def close(self) -> None:
-        self.gen.close()
-
-    def _gen_write_rows(self) -> Generator[None, Row, None]:
-        raise NotImplementedError()
-
-    def gen_write(self) -> Generator[None, Row, None]:
-        rows = self._gen_write_rows()
+    def _iter_write(self) -> Generator[None, Row, None]:
+        rows = self._iter_write_rows()
         next(rows)
         if self.columns is not None:
             rows.send(self.columns)
@@ -139,29 +164,25 @@ class WriteHandler:
         except GeneratorExit:
             return
 
-    def write(self, row: Row) -> None:
-        self.gen.send(row)
+    def _iter_write_rows(self) -> Generator[None, Row, None]:
+        raise NotImplementedError()
 
-
-class Tabular(Type):
-    read_handler = ReadHandler
-    write_handler = WriteHandler
-
-    @classmethod
-    def open(cls, path: Path, mode: 'r' | 'w' = 'r', *args, **kwargs) -> ReadHandler | WriteHandler:
-        if mode == 'r':
-            return cls.read_handler(path, *args, **kwargs)
-        elif mode == 'w':
-            return cls.write_handler(path, *args, **kwargs)
-        raise ValueError('Mode must be "r" or "w"')
+    @property
+    def headers(self) -> Row | None:
+        assert self.readable()
+        if not self.has_headers:
+            return None
+        if self._column_order:
+            return tuple(self._header_row[x] for x in self._column_order)
+        return self._header_row
 
     @classmethod
-    def headers(cls, path: Path) -> Row:
-        with cls.read_handler(path) as handler:
+    def get_headers(cls, path: Path) -> Row:
+        with cls(path) as handler:
             return handler.read()
 
 
-class TabfileReadHandler(ReadHandler):
+class TabfileHandler(TabularHandler):
     def _iter_read_rows(self) -> iter[Row]:
         with open(self.path, 'r') as file:
             for line in file:
@@ -170,9 +191,7 @@ class TabfileReadHandler(ReadHandler):
                     break
                 yield tuple(line.split('\t'))
 
-
-class TabfileWriteHandler(WriteHandler):
-    def _gen_write_rows(self) -> Generator[None, Row, None]:
+    def _iter_write_rows(self) -> Generator[None, Row, None]:
         with open(self.path, 'w') as file:
             try:
                 while True:
@@ -183,12 +202,7 @@ class TabfileWriteHandler(WriteHandler):
                 return
 
 
-class Tabfile(Tabular):
-    read_handler = TabfileReadHandler
-    write_handler = TabfileWriteHandler
-
-
-class ExcelReadHandler(ReadHandler):
+class ExcelHandler(TabularHandler):
     def _iter_read_rows(self) -> iter[Row]:
         wb = load_workbook(filename=self.path, read_only=True)
         try:
@@ -202,7 +216,3 @@ class ExcelReadHandler(ReadHandler):
                 yield tuple(x if x else '' for x in row)
         finally:
             wb.close()
-
-
-class Excel(Tabular):
-    read_handler = ExcelReadHandler

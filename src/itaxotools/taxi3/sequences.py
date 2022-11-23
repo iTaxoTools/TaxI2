@@ -8,7 +8,7 @@ from Bio import SeqIO
 from Bio.SeqIO.FastaIO import SimpleFastaParser
 
 from .types import Container, Type
-from .tabular import Tabular as TabularProtocol
+from .tabular import FileHandler, TabularHandler, TabfileHandler, ExcelHandler
 
 
 class Sequence(NamedTuple):
@@ -77,10 +77,9 @@ class Genbank(SequenceFile):
 
 
 class Tabular(SequenceFile):
-    protocol = TabularProtocol
+    protocol = TabularHandler
 
-    @contextmanager
-    def open(self, mode='r'):
+    def open(self, mode='r') -> FileHandler:
         if mode == 'r':
             yield self.iter_rows()
         elif mode == 'w':
@@ -107,7 +106,7 @@ class Tabular(SequenceFile):
         else:
             columns = (idColumn, seqColumn)
 
-        with self.protocol.open(self.path, has_headers=hasHeader, columns=columns, get_all_columns=True) as rows:
+        with self.protocol(self.path, has_headers=hasHeader, columns=columns, get_all_columns=True) as rows:
             headers = rows.headers
             extras = dict()
             for row in rows:
@@ -122,7 +121,7 @@ class Tabular(SequenceFile):
 
 
 class Tabfile(Tabular, SequenceFile):
-    protocol = TabularProtocol.Tabfile
+    protocol = TabfileHandler
 
     def iter_write(self, idHeader='seqid', seqHeader='sequence'):
         with open(self.path, 'w') as file:
@@ -141,4 +140,4 @@ class Tabfile(Tabular, SequenceFile):
 
 
 class Excel(Tabular, SequenceFile):
-    protocol = TabularProtocol.Excel
+    protocol = ExcelHandler
