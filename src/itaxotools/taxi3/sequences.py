@@ -96,19 +96,24 @@ class Tabfile(Handler.Tabular, Handler):
 
     def _open_writable(
         self,
-        idHeader='seqid',
-        seqHeader='sequence',
+        idHeader: str = None,
+        seqHeader: str = None,
+        hasHeader: bool = False,
     ):
+        if idHeader and seqHeader:
+            hasHeader = True
         self.idHeader = idHeader
         self.seqHeader = seqHeader
+        self.hasHeader = hasHeader
         super()._open_writable()
 
     def _iter_write(self, idHeader='seqid', seqHeader='sequence'):
         with self.subhandler(self.path, 'w') as file:
             try:
                 sequence = yield
-                extraHeaders = tuple(sequence.extras.keys())
-                file.write((self.idHeader,) + extraHeaders + (self.seqHeader,))
+                if self.hasHeader:
+                    extraHeaders = tuple(sequence.extras.keys())
+                    file.write((self.idHeader,) + extraHeaders + (self.seqHeader,))
                 while True:
                     extras = tuple(sequence.extras.values())
                     file.write((sequence.id,) + extras + (sequence.seq,))

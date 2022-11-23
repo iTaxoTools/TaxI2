@@ -29,7 +29,7 @@ class ReadTest(NamedTuple):
         return TEST_DATA_DIR / self.input
 
     @property
-    def fixed(self) -> Path:
+    def fixed(self) -> Items:
         return self.fixture()
 
     def validate_context_iter(self):
@@ -84,7 +84,7 @@ class HeaderTest(NamedTuple):
         return TEST_DATA_DIR / self.input
 
     @property
-    def fixed(self) -> Path:
+    def fixed(self) -> Items:
         return self.fixture()
 
     def validate(self):
@@ -103,7 +103,7 @@ class WriteTest(NamedTuple):
         return TEST_DATA_DIR / self.output
 
     @property
-    def fixed(self) -> Path:
+    def fixed(self) -> Items:
         return self.fixture()
 
     def get_output_path(self, tmp_path) -> Path:
