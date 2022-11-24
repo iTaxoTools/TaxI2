@@ -170,23 +170,8 @@ class Matrix(DistanceHandler):
         file.write(out)
 
 
-class LinearWithExtras(DistanceHandler):
-    # pending rewrite
-    MISSING = 'NA'
-
-    @classmethod
-    def distanceFromText(cls, text: str) -> float | None:
-        if text == cls.MISSING:
-            return None
-        return float(text)
-
-    @classmethod
-    def distanceToText(cls, d: float | None) -> str:
-        if d is None:
-            return cls.MISSING
-        return str(d)
-
-    def read(
+class WithExtras(DistanceHandler.Linear):
+    def _iter_read(
         self,
         idxHeader: str = None,
         idyHeader: str = None,
@@ -194,88 +179,82 @@ class LinearWithExtras(DistanceHandler):
         tagY: str = ' (reference)',
         idxColumn: int = 0,
         idyColumn: int = 1,
-    ) -> iter[Distance]:
-        with open(self.path, 'r') as f:
-            data = f.readline()
-            indexLabelStart = 0
-            dataList = data.strip().split('\t')
-            # print(dataList)
+    ) -> ReadHandle[Distance]:
+
+        with FileHandler.Tabfile(self.path, 'r', has_headers=True) as file:
+            headers = file.headers
+
             if idxHeader and idyHeader:
                 idxHeader = idxHeader + tagX
                 idyHeader = idyHeader + tagY
-                idxColumn, idyColumn = dataList.index(idxHeader), dataList.index(idyHeader)
+                idxColumn = headers.index(idxHeader)
+                idyColumn = headers.index(idyHeader)
 
-            for label in dataList:
-                if not DistanceMetric.fromLabel(label):
-                    indexLabelStart += 1
-                else:
-                    break
+            try:
+                metricIndexStart = next(
+                    i for i, x in enumerate(headers)
+                    if DistanceMetric.fromLabel(x))
+            except StopIteration:
+                raise Exception('No metrics found in the header line!')
 
-            labels = dataList[indexLabelStart:]
-            metrics = [DistanceMetric.fromLabel(label) for label in labels]
-            extrasHeaderX, extrasHeaderY = dataList[idxColumn + 1:idyColumn], dataList[idyColumn + 1:indexLabelStart]
+            sliceX = slice(idxColumn + 1, idyColumn)
+            sliceY = slice(idyColumn + 1, metricIndexStart)
 
-            extrasHeaderX = [tag.removesuffix(tagX) for tag in extrasHeaderX]
-            extrasHeaderY = [tag.removesuffix(tagY) for tag in extrasHeaderY]
+            metricHeaders = headers[metricIndexStart:]
+            metrics = [DistanceMetric.fromLabel(header) for header in metricHeaders]
+            extrasHeaderX = [header.removesuffix(tagX) for header in headers[sliceX]]
+            extrasHeaderY = [header.removesuffix(tagY) for header in headers[sliceY]]
 
-            for line in f:
-                lineData = line[:-1].split('\t')
-                idx, idy, labelDistances = lineData[idxColumn], lineData[idyColumn], lineData[indexLabelStart:]
-                extraDataX = lineData[idxColumn + 1:idyColumn]
-                extraDataY = lineData[idyColumn + 1:indexLabelStart]
-                distances = (self.distanceFromText(d) for d in labelDistances)
+            yield self
+
+            for row in file:
+                lineData = row
+                idx = row[idxColumn]
+                idy = row[idyColumn]
+                extraDataX = row[sliceX]
+                extraDataY = row[sliceY]
                 extrasX = {k: v for k, v in zip(extrasHeaderX, extraDataX)}
                 extrasY = {k: v for k, v in zip(extrasHeaderY, extraDataY)}
+                distances = (self.distanceFromText(d) for d in row[metricIndexStart:])
                 for distance, metric in zip(distances, metrics):
                     yield Distance(metric, Sequence(idx, None, extrasX), Sequence(idy, None, extrasY), distance)
 
-    def iter_write(
+
+    def _iter_write(
         self,
-        distances: iter[Distance],
         idxHeader: str = 'seqid',
         idyHeader: str = 'seqid',
         tagX: str = ' (query)',
         tagY: str = ' (reference)',
-        *args,
-        **kwargs) -> iter[Distance]:
-        with open(self.path, 'w') as f:
-            metrics = []
-            buffer = []
-            self.MISSING = kwargs.get('missing', 'NA')
-            scroreFormat = kwargs.get('formatScore', None)
+    ) -> WriteHandle[Distance]:
 
-            for d in distances:
-                buffer.append(d)
-                if len(buffer) > 2:
-                    if (buffer[-2].x.id, buffer[-2].y.id) != (d.x.id, d.y.id):
-                        break
+        self.idxHeader = idxHeader
+        self.idyHeader = idyHeader
+        self.tagX = tagX
+        self.tagY = tagY
 
-            for d in buffer[:-1]:
-                if str(d.metric) not in metrics:
-                    metrics.append(str(d.metric))
-            metricCount = len(metrics)
+        yield from super()._iter_write()
 
-            extrasHeaderX = buffer[0].x.extras.keys()
-            extrasHeaderY = buffer[0].y.extras.keys()
-            headersX = [idxHeader] + list(extrasHeaderX)
-            headersY = [idyHeader] + list(extrasHeaderY)
-            headersX = [x + tagX for x in headersX]
-            headersY = [y + tagY for y in headersY]
-            headers = headersX + headersY + metrics
-            headerString = '\t'.join(headers)
+    def _write_headers(self, file: FileHandler.Tabfile, line: list[Distance]):
+        if self.wrote_headers:
+            return
+        idxHeader = self.idxHeader + self.tagX
+        idyHeader = self.idyHeader + self.tagY
+        extrasX = [key + self.tagX for key in line[0].x.extras.keys()]
+        extrasY = [key + self.tagY for key in line[0].y.extras.keys()]
+        metrics = [str(distance.metric) for distance in line]
+        out = (idxHeader, *extrasX, idyHeader, *extrasY, *metrics)
+        file.write(out)
+        self.wrote_headers = True
 
-            f.write(f'{headerString}\n')
-
-            scores = []
-            for distance in chain(buffer, distances):
-                scores.append(str(scroreFormat.format(float(distance.d)) if scroreFormat else distance.d) if distance.d is not None else self.MISSING)
-                if len(scores) == metricCount:
-                    score = '\t'.join(scores)
-                    extrasX = '\t'.join([distance.x.extras[k] for k in extrasHeaderX])
-                    extrasY = '\t'.join([distance.y.extras[k] for k in extrasHeaderY])
-                    f.write(f'{distance.x.id}\t{extrasX}\t{distance.y.id}\t{extrasY}\t{score}\n')
-                    scores = []
-                yield distance
+    def _write_scores(self, file: FileHandler.Tabfile, line: list[Distance]):
+        idx = line[0].x.id
+        idy = line[0].y.id
+        extrasX = line[0].x.extras.values()
+        extrasY = line[0].y.extras.values()
+        scores = [self.distanceToText(distance.d) for distance in line]
+        out = (idx, *extrasX, idy, *extrasY, *scores)
+        file.write(out)
 
 
 class DistanceMetric(Type):

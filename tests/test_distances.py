@@ -277,10 +277,10 @@ read_tests = [
     ReadTest(distances_missing, 'missing.matrix', DistanceHandler.Matrix,
         dict(metric=DistanceMetric.Uncorrected())),
 
-    # ReadTest(distances_extras, 'extras.tsv', DistanceHandler.LinearWithExtras,
-    #     dict(idxHeader='seqid', idyHeader='id', tagX='_x', tagY='_y')),
-    # ReadTest(distances_extras, 'extras.tsv', DistanceHandler.LinearWithExtras,
-    #     dict(idxColumn=0, idyColumn=2, tagX='_x', tagY='_y')),
+    ReadTest(distances_extras, 'extras.tsv', DistanceHandler.Linear.WithExtras,
+        dict(idxHeader='seqid', idyHeader='id', tagX='_x', tagY='_y')),
+    ReadTest(distances_extras, 'extras.tsv', DistanceHandler.Linear.WithExtras,
+        dict(idxColumn=0, idyColumn=2, tagX='_x', tagY='_y')),
 ]
 
 
@@ -304,10 +304,10 @@ write_tests = [
     WriteTest(distances_missing, 'missing.formatted.matrix', DistanceHandler.Matrix,
         dict(formatter='{:.2e}', missing='nan')),
 
-    # WriteTest(distances_extras, 'extras.tsv', DistanceHandler.LinearWithExtras,
-    #     dict(idxHeader='seqid', idyHeader='id', tagX='_x', tagY='_y')),
-    # WriteTest(distances_missing, 'missing.formatted.linear', DistanceHandler.LinearWithExtras,
-    #     dict(formatScore='{:.2e}', missing='nan', idxHeader='idx', idyHeader='idy', tagX='', tagY='')),
+    WriteTest(distances_extras, 'extras.tsv', DistanceHandler.Linear.WithExtras,
+        dict(idxHeader='seqid', idyHeader='id', tagX='_x', tagY='_y', formatter='{:.2f}')),
+    WriteTest(distances_missing, 'missing.formatted.linear', DistanceHandler.Linear.WithExtras,
+        dict(idxHeader='idx', idyHeader='idy', tagX='', tagY='', formatter='{:.2e}', missing='nan')),
 
 ]
 

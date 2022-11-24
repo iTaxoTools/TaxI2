@@ -185,7 +185,6 @@ class Tabular(FileHandler):
     @property
     def headers(self) -> Row | None:
         assert self.readable()
-        print('HA', self.has_headers)
         if not self.has_headers:
             return None
         if self.column_order:
