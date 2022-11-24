@@ -55,11 +55,6 @@ class DistanceHandler(FileHandler[Distance]):
 
 
 class Linear(DistanceHandler):
-    def _open_writable(self, *args, **kwargs):
-        self.buffer: list[Distance] = []
-        self.wrote_headers = False
-        super()._open_writable()
-
     def _iter_read(self) -> ReadHandle[Distance]:
         with FileHandler.Tabfile(self.path, 'r', has_headers=True) as file:
             metrics = [DistanceMetric.fromLabel(label) for label in file.headers[2:]]
@@ -71,6 +66,9 @@ class Linear(DistanceHandler):
                     yield Distance(metric, Sequence(idx, None), Sequence(idy, None), distance)
 
     def _iter_write(self) -> WriteHandle[Distance]:
+        self.buffer: list[Distance] = []
+        self.wrote_headers = False
+
         with FileHandler.Tabfile(self.path, 'w') as file:
             try:
                 line = yield from self._assemble_line()
@@ -115,19 +113,11 @@ class Linear(DistanceHandler):
 
 
 class Matrix(DistanceHandler):
-    def _open_readable(self, metric: DistanceMetric = None, *args, **kwargs):
-        self.metric = metric or DistanceMetric.Unknown()
-        super()._open_readable()
+    def _iter_read(self, metric: DistanceMetric = None) -> ReadHandle[Distance]:
+        metric = metric or DistanceMetric.Unknown()
 
-    def _open_writable(self, *args, **kwargs):
-        self.buffer: list[Distance] = []
-        self.wrote_headers = False
-        super()._open_writable()
-
-    def _iter_read(self) -> ReadHandle[Distance]:
         with FileHandler.Tabfile(self.path, 'r', has_headers=True) as file:
             idys = file.headers[1:]
-            metric = self.metric
             yield self
             for row in file:
                 idx, scores = row[0], row[1:]
@@ -137,6 +127,9 @@ class Matrix(DistanceHandler):
                     yield Distance(metric, seqx, Sequence(idy, None), d)
 
     def _iter_write(self) -> WriteHandle[Distance]:
+        self.buffer: list[Distance] = []
+        self.wrote_headers = False
+
         with FileHandler.Tabfile(self.path, 'w') as file:
             try:
                 line = yield from self._assemble_line()

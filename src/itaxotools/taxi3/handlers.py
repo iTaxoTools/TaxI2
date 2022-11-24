@@ -24,8 +24,7 @@ class _FileHandlerMeta(type(ABC), type(Type)):
 class FileHandler(ABC, Type, Generic[Item], metaclass=_FileHandlerMeta):
     """
     Abstract interface for reading/writing items to a file. Mimics io.IOBase.
-    Subclasses must implement _iter_read() and _iter_write(), as well as
-    _open(), _open_readable() and _open_writable() if necessary.
+    Subclasses must implement _iter_read() and _iter_write().
 
     Usage examples:
 
@@ -63,27 +62,21 @@ class FileHandler(ABC, Type, Generic[Item], metaclass=_FileHandlerMeta):
         self.path = path
         self.mode = mode
         if mode == 'r':
-            self._open_readable(*args, **kwargs)
+            self.it = self._iter_read(*args, **kwargs)
         elif mode == 'w':
-            self._open_writable(*args, **kwargs)
+            self.it = self._iter_write(*args, **kwargs)
         else:
             raise ValueError('Mode must be "r" or "w"')
         self.closed = False
 
-    def _open_readable(self, *args, **kwargs):
-        self.it = self._iter_read()
-
-    def _open_writable(self, *args, **kwargs):
-        self.it = self._iter_write()
-
     @abstractmethod
-    def _iter_read(self) -> ReadHandle[Item]:
+    def _iter_read(self, *args, **kwargs) -> ReadHandle[Item]:
         yield self  # priming sentinel
         while False:
             yield Item()
 
     @abstractmethod
-    def _iter_write(self) -> WriteHandle[Item]:
+    def _iter_write(self, *args, **kwargs) -> WriteHandle[Item]:
         try:
             while True:
                 _ = yield
@@ -111,78 +104,77 @@ class FileHandler(ABC, Type, Generic[Item], metaclass=_FileHandlerMeta):
 
 
 class Tabular(FileHandler):
-    def _open_readable(
+    def _iter_read(
         self,
         columns: iter[int | str] = None,
         has_headers: bool = False,
         get_all_columns: bool = False,
-    ):
+    ) -> ReadHandle[Row]:
+
         if columns is not None:
             columns = tuple(columns)
             if not len(columns):
                 raise ValueError('Columns argument must contain at least one item')
             if isinstance(columns[0], str):
                 has_headers = True
-        self.columns = columns
         self.has_headers = has_headers
-        self.get_all_columns = get_all_columns
-        self._header_row = None
-        self._column_order = None
-        super()._open_readable()
+        self.header_row = None
+        self.column_order = None
 
-    def _iter_read(self) -> ReadHandle[Row]:
         rows = self._iter_read_rows()
         if self.has_headers:
             try:
-                self._header_row = next(rows)
+                self.header_row = next(rows)
             except StopIteration:
-                self._header_row = None
+                self.header_row = None
                 yield self  # ready
                 return
-        if self.columns is None:
+        if columns is None:
             yield self  # ready
             yield from rows
         else:
-            yield from self._iter_columns(rows)
+            yield from self._iter_columns(rows, columns, get_all_columns)
 
-    def _iter_columns(self, rows: iter[Row]) -> iter[Row]:
-        columns = self.columns
+    def _iter_columns(
+        self,
+        rows: iter[Row],
+        columns: iter[int | str],
+        get_all_columns: bool
+    ) -> iter[Row]:
         if isinstance(columns[0], str):
             try:
-                columns = tuple(self._header_row.index(x) for x in columns)
+                columns = tuple(self.header_row.index(x) for x in columns)
             except Exception as e:
-                missing = set(columns) - set(self._header_row)
+                missing = set(columns) - set(self.header_row)
                 raise ValueError(f'Column header(s) not found in file: {missing}') from e
-        if self.get_all_columns:
+        if get_all_columns:
             if self.has_headers:
-                first_row = self._header_row
+                first_row = self.header_row
             else:
                 first_row = next(rows)
                 rows = chain([first_row], rows)
             extra_columns = set(range(len(first_row))) - set(columns)
             columns = columns + tuple(extra_columns)
-        self._column_order = columns
+        self.column_order = columns
 
         yield self  # ready
         for row in rows:
             yield tuple(row[x] for x in columns)
 
-    def _open_writable(
+    def _iter_write(
         self,
         columns: iter[str] = None,
-    ):
+    ) -> WriteHandle[Row]:
+
+        rows = self._iter_write_rows()
+        next(rows)
+
         if columns is not None:
             columns = tuple(columns)
             if not len(columns):
                 raise ValueError('Columns argument must contain at least one item')
-        self.columns = columns
-        super()._open_writable()
+            rows.send(columns)
 
-    def _iter_write(self) -> WriteHandle[Row]:
-        rows = self._iter_write_rows()
-        next(rows)
-        if self.columns is not None:
-            rows.send(self.columns)
         try:
             while True:
                 row = yield
@@ -193,11 +185,12 @@ class Tabular(FileHandler):
     @property
     def headers(self) -> Row | None:
         assert self.readable()
+        print('HA', self.has_headers)
         if not self.has_headers:
             return None
-        if self._column_order:
-            return tuple(self._header_row[x] for x in self._column_order)
-        return self._header_row
+        if self.column_order:
+            return tuple(self.header_row[x] for x in self.column_order)
+        return self.header_row
 
     @classmethod
     def get_headers(cls, path: Path) -> Row:

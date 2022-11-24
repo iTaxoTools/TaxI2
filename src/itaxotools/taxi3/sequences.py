@@ -61,31 +61,28 @@ class Genbank(SequenceHandler):
 class Tabular(SequenceHandler):
     subhandler = FileHandler.Tabular
 
-    def _open_readable(
+    def _iter_read(
         self,
         idHeader: str = None,
         seqHeader: str = None,
         hasHeader: bool = False,
         idColumn: int = 0,
         seqColumn: int = 1,
-    ):
+    ) -> ReadHandle[Sequence]:
+
         if idHeader and seqHeader:
             columns = (idHeader, seqHeader)
             hasHeader = True
         else:
             columns = (idColumn, seqColumn)
 
-        self.columns = columns
-        self.hasHeader = hasHeader
-        super()._open_readable()
-
-    def _iter_read(self) -> ReadHandle[Sequence]:
         with self.subhandler(
             self.path,
-            has_headers=self.hasHeader,
-            columns=self.columns,
+            has_headers=hasHeader,
+            columns=columns,
             get_all_columns=True,
         ) as rows:
+
             headers = rows.headers
             extras = dict()
             yield self
@@ -100,26 +97,22 @@ class Tabular(SequenceHandler):
 class Tabfile(SequenceHandler.Tabular, SequenceHandler):
     subhandler = FileHandler.Tabular.Tabfile
 
-    def _open_writable(
+    def _iter_write(
         self,
         idHeader: str = None,
         seqHeader: str = None,
         hasHeader: bool = False,
-    ):
+    ) -> WriteHandle[Sequence]:
+
         if idHeader and seqHeader:
             hasHeader = True
-        self.idHeader = idHeader
-        self.seqHeader = seqHeader
-        self.hasHeader = hasHeader
-        super()._open_writable()
 
-    def _iter_write(self) -> WriteHandle[Sequence]:
         with self.subhandler(self.path, 'w') as file:
             try:
                 sequence = yield
-                if self.hasHeader:
+                if hasHeader:
                     extraHeaders = tuple(sequence.extras.keys())
-                    file.write((self.idHeader,) + extraHeaders + (self.seqHeader,))
+                    file.write((idHeader,) + extraHeaders + (seqHeader,))
                 while True:
                     extras = tuple(sequence.extras.values())
                     file.write((sequence.id,) + extras + (sequence.seq,))
