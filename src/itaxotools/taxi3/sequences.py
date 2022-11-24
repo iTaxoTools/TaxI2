@@ -104,6 +104,7 @@ class Tabfile(SequenceHandler.Tabular, SequenceHandler):
         hasHeader: bool = False,
     ) -> WriteHandle[Sequence]:
 
+        wrote_headers = False
         if idHeader and seqHeader:
             hasHeader = True
 
@@ -113,12 +114,14 @@ class Tabfile(SequenceHandler.Tabular, SequenceHandler):
                 if hasHeader:
                     extraHeaders = tuple(sequence.extras.keys())
                     file.write((idHeader,) + extraHeaders + (seqHeader,))
+                    wrote_headers = True
                 while True:
                     extras = tuple(sequence.extras.values())
                     file.write((sequence.id,) + extras + (sequence.seq,))
                     sequence = yield
             except GeneratorExit:
-                return
+                if hasHeader and not wrote_headers:
+                    file.write((idHeader, seqHeader))
 
 
 class Excel(SequenceHandler.Tabular, SequenceHandler):

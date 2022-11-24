@@ -74,6 +74,10 @@ def sequences_headers() -> Sequences:
     ])
 
 
+def sequences_empty() -> Sequences:
+    return Sequences([])
+
+
 @pytest.mark.parametrize(
     "test", [
     ReadTest(sequences_simple, 'simple.fas', SequenceHandler.Fasta),
@@ -83,6 +87,7 @@ def sequences_headers() -> Sequences:
     ReadTest(sequences_simple, 'simple.xlsx', SequenceHandler.Excel),
     ReadTest(sequences_headers, 'headers.tsv', SequenceHandler.Tabfile, dict(idHeader='seqid', seqHeader='sequences')),
     ReadTest(sequences_headers, 'headers.xlsx', SequenceHandler.Excel, dict(idHeader='seqid', seqHeader='sequences')),
+    ReadTest(sequences_empty, 'empty.tsv', SequenceHandler.Tabfile, dict(idHeader='seqid', seqHeader='sequences')),
 ])
 def test_read_sequences(test: ReadTest) -> None:
     test.validate()
