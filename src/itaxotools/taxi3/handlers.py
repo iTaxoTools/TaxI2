@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import NamedTuple, Generator, Generic, TypeVar
 from itertools import chain
-
+from abc import ABC, abstractmethod
 from openpyxl import load_workbook
 
 from .types import Type
@@ -13,7 +13,27 @@ Item = TypeVar('Item')
 Row = tuple[str, ...]
 
 
-class FileHandler(Generic[Item]):
+class _FileHandlerMeta(type(ABC), type(Type)):
+    pass
+
+
+class FileHandler(ABC, Type, Generic[Item], metaclass=_FileHandlerMeta):
+    """
+    Abstract interface for reading/writing items to a file. Mimics io.IOBase.
+    Subclasses must implement _iter_read() and _iter_write(), as well as
+    _open_readable() and _open_writable() if necessary.
+
+    Usage examples:
+
+        with FileHandler('my_file.txt') as file:
+            for item in file:
+                print(item)
+
+        with FileHandler('my_file.txt', 'w') as file:
+            for item in my_items:
+                file.write(item)
+
+    """
 
     def __init__(self, *args, **kwargs):
         self._open(*args, **kwargs)
@@ -50,6 +70,20 @@ class FileHandler(Generic[Item]):
     def _open_writable(self, *args, **kwargs):
         self.it = self._iter_write()
 
+    @abstractmethod
+    def _iter_read(self) -> iter[Item]:
+        yield  # ready
+        while False:
+            yield Item()
+
+    @abstractmethod
+    def _iter_write(self) -> Generator[None, Item, None]:
+        try:
+            while True:
+                _ = yield
+        except GeneratorExit:
+            return
+
     def close(self):
         self.it.close()
         self.closed = True
@@ -69,26 +103,8 @@ class FileHandler(Generic[Item]):
     def writable(self) -> bool:
         return self.mode == 'w'
 
-    def _iter_read(self) -> iter[Item]:
-        raise NotImplementedError()
 
-        # Override example:
-        yield  # ready
-        while True:
-            yield None
-
-    def _iter_write(self) -> Generator[None, Item, None]:
-        raise NotImplementedError()
-
-        # Override example:
-        try:
-            while True:
-                _ = yield
-        except GeneratorExit:
-            return
-
-
-class TabularHandler(FileHandler):
+class Tabular(FileHandler):
     def _open_readable(
         self,
         columns: iter[int | str] = None,
@@ -122,9 +138,6 @@ class TabularHandler(FileHandler):
             yield from rows
         else:
             yield from self._iter_columns(rows)
-
-    def _iter_read_rows(self) -> iter[Row]:
-        raise NotImplementedError()
 
     def _iter_columns(self, rows: iter[Row]) -> iter[Row]:
         columns = self.columns
@@ -171,9 +184,6 @@ class TabularHandler(FileHandler):
         except GeneratorExit:
             return
 
-    def _iter_write_rows(self) -> Generator[None, Row, None]:
-        raise NotImplementedError()
-
     @property
     def headers(self) -> Row | None:
         assert self.readable()
@@ -188,8 +198,21 @@ class TabularHandler(FileHandler):
         with cls(path) as handler:
             return handler.read()
 
+    @abstractmethod
+    def _iter_read_rows(self) -> iter[Row]:
+        while False:
+            yield Row()
 
-class TabfileHandler(TabularHandler):
+    @abstractmethod
+    def _iter_write_rows(self) -> Generator[None, Row, None]:
+        try:
+            while True:
+                _ = yield
+        except GeneratorExit:
+            return
+
+
+class Tabfile(Tabular, FileHandler):
     def _iter_read_rows(self) -> iter[Row]:
         with open(self.path, 'r') as file:
             for line in file:
@@ -209,7 +232,7 @@ class TabfileHandler(TabularHandler):
                 return
 
 
-class ExcelHandler(TabularHandler):
+class Excel(Tabular, FileHandler):
     def _iter_read_rows(self) -> iter[Row]:
         wb = load_workbook(filename=self.path, read_only=True)
         try:
@@ -223,3 +246,6 @@ class ExcelHandler(TabularHandler):
                 yield tuple(x if x else '' for x in row)
         finally:
             wb.close()
+
+    def _iter_write_rows(self) -> Generator[None, Row, None]:
+        raise NotImplementedError()

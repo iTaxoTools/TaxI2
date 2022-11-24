@@ -8,7 +8,7 @@ from Bio import SeqIO
 from Bio.SeqIO.FastaIO import SimpleFastaParser
 
 from .types import Container, Type
-from .handlers import FileHandler, TabularHandler, TabfileHandler, ExcelHandler
+from .handlers import FileHandler
 
 
 class Sequence(NamedTuple):
@@ -24,26 +24,29 @@ class Sequence(NamedTuple):
 
 class Sequences(Container[Sequence]):
     @classmethod
-    def fromFile(cls, file: SequenceFile, *args, **kwargs) -> Sequences:
-        return cls(file.open, *args, **kwargs)
+    def fromPath(cls, path: Path, handler: SequenceHandler, *args, **kwargs) -> Sequences:
+        return cls(handler, path, *args, **kwargs)
 
     def normalize(self) -> Sequences:
         return Sequences(lambda: (seq.normalize() for seq in self))
 
 
-class Handler(Type, FileHandler[Sequence]):
+class SequenceHandler(FileHandler[Sequence]):
     pass
 
 
-class Fasta(Handler):
+class Fasta(SequenceHandler):
     def _iter_read(self) -> iter[Sequence]:
         with open(self.path, 'r') as handle:
             yield  # ready
             for data in SimpleFastaParser(handle):
                 yield Sequence(*data)
 
+    def _iter_write(self) -> iter[Sequence]:
+        raise NotImplementedError()
 
-class Genbank(Handler):
+
+class Genbank(SequenceHandler):
     def _iter_read(self) -> iter[Sequence]:
         # Bio.GenBank.Scanner
         file = SeqIO.parse(self.path, 'genbank')
@@ -51,9 +54,12 @@ class Genbank(Handler):
         for data in file:
             yield Sequence(data.id, data.seq)
 
+    def _iter_write(self) -> iter[Sequence]:
+        raise NotImplementedError()
 
-class Tabular(Handler):
-    subhandler = TabularHandler
+
+class Tabular(SequenceHandler):
+    subhandler = FileHandler.Tabular
 
     def _open_readable(
         self,
@@ -91,8 +97,8 @@ class Tabular(Handler):
                 yield Sequence(id, seq, extras)
 
 
-class Tabfile(Handler.Tabular, Handler):
-    subhandler = TabfileHandler
+class Tabfile(SequenceHandler.Tabular, SequenceHandler):
+    subhandler = FileHandler.Tabular.Tabfile
 
     def _open_writable(
         self,
@@ -122,37 +128,8 @@ class Tabfile(Handler.Tabular, Handler):
                 return
 
 
-class Excel(Handler.Tabular, Handler):
-    subhandler = ExcelHandler
+class Excel(SequenceHandler.Tabular, SequenceHandler):
+    subhandler = FileHandler.Tabular.Excel
 
-
-class SequenceFile(Type):
-    handler = Handler
-
-    def __init__(self, path: Path):
-        self.path = path
-
-    def open(self, *args, **kwargs) -> Handler:
-        return self.handler(self.path, *args, **kwargs)
-
-    @classmethod
-    def identifyFile(cls, file):
-        file_map = {'tab': Tabfile, 'csv': Excel, 'fas': Fasta, 'gbk': Genbank}
-        file_type = str(file).strip().split('.')[1]
-        return file_map[file_type](file)
-
-
-class Fasta(SequenceFile):
-    handler = Handler.Fasta
-
-
-class Genbank(SequenceFile):
-    handler = Handler.Genbank
-
-
-class Tabfile(SequenceFile):
-    handler = Handler.Tabfile
-
-
-class Excel(SequenceFile):
-    handler = Handler.Excel
+    def _iter_write(self) -> iter[Sequence]:
+        raise NotImplementedError()

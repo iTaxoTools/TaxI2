@@ -6,7 +6,7 @@ from typing import Callable, NamedTuple
 import pytest
 from utility import assert_eq_files
 
-from itaxotools.taxi3.sequences import Sequence, SequenceFile, Sequences
+from itaxotools.taxi3.sequences import Sequence, Sequences, SequenceHandler
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 
@@ -14,7 +14,7 @@ TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 class ReadTest(NamedTuple):
     fixture: Callable[[], Sequences]
     input: str
-    file: SequenceFile
+    handler: SequenceHandler
     kwargs: dict = {}
 
     @property
@@ -26,7 +26,7 @@ class ReadTest(NamedTuple):
         return self.fixture()
 
     def validate(self):
-        sequences = self.file(self.input_path).open(**self.kwargs)
+        sequences = Sequences.fromPath(self.input_path, self.handler, **self.kwargs)
         generated_list = list(sequences)
         fixed_list = list(self.fixed)
         assert len(fixed_list) == len(generated_list)
@@ -37,7 +37,7 @@ class ReadTest(NamedTuple):
 class WriteTest(NamedTuple):
     fixture: Callable[[], Items]
     output: str
-    file: SequenceFile
+    handler: SequenceHandler
     kwargs: dict = {}
 
     @property
@@ -52,7 +52,7 @@ class WriteTest(NamedTuple):
         return tmp_path / self.output
 
     def validate(self, output_path: Path):
-        with self.file(output_path).open('w', **self.kwargs) as file:
+        with self.handler(output_path, 'w', **self.kwargs) as file:
             for sequence in self.fixed:
                 file.write(sequence)
         assert_eq_files(output_path, self.fixed_path)
@@ -76,13 +76,13 @@ def sequences_headers() -> Sequences:
 
 @pytest.mark.parametrize(
     "test", [
-    ReadTest(sequences_simple, 'simple.fas', SequenceFile.Fasta),
-    ReadTest(sequences_simple, 'simple.multi.fas', SequenceFile.Fasta),
-    ReadTest(sequences_simple, 'simple.gbk', SequenceFile.Genbank),
-    ReadTest(sequences_simple, 'simple.tsv', SequenceFile.Tabfile),
-    ReadTest(sequences_simple, 'simple.xlsx', SequenceFile.Excel),
-    ReadTest(sequences_headers, 'headers.tsv', SequenceFile.Tabfile, dict(idHeader='seqid', seqHeader='sequences')),
-    ReadTest(sequences_headers, 'headers.xlsx', SequenceFile.Excel, dict(idHeader='seqid', seqHeader='sequences')),
+    ReadTest(sequences_simple, 'simple.fas', SequenceHandler.Fasta),
+    ReadTest(sequences_simple, 'simple.multi.fas', SequenceHandler.Fasta),
+    ReadTest(sequences_simple, 'simple.gbk', SequenceHandler.Genbank),
+    ReadTest(sequences_simple, 'simple.tsv', SequenceHandler.Tabfile),
+    ReadTest(sequences_simple, 'simple.xlsx', SequenceHandler.Excel),
+    ReadTest(sequences_headers, 'headers.tsv', SequenceHandler.Tabfile, dict(idHeader='seqid', seqHeader='sequences')),
+    ReadTest(sequences_headers, 'headers.xlsx', SequenceHandler.Excel, dict(idHeader='seqid', seqHeader='sequences')),
 ])
 def test_read_sequences(test: ReadTest) -> None:
     test.validate()
@@ -90,8 +90,8 @@ def test_read_sequences(test: ReadTest) -> None:
 
 @pytest.mark.parametrize(
     "test", [
-    WriteTest(sequences_simple, 'simple.tsv', SequenceFile.Tabfile),
-    WriteTest(sequences_headers, 'headers.tsv', SequenceFile.Tabfile, dict(idHeader='seqid', seqHeader='sequences')),
+    WriteTest(sequences_simple, 'simple.tsv', SequenceHandler.Tabfile),
+    WriteTest(sequences_headers, 'headers.tsv', SequenceHandler.Tabfile, dict(idHeader='seqid', seqHeader='sequences')),
 ])
 def test_write_sequences(test: WriteTest, tmp_path: Path) -> None:
     output_path = test.get_output_path(tmp_path)
