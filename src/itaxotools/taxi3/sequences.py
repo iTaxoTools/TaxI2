@@ -8,7 +8,7 @@ from Bio import SeqIO
 from Bio.SeqIO.FastaIO import SimpleFastaParser
 
 from .types import Container, Type
-from .handlers import FileHandler
+from .handlers import FileHandler, ReadHandle, WriteHandle
 
 
 class Sequence(NamedTuple):
@@ -36,25 +36,25 @@ class SequenceHandler(FileHandler[Sequence]):
 
 
 class Fasta(SequenceHandler):
-    def _iter_read(self) -> iter[Sequence]:
+    def _iter_read(self) -> ReadHandle[Sequence]:
         with open(self.path, 'r') as handle:
             yield  # ready
             for data in SimpleFastaParser(handle):
                 yield Sequence(*data)
 
-    def _iter_write(self) -> iter[Sequence]:
+    def _iter_write(self) -> WriteHandle[Sequence]:
         raise NotImplementedError()
 
 
 class Genbank(SequenceHandler):
-    def _iter_read(self) -> iter[Sequence]:
+    def _iter_read(self) -> ReadHandle[Sequence]:
         # Bio.GenBank.Scanner
         file = SeqIO.parse(self.path, 'genbank')
         yield  # ready
         for data in file:
             yield Sequence(data.id, data.seq)
 
-    def _iter_write(self) -> iter[Sequence]:
+    def _iter_write(self) -> WriteHandle[Sequence]:
         raise NotImplementedError()
 
 
@@ -79,7 +79,7 @@ class Tabular(SequenceHandler):
         self.hasHeader = hasHeader
         super()._open_readable()
 
-    def _iter_read(self) -> iter[Sequence]:
+    def _iter_read(self) -> ReadHandle[Sequence]:
         with self.subhandler(
             self.path,
             has_headers=self.hasHeader,
@@ -113,7 +113,7 @@ class Tabfile(SequenceHandler.Tabular, SequenceHandler):
         self.hasHeader = hasHeader
         super()._open_writable()
 
-    def _iter_write(self, idHeader='seqid', seqHeader='sequence'):
+    def _iter_write(self, idHeader='seqid', seqHeader='sequence') -> WriteHandle[Sequence]:
         with self.subhandler(self.path, 'w') as file:
             try:
                 sequence = yield
@@ -131,5 +131,5 @@ class Tabfile(SequenceHandler.Tabular, SequenceHandler):
 class Excel(SequenceHandler.Tabular, SequenceHandler):
     subhandler = FileHandler.Tabular.Excel
 
-    def _iter_write(self) -> iter[Sequence]:
+    def _iter_write(self) -> WriteHandle[Sequence]:
         raise NotImplementedError()

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from pathlib import Path
-from typing import NamedTuple, Generator, Generic, TypeVar
+from typing import NamedTuple, Generator, Generic, Iterator, TypeVar, Type
 from itertools import chain
 from abc import ABC, abstractmethod
 from openpyxl import load_workbook
@@ -10,6 +10,10 @@ from openpyxl import load_workbook
 from .types import Type
 
 Item = TypeVar('Item')
+
+ReadHandle: Type[Item] = Iterator[Item]
+WriteHandle: Type[Item] = Generator[None, Item, None]
+
 Row = tuple[str, ...]
 
 
@@ -71,13 +75,13 @@ class FileHandler(ABC, Type, Generic[Item], metaclass=_FileHandlerMeta):
         self.it = self._iter_write()
 
     @abstractmethod
-    def _iter_read(self) -> iter[Item]:
+    def _iter_read(self) -> ReadHandle[Item]:
         yield  # ready
         while False:
             yield Item()
 
     @abstractmethod
-    def _iter_write(self) -> Generator[None, Item, None]:
+    def _iter_write(self) -> WriteHandle[Item]:
         try:
             while True:
                 _ = yield
@@ -124,7 +128,7 @@ class Tabular(FileHandler):
         self._column_order = None
         super()._open_readable()
 
-    def _iter_read(self) -> iter[Row]:
+    def _iter_read(self) -> ReadHandle[Row]:
         rows = self._iter_read_rows()
         if self.has_headers:
             try:
@@ -172,7 +176,7 @@ class Tabular(FileHandler):
         self.columns = columns
         super()._open_writable()
 
-    def _iter_write(self) -> Generator[None, Row, None]:
+    def _iter_write(self) -> WriteHandle[Row]:
         rows = self._iter_write_rows()
         next(rows)
         if self.columns is not None:
@@ -213,7 +217,7 @@ class Tabular(FileHandler):
 
 
 class Tabfile(Tabular, FileHandler):
-    def _iter_read_rows(self) -> iter[Row]:
+    def _iter_read_rows(self) -> ReadHandle[Row]:
         with open(self.path, 'r') as file:
             for line in file:
                 line = line[:-1]
@@ -221,7 +225,7 @@ class Tabfile(Tabular, FileHandler):
                     break
                 yield tuple(line.split('\t'))
 
-    def _iter_write_rows(self) -> Generator[None, Row, None]:
+    def _iter_write_rows(self) -> WriteHandle[Row]:
         with open(self.path, 'w') as file:
             try:
                 while True:
@@ -233,7 +237,7 @@ class Tabfile(Tabular, FileHandler):
 
 
 class Excel(Tabular, FileHandler):
-    def _iter_read_rows(self) -> iter[Row]:
+    def _iter_read_rows(self) -> ReadHandle[Row]:
         wb = load_workbook(filename=self.path, read_only=True)
         try:
             ws = wb.worksheets[0]
@@ -247,5 +251,5 @@ class Excel(Tabular, FileHandler):
         finally:
             wb.close()
 
-    def _iter_write_rows(self) -> Generator[None, Row, None]:
+    def _iter_write_rows(self) -> WriteHandle[Row]:
         raise NotImplementedError()
