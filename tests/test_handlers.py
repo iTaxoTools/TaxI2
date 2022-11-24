@@ -6,7 +6,7 @@ from typing import Callable, NamedTuple
 import pytest
 from utility import assert_eq_files
 
-from itaxotools.taxi3.handlers import FileHandler, Row
+from itaxotools.taxi3.handlers import FileHandler, ReadHandle, WriteHandle, Row
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 
@@ -257,6 +257,21 @@ def test_read_tabular_early_close() -> None:
     assert not file.closed
     file.close()
     assert file.closed
+
+
+def test_read_bad_handler() -> None:
+    class TestHandler(FileHandler[object]):
+        def _iter_read(self) -> ReadHandle[None]:
+            yield 42  # bad
+            yield self  # good
+            while False:
+                yield None
+
+        def _iter_write(self) -> WriteHandle[None]:
+            raise NotImplementedError()
+
+    with pytest.raises(Exception):
+        file = TestHandler(Path(), 'r')
 
 
 @pytest.mark.parametrize(

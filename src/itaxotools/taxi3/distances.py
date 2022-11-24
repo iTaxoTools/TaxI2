@@ -63,7 +63,7 @@ class Linear(DistanceHandler):
     def _iter_read(self) -> ReadHandle[Distance]:
         with FileHandler.Tabfile(self.path, 'r', has_headers=True) as file:
             metrics = [DistanceMetric.fromLabel(label) for label in file.headers[2:]]
-            yield  # ready
+            yield self
             for row in file:
                 idx, idy, distances = row[0], row[1], row[2:]
                 distances = (self.distanceFromText(d) for d in distances)

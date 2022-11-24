@@ -41,7 +41,9 @@ class FileHandler(ABC, Type, Generic[Item], metaclass=_FileHandlerMeta):
 
     def __init__(self, *args, **kwargs):
         self._open(*args, **kwargs)
-        next(self.it)
+        priming = next(self.it)
+        if self.readable() and priming is not self:
+            raise Exception('Read handler was not properly primed!')
 
     def __enter__(self):
         return self
@@ -76,7 +78,7 @@ class FileHandler(ABC, Type, Generic[Item], metaclass=_FileHandlerMeta):
 
     @abstractmethod
     def _iter_read(self) -> ReadHandle[Item]:
-        yield  # ready
+        yield self  # priming sentinel
         while False:
             yield Item()
 
@@ -135,10 +137,10 @@ class Tabular(FileHandler):
                 self._header_row = next(rows)
             except StopIteration:
                 self._header_row = None
-                yield  # ready
+                yield self  # ready
                 return
         if self.columns is None:
-            yield  # ready
+            yield self  # ready
             yield from rows
         else:
             yield from self._iter_columns(rows)
@@ -161,7 +163,7 @@ class Tabular(FileHandler):
             columns = columns + tuple(extra_columns)
         self._column_order = columns
 
-        yield  # ready
+        yield self  # ready
         for row in rows:
             yield tuple(row[x] for x in columns)
 

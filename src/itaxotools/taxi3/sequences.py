@@ -38,7 +38,7 @@ class SequenceHandler(FileHandler[Sequence]):
 class Fasta(SequenceHandler):
     def _iter_read(self) -> ReadHandle[Sequence]:
         with open(self.path, 'r') as handle:
-            yield  # ready
+            yield self
             for data in SimpleFastaParser(handle):
                 yield Sequence(*data)
 
@@ -50,7 +50,7 @@ class Genbank(SequenceHandler):
     def _iter_read(self) -> ReadHandle[Sequence]:
         # Bio.GenBank.Scanner
         file = SeqIO.parse(self.path, 'genbank')
-        yield  # ready
+        yield self
         for data in file:
             yield Sequence(data.id, data.seq)
 
@@ -88,7 +88,7 @@ class Tabular(SequenceHandler):
         ) as rows:
             headers = rows.headers
             extras = dict()
-            yield
+            yield self
             for row in rows:
                 id = row[0]
                 seq = row[1]
