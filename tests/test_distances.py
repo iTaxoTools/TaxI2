@@ -277,28 +277,38 @@ read_tests = [
     ReadTest(distances_missing, 'missing.matrix', DistanceHandler.Matrix,
         dict(metric=DistanceMetric.Uncorrected())),
 
-    ReadTest(distances_extras, 'extras.tsv', DistanceHandler.LinearWithExtras,
-        dict(idxHeader='seqid', idyHeader='id', tagX='_x', tagY='_y')),
-    ReadTest(distances_extras, 'extras.tsv', DistanceHandler.LinearWithExtras,
-        dict(idxColumn=0, idyColumn=2, tagX='_x', tagY='_y')),
+    # ReadTest(distances_extras, 'extras.tsv', DistanceHandler.LinearWithExtras,
+    #     dict(idxHeader='seqid', idyHeader='id', tagX='_x', tagY='_y')),
+    # ReadTest(distances_extras, 'extras.tsv', DistanceHandler.LinearWithExtras,
+    #     dict(idxColumn=0, idyColumn=2, tagX='_x', tagY='_y')),
 ]
 
 
 write_tests = [
-    WriteTest(distances_simple, 'simple.linear', DistanceHandler.Linear, dict(formatter='{:.1f}')),
-    WriteTest(distances_multiple, 'multiple.linear', DistanceHandler.Linear, dict(formatter='{:.2f}')),
-    WriteTest(distances_missing, 'missing.linear', DistanceHandler.Linear, dict(formatter='{:.1f}')),
-    WriteTest(distances_square, 'square.matrix', DistanceHandler.Matrix),
-    WriteTest(distances_rectangle, 'rectangle.matrix', DistanceHandler.Matrix),
-    WriteTest(distances_missing, 'missing.matrix', DistanceHandler.Matrix),
-    WriteTest(distances_extras, 'extras.tsv', DistanceHandler.LinearWithExtras,
-        dict(idxHeader='seqid', idyHeader='id', tagX='_x', tagY='_y')),
+    WriteTest(distances_simple, 'simple.linear', DistanceHandler.Linear,
+        dict(formatter='{:.1f}')),
+    WriteTest(distances_multiple, 'multiple.linear', DistanceHandler.Linear,
+        dict(formatter='{:.2f}')),
+    WriteTest(distances_missing, 'missing.linear', DistanceHandler.Linear,
+        dict(formatter='{:.1f}')),
+
+    WriteTest(distances_square, 'square.matrix', DistanceHandler.Matrix,
+        dict(formatter='{:.1f}')),
+    WriteTest(distances_rectangle, 'rectangle.matrix', DistanceHandler.Matrix,
+        dict(formatter='{:.2f}')),
+    WriteTest(distances_missing, 'missing.matrix', DistanceHandler.Matrix,
+        dict(formatter='{:.1f}')),
+
     WriteTest(distances_missing, 'missing.formatted.linear', DistanceHandler.Linear,
-        dict(formatScore='{:.2e}', missing='nan')),
-    WriteTest(distances_missing, 'missing.formatted.linear', DistanceHandler.LinearWithExtras,
-        dict(formatScore='{:.2e}', missing='nan', idxHeader='idx', idyHeader='idy', tagX='', tagY='')),
+        dict(formatter='{:.2e}', missing='nan')),
     WriteTest(distances_missing, 'missing.formatted.matrix', DistanceHandler.Matrix,
-        dict(formatScore='{:.2e}', missing='nan')),
+        dict(formatter='{:.2e}', missing='nan')),
+
+    # WriteTest(distances_extras, 'extras.tsv', DistanceHandler.LinearWithExtras,
+    #     dict(idxHeader='seqid', idyHeader='id', tagX='_x', tagY='_y')),
+    # WriteTest(distances_missing, 'missing.formatted.linear', DistanceHandler.LinearWithExtras,
+    #     dict(formatScore='{:.2e}', missing='nan', idxHeader='idx', idyHeader='idy', tagX='', tagY='')),
+
 ]
 
 
