@@ -4,7 +4,7 @@ import re
 from itertools import chain
 from math import isinf, isnan
 from pathlib import Path
-from typing import NamedTuple
+from typing import NamedTuple, Generator
 
 import alfpy.bbc as bbc
 import alfpy.ncd as ncd
@@ -14,6 +14,7 @@ from itaxotools.taxi3.library import calculate_distances as calc
 
 from .sequences import Sequence
 from .types import Container, Type
+from .handlers import FileHandler, ReadHandle, WriteHandle
 
 
 class Distance(NamedTuple):
@@ -25,97 +26,98 @@ class Distance(NamedTuple):
 
 class Distances(Container[Distance]):
     @classmethod
-    def fromFile(cls, file: DistanceFile, *args, **kwargs) -> Distances:
-        return cls(file.read, *args, **kwargs)
+    def fromPath(cls, path: Path, handler: DistanceHandler, *args, **kwargs) -> Distances:
+        return cls(handler, path, *args, **kwargs)
 
 
-class DistanceFile(Type):
-    """Handlers for distance files"""
+class DistanceHandler(FileHandler[Distance]):
+    def _open(
+        self,
+        path: Path,
+        mode: 'r' | 'w' = 'r',
+        missing: str = 'NA',
+        formatter: str = '{:f}',
+        *args, **kwargs
+    ):
+        self.missing = missing
+        self.formatter = formatter
+        super()._open(path, mode, *args, **kwargs)
 
-    def __init__(self, path: Path):
-        self.path = path
-
-    def read(self, *args, **kwargs) -> iter[Distance]:
-        raise NotImplementedError()
-
-    def iter_write(self, distances: iter[Distance], *args, **kwargs) -> iter[Distance]:
-        raise NotImplementedError()
-
-    def write(self, distances: iter[Distance], *args, **kwargs) -> None:
-        for _ in self.iter_write(distances, *args, **kwargs):
-            pass
-
-
-class Buffer(DistanceFile):
-    def __init__(self):
-        self.distances = []
-
-    def read(self) -> iter[Distance]:
-        return iter(self.distances)
-
-    def write(self, distances: iter[Distance]) -> None:
-        for distance in distances:
-            self.distances.append(distance)
-
-
-class Linear(DistanceFile):
-    MISSING = 'NA'
-
-    @classmethod
-    def distanceFromText(cls, text: str) -> float | None:
-        if text == cls.MISSING:
+    def distanceFromText(self, text: str) -> float | None:
+        if text == self.missing:
             return None
         return float(text)
 
-    @classmethod
-    def distanceToText(cls, d: float | None) -> str:
+    def distanceToText(self, d: float | None) -> str:
         if d is None:
-            return cls.MISSING
-        return str(d)
+            return self.missing
+        return self.formatter.format(d)
 
-    def read(self) -> iter[Distance]:
-        with open(self.path, 'r') as f:
-            data = f.readline()
-            labels = data.strip().split('\t')[2:]
-            metrics = [DistanceMetric.fromLabel(label) for label in labels]
-            for line in f:
-                lineData = line[:-1].split('\t')
-                idx, idy, labelDistances = lineData[0], lineData[1], lineData[2:]
-                distances = (self.distanceFromText(d) for d in labelDistances)
+
+class Linear(DistanceHandler):
+    def _open_writable(self, *args, **kwargs):
+        self.buffer: list[Distance] = []
+        self.wrote_headers = False
+        super()._open_writable()
+
+    def _iter_read(self) -> ReadHandle[Distance]:
+        with FileHandler.Tabfile(self.path, 'r', has_headers=True) as file:
+            metrics = [DistanceMetric.fromLabel(label) for label in file.headers[2:]]
+            yield  # ready
+            for row in file:
+                idx, idy, distances = row[0], row[1], row[2:]
+                distances = (self.distanceFromText(d) for d in distances)
                 for distance, metric in zip(distances, metrics):
                     yield Distance(metric, Sequence(idx, None), Sequence(idy, None), distance)
 
-    def iter_write(self, distances: iter[Distance], *args, **kwargs) -> iter[Distance]:
-        with open(self.path, 'w') as f:
-            self.MISSING = kwargs.get('missing', 'NA')
-            scroreFormat = kwargs.get('formatScore', None)
-            metrics = []
-            buffer = []
-            for d in distances:
-                buffer.append(d)
-                if len(buffer) > 2:
-                    if (buffer[-2].x.id, buffer[-2].y.id) != (d.x.id, d.y.id):
-                        break
+    def _iter_write(self) -> WriteHandle[Distance]:
+        with FileHandler.Tabfile(self.path, 'w') as file:
+            try:
+                line = yield from self._assemble_line()
+                self._write_headers(file, line)
+                self._write_scores(file, line)
+                while True:
+                    line = yield from self._assemble_line()
+                    self._write_scores(file, line)
+            except GeneratorExit:
+                line = self.buffer
+                self._write_headers(file, line)
+                self._write_scores(file, line)
+                return
 
-            for d in buffer[:-1]:
-                if str(d.metric) not in metrics:
-                    metrics.append(str(d.metric))
+    def _assemble_line(self) -> Generator[None, Distance, list[Distance]]:
+        buffer = self.buffer
+        try:
+            while True:
+                distance = yield
+                buffer.append(distance)
+                if any((
+                    buffer[0].x.id != buffer[-1].x.id,
+                    buffer[0].y.id != buffer[-1].y.id,
+                )):
+                    self.buffer = buffer[-1:]
+                    return buffer[:-1]
+        except GeneratorExit:
+            return
 
-            metricString = '\t'.join(metrics)
-            metricCount = len(metrics)
-            f.write(f'idx\tidy\t{metricString}\n')
-            scores = []
-            for distance in chain(buffer, distances):
-                scores.append(str(scroreFormat.format(float(distance.d)) if scroreFormat else distance.d) if distance.d is not None else self.MISSING)
-                if len(scores) == metricCount:
-                    score = '\t'.join(scores)
-                    print(f'{distance.x.id}\t{distance.y.id}\t{score}\n')
-                    f.write(f'{distance.x.id}\t{distance.y.id}\t{score}\n')
-                    scores = []
-                yield distance
+    def _write_headers(self, file: FileHandler.Tabfile, line: list[Distance]):
+        if self.wrote_headers:
+            return
+        metrics = [str(distance.metric) for distance in line]
+        out = ('idx', 'idy', *metrics)
+        file.write(out)
+        print('HEADERS', out)
+        self.wrote_headers = True
+
+    def _write_scores(self, file: FileHandler.Tabfile, line: list[Distance]):
+        scores = [self.distanceToText(distance.d) for distance in line]
+        out = (line[0].x.id, line[0].y.id, *scores)
+        file.write(out)
+        print('HUH', out)
 
 
-class Matrix(DistanceFile):
+class Matrix(DistanceHandler):
+    # pending rewrite
     MISSING = 'NA'
 
     @classmethod
@@ -167,7 +169,8 @@ class Matrix(DistanceFile):
                 yield distance
 
 
-class LinearWithExtras(DistanceFile):
+class LinearWithExtras(DistanceHandler):
+    # pending rewrite
     MISSING = 'NA'
 
     @classmethod

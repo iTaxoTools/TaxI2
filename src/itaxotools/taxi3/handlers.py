@@ -25,7 +25,7 @@ class FileHandler(ABC, Type, Generic[Item], metaclass=_FileHandlerMeta):
     """
     Abstract interface for reading/writing items to a file. Mimics io.IOBase.
     Subclasses must implement _iter_read() and _iter_write(), as well as
-    _open_readable() and _open_writable() if necessary.
+    _open(), _open_readable() and _open_writable() if necessary.
 
     Usage examples:
 

@@ -8,7 +8,7 @@ import pytest
 from utility import assert_eq_files
 
 from itaxotools.taxi3.distances import (
-    Distance, DistanceFile, DistanceMetric, Distances)
+    Distance, DistanceHandler, DistanceMetric, Distances)
 from itaxotools.taxi3.sequences import Sequence
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
@@ -17,24 +17,48 @@ TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 class ReadTest(NamedTuple):
     fixture: Callable[[], Distances]
     input: str
-    file: DistanceFile
+    handler: DistanceHandler
     kwargs: dict = {}
 
-    def validate(self, generated: Distances):
-        fixture_list = list(self.fixture())
-        generated_list = list(generated)
-        for distance in fixture_list:
+    @property
+    def input_path(self) -> Path:
+        return TEST_DATA_DIR / self.input
+
+    @property
+    def fixed(self) -> Distances:
+        return self.fixture()
+
+    def validate(self) -> None:
+        distances = Distances.fromPath(self.input_path, self.handler, **self.kwargs)
+        generated_list = list(distances)
+        fixed_list = list(self.fixed)
+        assert len(fixed_list) == len(generated_list)
+        for distance in fixed_list:
             assert distance in generated_list
 
 
 class WriteTest(NamedTuple):
     fixture: Callable[[], Distances]
     output: str
-    file: DistanceFile
+    handler: DistanceHandler
     kwargs: dict = {}
 
-    def generate(self) -> Distances:
+    @property
+    def fixed_path(self) -> Path:
+        return TEST_DATA_DIR / self.output
+
+    @property
+    def fixed(self) -> Sequences:
         return self.fixture()
+
+    def get_output_path(self, tmp_path) -> Path:
+        return tmp_path / self.output
+
+    def validate(self, output_path: Path) -> None:
+        with self.handler(output_path, 'w', **self.kwargs) as file:
+            for distance in self.fixed:
+                file.write(distance)
+        assert_eq_files(output_path, self.fixed_path)
 
 
 class LabelTest(NamedTuple):
@@ -73,16 +97,9 @@ class MetricFileTest(NamedTuple):
 
     def get_metric_tests(self) -> iter[MetricTest]:
         path = TEST_DATA_DIR / self.file
-        with open(path, 'r') as f:
-            data = f.readline()
-            labels = data.strip().split('\t')[2:]
-            metrics = [DistanceMetric.fromLabel(label) for label in labels]
-            for line in f:
-                lineData = line[:-1].split('\t')
-                seqX, seqY, labelDistances = lineData[0], lineData[1], lineData[2:]
-                distances = (DistanceFile.Linear.distanceFromText(d) for d in labelDistances)
-                for distance, metric in zip(distances, metrics):
-                    yield MetricTest(metric, seqX, seqY, distance, self.precision)
+        with DistanceHandler.Linear(path, 'r') as file:
+            for d in file:
+                yield MetricTest(d.metric, d.x.id, d.y.id, d.d, self.precision)
 
 
 def distances_simple() -> Distances:
@@ -248,39 +265,39 @@ def distances_extras() -> Distances:
 
 
 read_tests = [
-    ReadTest(distances_simple, 'simple.linear', DistanceFile.Linear),
-    ReadTest(distances_multiple, 'multiple.linear', DistanceFile.Linear),
-    ReadTest(distances_missing, 'missing.linear', DistanceFile.Linear),
+    ReadTest(distances_simple, 'simple.linear', DistanceHandler.Linear),
+    ReadTest(distances_multiple, 'multiple.linear', DistanceHandler.Linear),
+    ReadTest(distances_missing, 'missing.linear', DistanceHandler.Linear),
 
-    ReadTest(distances_square_unknown, 'square.matrix', DistanceFile.Matrix),
-    ReadTest(distances_square, 'square.matrix', DistanceFile.Matrix,
+    ReadTest(distances_square_unknown, 'square.matrix', DistanceHandler.Matrix),
+    ReadTest(distances_square, 'square.matrix', DistanceHandler.Matrix,
         dict(metric=DistanceMetric.Uncorrected())),
-    ReadTest(distances_rectangle, 'rectangle.matrix', DistanceFile.Matrix,
+    ReadTest(distances_rectangle, 'rectangle.matrix', DistanceHandler.Matrix,
         dict(metric=DistanceMetric.Uncorrected())),
-    ReadTest(distances_missing, 'missing.matrix', DistanceFile.Matrix,
+    ReadTest(distances_missing, 'missing.matrix', DistanceHandler.Matrix,
         dict(metric=DistanceMetric.Uncorrected())),
 
-    ReadTest(distances_extras, 'extras.tsv', DistanceFile.LinearWithExtras,
+    ReadTest(distances_extras, 'extras.tsv', DistanceHandler.LinearWithExtras,
         dict(idxHeader='seqid', idyHeader='id', tagX='_x', tagY='_y')),
-    ReadTest(distances_extras, 'extras.tsv', DistanceFile.LinearWithExtras,
+    ReadTest(distances_extras, 'extras.tsv', DistanceHandler.LinearWithExtras,
         dict(idxColumn=0, idyColumn=2, tagX='_x', tagY='_y')),
 ]
 
 
 write_tests = [
-    WriteTest(distances_simple, 'simple.linear', DistanceFile.Linear),
-    WriteTest(distances_multiple, 'multiple.linear', DistanceFile.Linear),
-    WriteTest(distances_missing, 'missing.linear', DistanceFile.Linear),
-    WriteTest(distances_square, 'square.matrix', DistanceFile.Matrix),
-    WriteTest(distances_rectangle, 'rectangle.matrix', DistanceFile.Matrix),
-    WriteTest(distances_missing, 'missing.matrix', DistanceFile.Matrix),
-    WriteTest(distances_extras, 'extras.tsv', DistanceFile.LinearWithExtras,
+    WriteTest(distances_simple, 'simple.linear', DistanceHandler.Linear, dict(formatter='{:.1f}')),
+    WriteTest(distances_multiple, 'multiple.linear', DistanceHandler.Linear, dict(formatter='{:.2f}')),
+    WriteTest(distances_missing, 'missing.linear', DistanceHandler.Linear, dict(formatter='{:.1f}')),
+    WriteTest(distances_square, 'square.matrix', DistanceHandler.Matrix),
+    WriteTest(distances_rectangle, 'rectangle.matrix', DistanceHandler.Matrix),
+    WriteTest(distances_missing, 'missing.matrix', DistanceHandler.Matrix),
+    WriteTest(distances_extras, 'extras.tsv', DistanceHandler.LinearWithExtras,
         dict(idxHeader='seqid', idyHeader='id', tagX='_x', tagY='_y')),
-    WriteTest(distances_missing, 'missing.formatted.linear', DistanceFile.Linear,
+    WriteTest(distances_missing, 'missing.formatted.linear', DistanceHandler.Linear,
         dict(formatScore='{:.2e}', missing='nan')),
-    WriteTest(distances_missing, 'missing.formatted.linear', DistanceFile.LinearWithExtras,
+    WriteTest(distances_missing, 'missing.formatted.linear', DistanceHandler.LinearWithExtras,
         dict(formatScore='{:.2e}', missing='nan', idxHeader='idx', idyHeader='idy', tagX='', tagY='')),
-    WriteTest(distances_missing, 'missing.formatted.matrix', DistanceFile.Matrix,
+    WriteTest(distances_missing, 'missing.formatted.matrix', DistanceHandler.Matrix,
         dict(formatScore='{:.2e}', missing='nan')),
 ]
 
@@ -311,18 +328,13 @@ metric_file_tests = [
 
 @pytest.mark.parametrize("test", read_tests)
 def test_read_distances(test: ReadTest) -> None:
-    input_path = TEST_DATA_DIR / test.input
-    distances = test.file(input_path).read(**test.kwargs)
-    test.validate(distances)
+    test.validate()
 
 
 @pytest.mark.parametrize("test", write_tests)
 def test_write_distances(test: WriteTest, tmp_path: Path) -> None:
-    fixed_path = TEST_DATA_DIR / test.output
-    output_path = tmp_path / test.output
-    distances = iter(test.generate())
-    test.file(output_path).write(distances, **test.kwargs)
-    assert_eq_files(output_path, fixed_path)
+    output_path = test.get_output_path(tmp_path)
+    test.validate(output_path)
 
 
 @pytest.mark.parametrize("test", label_tests)

@@ -113,7 +113,7 @@ class Tabfile(SequenceHandler.Tabular, SequenceHandler):
         self.hasHeader = hasHeader
         super()._open_writable()
 
-    def _iter_write(self, idHeader='seqid', seqHeader='sequence') -> WriteHandle[Sequence]:
+    def _iter_write(self) -> WriteHandle[Sequence]:
         with self.subhandler(self.path, 'w') as file:
             try:
                 sequence = yield

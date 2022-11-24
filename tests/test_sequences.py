@@ -25,7 +25,7 @@ class ReadTest(NamedTuple):
     def fixed(self) -> Sequences:
         return self.fixture()
 
-    def validate(self):
+    def validate(self) -> None:
         sequences = Sequences.fromPath(self.input_path, self.handler, **self.kwargs)
         generated_list = list(sequences)
         fixed_list = list(self.fixed)
@@ -51,7 +51,7 @@ class WriteTest(NamedTuple):
     def get_output_path(self, tmp_path) -> Path:
         return tmp_path / self.output
 
-    def validate(self, output_path: Path):
+    def validate(self, output_path: Path) -> None:
         with self.handler(output_path, 'w', **self.kwargs) as file:
             for sequence in self.fixed:
                 file.write(sequence)
