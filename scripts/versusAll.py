@@ -8,6 +8,7 @@ from itaxotools.taxi3.distances import *
 from itaxotools.taxi3.pairs import *
 from itaxotools.taxi3.sequences import *
 from itaxotools.taxi3.partitions import *
+from itaxotools.taxi3.handlers import *
 from typing import NamedTuple
 import numpy as np
 
@@ -43,6 +44,50 @@ class SequenceStatistics(NamedTuple):
     percentageOfAmbiguity: float
     percentageOfMissingData: float
     percentageOfMissingDataWithGaps: float
+
+
+class SummaryHandler(DistanceHandler.Linear.WithExtras):
+    def _open(self, path, mode, spartitionDict, gpartitionDict):
+        self.spartitionDict = spartitionDict
+        self.gpartitionDict = gpartitionDict
+        super()._open(path, mode, tagX=' (query 1)', tagY=' (query 2)')
+
+    def _write_headers(self, file: FileHandler.Tabfile, line: list[Distance]):
+        if self.wrote_headers:
+            return
+        idxHeader = self.idxHeader + self.tagX
+        idyHeader = self.idyHeader + self.tagY
+        extrasX = [key + self.tagX for key in line[0].x.extras.keys()]
+        extrasY = [key + self.tagY for key in line[0].y.extras.keys()]
+        metrics = [str(distance.metric) for distance in line]
+        infoX = ('genus' + self.tagX, 'species' + self.tagX)
+        infoY = ('genus' + self.tagY, 'species' + self.tagY)
+        out = (idxHeader, idyHeader, *metrics, *extrasX, *extrasY, *infoX, *infoY, 'comparison_type')
+        file.write(out)
+        self.wrote_headers = True
+
+    def _write_scores(self, file: FileHandler.Tabfile, line: list[Distance]):
+        idx = line[0].x.id
+        idy = line[0].y.id
+        extrasX = line[0].x.extras.values()
+        extrasY = line[0].y.extras.values()
+        scores = [self.distanceToText(distance.d) for distance in line]
+        genusX = self.gpartitionDict[idx]
+        genusY = self.gpartitionDict[idy]
+        speciesX = self.spartitionDict[idx]
+        speciesY = self.spartitionDict[idy]
+        comparison_type = self._get_comparison_type(genusX, genusY, speciesX, speciesY)
+        out = (idx, idy, *scores, *extrasX, *extrasY, genusX, speciesX, genusY, speciesY, comparison_type)
+        file.write(out)
+
+    @staticmethod
+    def _get_comparison_type(genusX, genusY, speciesX, speciesY) -> str:
+        if genusX == genusY:
+            if speciesX == speciesY:
+                return 'intra-species'
+            else:
+                return 'inter-species'
+        return 'inter-genus'
 
 
 def calc(aligned_pairs, metric=DistanceMetric.Uncorrected()):
@@ -385,8 +430,13 @@ def main():
     # write linear file
     distances = iter_write_distances_linear(distances, path_out_2)
 
-    for distance in distances:
-        pass
+    with SummaryHandler('summaryFile', 'w', spartitionDict, gpartitionDict) as file:
+        for distance in distances:
+            if 'organism' in distance.x.extras:
+                del distance.x.extras['organism']
+            if 'organism' in distance.y.extras:
+                del distance.y.extras['organism']
+            file.write(distance)
 
     #calculate mean, min, max
     calculate3Ms(pairDict)
@@ -397,11 +447,9 @@ def main():
     writeSubsetPairs(pairDict, 'subsetPair')
 
 
-
     #write genus pairs
     writeSubsetAginstItself(genusPairDict, 'genusAgainstItself')
     writeSubsetPairs(genusPairDict, 'genusPair')
-
 
 
     tf = perf_counter()
