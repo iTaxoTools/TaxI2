@@ -70,19 +70,13 @@ def getSubset(pairs, spartition):
         yield SubsetDistance(spartition[pair.x.id], spartition[pair.y.id], 0)
 
 
-def getSubsetPairs(pairs, pairDict, spartition):
-    for subsetPair in pairs:
-        if not (spartition[subsetPair.x.id], spartition[subsetPair.y.id]) in pairDict:
-            pairDict[spartition[subsetPair.x.id], spartition[subsetPair.y.id]] = []
-
-        yield subsetPair
-
-
-def getGenusPairs(pairs, genusPairDict, spartition):
-    for subsetPair in pairs:
-        if not (spartition[subsetPair.x.id].split(' ')[0], spartition[subsetPair.y.id].split(' ')[0]) in genusPairDict:
-            genusPairDict[spartition[subsetPair.x.id].split(' ')[0], spartition[subsetPair.y.id].split(' ')[0]] = []
-        yield subsetPair
+def getDictFromPartition(spartition):
+    pairDict = {}
+    allSubsets = set(spartition.values())
+    for x in allSubsets:
+        for y in allSubsets:
+            pairDict[(x, y)] = []
+    return pairDict
 
 
 def calculate3Ms(pairDict):
@@ -356,7 +350,8 @@ def main():
     gpartition_file = PartitionFile.Tabfile.Genus(path_data)
     spartitionDict = Partition.fromFile(spartition_file, idHeader='seqid', subsetHeader='organism')
     gpartitionDict = Partition.fromFile(gpartition_file, idHeader='seqid', subsetHeader='organism')
-
+    pairDict = getDictFromPartition(spartitionDict)
+    genusPairDict = getDictFromPartition(gpartitionDict)
 
     data = Sequences.fromPath(path_data, SequenceHandler.Tabfile, idHeader='seqid', seqHeader='sequence')
 
@@ -376,12 +371,8 @@ def main():
 
     pairs = SequencePairs.fromProduct(data, data)
 
-    subset_pairs = getSubsetPairs(pairs, pairDict, spartitionDict)
-    subset_pairs = getGenusPairs(subset_pairs, genusPairDict, gpartitionDict)
-
-
     aligner = PairwiseAligner.Biopython()
-    aligned_pairs = aligner.align_pairs(subset_pairs)
+    aligned_pairs = aligner.align_pairs(pairs)
 
     distances = calc(aligned_pairs)
 
