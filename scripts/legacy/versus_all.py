@@ -12,7 +12,7 @@ from itaxotools.taxi3.library.task import (
 input = Path(argv[1])
 
 
-metrics = [Metric.Uncorrected]
+metrics = [Metric.Uncorrected, Metric.JukesCantor]
 
 print('Calculating distances...')
 task = CalculateDistances(warn=print)
