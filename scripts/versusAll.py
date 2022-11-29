@@ -440,21 +440,31 @@ def main():
 
     data = data.normalize()
 
-    statsCalculator = StatisticsCalculator()
-    for seq in data:
-        s = statsCalculator.addSequences(seq)
-        statsCalculator.addGenuses(s, gpartitionDict[seq.id])
+    allStats = StatisticsCalculator()
+    speciesStats = dict()
+    for species in gpartitionDict.values():
+        if species not in speciesStats:
+            speciesStats[species] = StatisticsCalculator()
 
-    print(statsCalculator.calculateGenusStats())
-    print(statsCalculator.calculateAllStats())
+    for seq in data:
+        allStats.addSequence(seq)
+        species = gpartitionDict[seq.id]
+        speciesStats[species].addSequence(seq)
+
+    print('allStats', allStats.calculate())
+    print('speciesStats', speciesStats)
+
+    return
+    # print(statsCalculator.calculateGenusStats())
+    # print(statsCalculator.calculateAllStats())
 
     #write stats
 
-    calculateAllStatistics(data, stats)
-    writeStatistics(stats)
+    # calculateAllStatistics(data, stats)
+    # writeStatistics(stats)
 
-    subsetStatistic = calculateStatistics(data, spartitionDict)
-    writeStatistics(subsetStatistic)
+    # subsetStatistic = calculateStatistics(data, spartitionDict)
+    # writeStatistics(subsetStatistic)
 
     #Create pairs
 
