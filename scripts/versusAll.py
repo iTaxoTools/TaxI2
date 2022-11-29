@@ -9,6 +9,8 @@ from itaxotools.taxi3.pairs import *
 from itaxotools.taxi3.sequences import *
 from itaxotools.taxi3.partitions import *
 from itaxotools.taxi3.handlers import *
+from itaxotools.taxi3.handlers import *
+from itaxotools.taxi3.statistics import *
 from typing import NamedTuple
 import numpy as np
 
@@ -95,6 +97,12 @@ def calc(aligned_pairs, metric=DistanceMetric.Uncorrected()):
         yield metric.calculate(x, y)
 
 
+def calAll(aligned_pairs, metrics):
+    for x, y in aligned_pairs:
+        for metric in metrics:
+            yield metric.calculate(x, y)
+
+
 def get_minimum(distances):
     for k, g in groupby(distances, lambda d: d.x.id):
         g = (d for d in g if d.d is not None)
@@ -115,12 +123,14 @@ def getSubset(pairs, spartition):
         yield SubsetDistance(spartition[pair.x.id], spartition[pair.y.id], 0)
 
 
-def getDictFromPartition(spartition):
+def getDictFromPartition(spartition, metrics):
     pairDict = {}
     allSubsets = set(spartition.values())
-    for x in allSubsets:
-        for y in allSubsets:
-            pairDict[(x, y)] = []
+    for metric in metrics:
+        pairDict[str(metric)] = {}
+        for x in allSubsets:
+            for y in allSubsets:
+                pairDict[str(metric)][(x, y)] = []
     return pairDict
 
 
@@ -154,21 +164,26 @@ def multiply(g, n):
     return (x for x in g for i in range(n))
 
 
-def writeSubsetPairs(pairDict, path):
-    with open(path, 'w') as f:
-        f.write(f'target\tquery\tmean pairwise uncorrected distance\tminimum pairwise uncorrected distance\tmaximum pairwise uncorrected distance\t\n')
-        species_target = ''
-        for key, val in pairDict.items():
-            targetSubset, querySubset, mean, minn, maxx = key[0], key[1], val[0], val[1], val[2]
+def writeSubsetPairs(pairDict, path, metrics):
 
-            if not species_target or species_target != targetSubset:
-                f.write(f'{targetSubset}\t')
-            while targetSubset == species_target:
-                f.write(' ' * len(targetSubset) + '\t')
-                break
-            f.write(f'{querySubset}\t{mean}\t{minn}\t{maxx}\n')
-            species_target = targetSubset
+    headerList = []
+    for metric in metrics:
+        for m in ["mean", "minimum", "maximum"]:
+            headerList.append(f'{m} {str(metric)}')
 
+    with FileHandler.Tabfile(path, 'w', columns=('target', 'query', *headerList)) as f:
+        species_target = '\r'
+        for key, val in pairDict[str(metrics[0])].items():
+            target, query = key[0], key[1]
+            current_target = ''
+            if species_target != target:
+                current_target = target
+                species_target = target
+            buffer = []
+            buffer.extend(str(x) for x in val)
+            for metricIndx in range(1, len(metrics)):
+                buffer.extend(str(x) for x in pairDict[str(metrics[metricIndx])][(target, query)])
+            f.write((current_target, query, *buffer))
 
 def calculateAllStatistics(data, stats):
 
@@ -287,8 +302,9 @@ def calculateStatistics(data, spartition):
 def addDistanceScore(distances, pairDict, genusPairDict, spartition, gpartition):
 
     for distance in distances:
-        pairDict[spartition[distance.x.id], spartition[distance.y.id]].append(distance.d)
-        genusPairDict[gpartition[distance.x.id], gpartition[distance.y.id]].append(distance.d)
+        metric = str(distance.metric)
+        pairDict[metric][spartition[distance.x.id], spartition[distance.y.id]].append(distance.d)
+        genusPairDict[metric][gpartition[distance.x.id], gpartition[distance.y.id]].append(distance.d)
 
         yield distance
 
@@ -337,14 +353,22 @@ def writeStatistics(stats):
                 f.write(''.join(str(stat)) + '\n')
 
 
-def writeSubsetAginstItself(pairDict, path):
-    with open(path, 'w') as f:
-        f.write(f'species\tmean pairwise uncorrected distance\tminimum pairwise uncorrected distance\tmaximum pairwise uncorrected distance\n')
-        for key, val in pairDict.items():
+def writeSubsetAginstItself(pairDict, path, metrics):
+    headerList = []
+    for metric in metrics:
+        for m in ["mean", "minimum", "maximum"]:
+            headerList.append(f'{m} {str(metric)}')
+
+    with FileHandler.Tabfile(path, 'w', columns=('target', *headerList)) as f:
+        for key, val in pairDict[str(metrics[0])].items():
             sub1, sub2 = key[0], key[1]
             if sub1 == sub2:
-                mean, mini, maxi = val[0], val[1], val[2]
-                f.write(f'{sub1}\t{mean}\t{mini}\t{maxi}\n')
+                buffer = []
+                buffer.extend(str(x) for x in val)
+                for metricIndx in range(1, len(metrics)):
+                    buffer.extend(str(x) for x in pairDict[str(metrics[metricIndx])][(sub1, sub2)])
+                f.write((sub1, *buffer))
+
 
 def iter_write_distances_linear(distances, path):
     with DistanceHandler.Linear.WithExtras(path, 'w') as file:
@@ -358,12 +382,25 @@ def iter_write_distances_matrix(distances, path):
             file.write(d)
             yield d
 
+
+def calculateAll3Ms(pairDict):
+    for metric in pairDict.keys():
+        calculate3Ms(pairDict[metric])
+
+
+
 def main():
     path_data = Path(argv[1])
     path_out = Path(argv[2])
     path_out_2 = Path(argv[3])
     pairDict = {}
     genusPairDict = {}
+    metrics = [
+        DistanceMetric.Uncorrected(),
+        DistanceMetric.UncorrectedWithGaps(),
+        DistanceMetric.JukesCantor(),
+        DistanceMetric.Kimura2P(),
+    ]
     stats = {
         'totalSeq' : 0,
         'lessThan100BP' : 0,
@@ -395,14 +432,23 @@ def main():
     gpartition_file = PartitionFile.Tabfile.Genus(path_data)
     spartitionDict = Partition.fromFile(spartition_file, idHeader='seqid', subsetHeader='organism')
     gpartitionDict = Partition.fromFile(gpartition_file, idHeader='seqid', subsetHeader='organism')
-    pairDict = getDictFromPartition(spartitionDict)
-    genusPairDict = getDictFromPartition(gpartitionDict)
+
+    pairDict = getDictFromPartition(spartitionDict, metrics)
+    genusPairDict = getDictFromPartition(gpartitionDict, metrics)
 
     data = Sequences.fromPath(path_data, SequenceHandler.Tabfile, idHeader='seqid', seqHeader='sequence')
 
     total = len(data)
 
     data = data.normalize()
+
+    # statsCalculator = StatisticsCalculator()
+    # for seq in data:
+    #     s = statsCalculator.addSequences(seq)
+    #     statsCalculator.addGenuses(s, gpartitionDict[seq.id])
+    #
+    # statsCalculator.calculateGenusStats()
+    # statsCalculator.calculate()
 
     #write stats
 
@@ -417,12 +463,11 @@ def main():
     pairs = SequencePairs.fromProduct(data, data)
 
     aligner = PairwiseAligner.Biopython()
-    aligned_pairs = aligner.align_pairs(pairs)
+    aligned_pairs = aligner.align_pairs_parallel(pairs)
 
-    distances = calc(aligned_pairs)
+    distances = calAll(aligned_pairs, metrics)
 
     distances = addDistanceScore(distances, pairDict, genusPairDict, spartitionDict, gpartitionDict)
-
 
     # write matrics file
     distances = iter_write_distances_matrix(distances, path_out)
@@ -439,17 +484,20 @@ def main():
             file.write(distance)
 
     #calculate mean, min, max
-    calculate3Ms(pairDict)
-    calculate3Ms(genusPairDict)
 
-    #write subset pairs
-    writeSubsetAginstItself(pairDict, 'subsetAgainstItself')
-    writeSubsetPairs(pairDict, 'subsetPair')
+    calculateAll3Ms(pairDict)
+    calculateAll3Ms(genusPairDict)
 
+    print(genusPairDict)
 
-    #write genus pairs
-    writeSubsetAginstItself(genusPairDict, 'genusAgainstItself')
-    writeSubsetPairs(genusPairDict, 'genusPair')
+    # #write subset pairs
+    writeSubsetAginstItself(pairDict, 'subsetAgainstItself', metrics)
+    writeSubsetPairs(pairDict, 'subsetPair', metrics)
+    #
+    #
+    # #write genus pairs
+    writeSubsetAginstItself(genusPairDict, 'genusAgainstItself', metrics)
+    writeSubsetPairs(genusPairDict, 'genusPair', metrics)
 
 
     tf = perf_counter()
