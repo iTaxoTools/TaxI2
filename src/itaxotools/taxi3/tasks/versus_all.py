@@ -1,3 +1,19 @@
+from itertools import groupby
+from pathlib import Path
+from sys import argv
+from time import perf_counter
+from statistics import median, stdev
+from itaxotools.taxi3.align import *
+from itaxotools.taxi3.distances import *
+from itaxotools.taxi3.pairs import *
+from itaxotools.taxi3.sequences import *
+from itaxotools.taxi3.partitions import *
+from itaxotools.taxi3.handlers import *
+from itaxotools.taxi3.handlers import *
+from itaxotools.taxi3.statistics import *
+from typing import NamedTuple
+import numpy as np
+import os
 
 class SequenceInfo(NamedTuple):
     type: str
@@ -85,8 +101,58 @@ class VersusAll:
     def set_genus_path(self, path: Path) -> PartitionInfo:
         pass
 
+    def createDir(self):
+        fileDir = ['Statistics', 'Pairs', 'Distances', 'Summary', 'Species', 'Genus']
+        try:
+            for directory in fileDir:
+                dirPath = os.path.join(self.work_dir, directory)
+                os.mkdir(dirPath)
+        except OSError as error:
+            raise error
+
     def start(self, progress_handler, warnings_handler) -> Results:
         # Construct conditional pipeline
         # execute it
         # return
+
+        #Create all Dir
+        self.createDir()
+
+
+
+        statsCalculator = StatisticsCalculator()
+        if self.stats_all:
+
+            if self.stats_species:
+                pass
+            if self.stats_genus:
+                pass
+
+
+        if self.perform_species_analysis:
+            pass
+        if self.perform_genus_analysis:
+            pass
+
+        if self.do_pairwise_alignment:
+            pass
+
+        #Distance Metrics
+
+        if self.distance_linear_output:
+            if self.distances_percentile:
+                pass
+            else:
+                USE = self.distances_formatter
+            pass
+
+        if self.distance_matrix_output:
+            if self.distances_percentile:
+                pass
+            else:
+                USE = self.distances_formatter
+            pass
+
+
+
         pass

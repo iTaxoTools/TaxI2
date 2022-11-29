@@ -352,7 +352,6 @@ def writeStatistics(stats):
             for stat in stats:
                 f.write(''.join(str(stat)) + '\n')
 
-
 def writeSubsetAginstItself(pairDict, path, metrics):
     headerList = []
     for metric in metrics:
@@ -368,7 +367,6 @@ def writeSubsetAginstItself(pairDict, path, metrics):
                 for metricIndx in range(1, len(metrics)):
                     buffer.extend(str(x) for x in pairDict[str(metrics[metricIndx])][(sub1, sub2)])
                 f.write((sub1, *buffer))
-
 
 def iter_write_distances_linear(distances, path):
     with DistanceHandler.Linear.WithExtras(path, 'w') as file:
@@ -442,13 +440,13 @@ def main():
 
     data = data.normalize()
 
-    # statsCalculator = StatisticsCalculator()
-    # for seq in data:
-    #     s = statsCalculator.addSequences(seq)
-    #     statsCalculator.addGenuses(s, gpartitionDict[seq.id])
-    #
-    # statsCalculator.calculateGenusStats()
-    # statsCalculator.calculate()
+    statsCalculator = StatisticsCalculator()
+    for seq in data:
+        s = statsCalculator.addSequences(seq)
+        statsCalculator.addGenuses(s, gpartitionDict[seq.id])
+
+    print(statsCalculator.calculateGenusStats())
+    print(statsCalculator.calculateAllStats())
 
     #write stats
 
