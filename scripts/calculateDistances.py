@@ -20,35 +20,53 @@ def calc(aligned_pairs):
             yield metric.calculate(x, y)
 
 
+def progress(distances, total):
+
+    for index, distance in enumerate(distances):
+        print(f"\rLoading... {index}/{total} = {(round(float(index)/float(total)  * 100, 2))}%", end="")
+        yield distance
+
+
 def main():
     path_data = Path(argv[1])
     path_reference = Path(argv[2])
-    path_out = Path(argv[3])
+    path_out_linear = Path(argv[3])
+    path_out_matrix = Path(argv[4])
+    path_out_pairs = Path(argv[5])
 
     ts = perf_counter()
 
-    file_data = SequenceFile.Tabfile(path_data)
-    file_reference = SequenceFile.Tabfile(path_reference)
+    data = Sequences.fromPath(path_data, SequenceHandler.Tabfile, idHeader='seqid', seqHeader='sequence')
+    reference = Sequences.fromPath(path_reference, SequenceHandler.Tabfile, idHeader='seqid', seqHeader='sequence')
 
-    data = Sequences.fromFile(file_data, idHeader='seqid', seqHeader='sequence')
-    reference = Sequences.fromFile(file_reference, idHeader='seqid', seqHeader='sequence')
+    total = len(data) * len(reference) * 4
 
     data = data.normalize()
     reference = reference.normalize()
 
     pairs = SequencePairs.fromProduct(data, reference)
 
-    aligner = PairwiseAligner.Rust()
+    aligner = PairwiseAligner.Biopython()
     aligned_pairs = aligner.align_pairs(pairs)
+
+    outFile = SequencePairFile.Formatted(path_out_pairs)
+    aligned_pairs = outFile.iter_write(aligned_pairs)
 
     distances = calc(aligned_pairs)
 
-    outFile = DistanceFile.Linear(path_out)
-    outFile.write(distances)
+    distances = progress(distances, total)
+
+    with (
+        DistanceHandler.Matrix(path_out_matrix, 'w') as file_matrix,
+        DistanceHandler.Linear.WithExtras(path_out_linear, 'w') as file_linear,
+    ):
+        for distance in distances:
+            file_matrix.write(distance)
+            file_linear.write(distance)
 
     tf = perf_counter()
 
-    print(f'Time taken: {tf-ts:.4f}s')
+    print(f'\nTime taken: {tf-ts:.4f}s')
 
 
 if __name__ == '__main__':
