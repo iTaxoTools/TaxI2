@@ -440,16 +440,23 @@ def main():
 
     data = data.normalize()
 
+    stats = MyCalculator.from_sequences(seq.seq for seq in data)
+    print('AllStats:')
+    print('---')
+    for k, v in stats.items():
+        print(f'{str(k)} = {v}')
+    print('---')
+    return
     allStats = StatisticsCalculator()
-    speciesStats = dict()
-    for species in gpartitionDict.values():
-        if species not in speciesStats:
-            speciesStats[species] = StatisticsCalculator()
+    # speciesStats = dict()
+    # for species in gpartitionDict.values():
+    #     if species not in speciesStats:
+    #         speciesStats[species] = StatisticsCalculator()
 
     for seq in data:
         allStats.addSequence(seq)
-        species = gpartitionDict[seq.id]
-        speciesStats[species].addSequence(seq)
+        # species = gpartitionDict[seq.id]
+        # speciesStats[species].addSequence(seq)
 
     print('allStats', allStats.calculate())
     print('speciesStats', speciesStats)

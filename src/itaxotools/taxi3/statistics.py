@@ -1,237 +1,158 @@
-from statistics import median, stdev
+from __future__ import annotations
+
+import statistics
 import numpy as np
 from collections import Counter
+from typing import NamedTuple
 import itertools
+from math import inf
+from enum import Enum
 
 
-class StatisticsCalculator:
-    def __init__(self):
-        self.bufferStats = {
-            'totalSeq': 0,
-            'lessThan100BP': 0,
-            'between100_300BP': 0,
-            'between301_1000BP': 0,
-            'greaterThan1000BP': 0,
-            'minimumLength': float('inf'),
-            'maximumLength': 0,
-            'meanLength': 0,
-            'medianLength': 0,
-            'stdLength': 0,
-            'N50': 0,
-            'L50': 0,
-            'N90': 0,
-            'L90': 0,
-            'total_seq_length': 0,
-            'percentageA': 0,
-            'percentageC': 0,
-            'percentageG': 0,
-            'percentageT': 0,
-            'GC_content': 0,
-            'percentageAmbiguity': 0,
-            'percentageMissingData': 0,
-            'percentageMissingDataWithGap': 0
+class SequenceCounter(NamedTuple):
+    total: int
+    nucleotides: int
+    missing: int
+    gaps: int
+    a: int
+    t: int
+    c: int
+    g: int
+
+    @classmethod
+    def from_sequence(cls, seq: str) -> SequenceCounter:
+        counter = Counter(seq)
+        return cls(
+            total = len(seq),
+            nucleotides = len(seq) - counter['-'],
+            missing = counter['N'],
+            gaps = counter['-'],
+            a = counter['A'],
+            t = counter['T'],
+            c = counter['C'],
+            g = counter['G'],
+        )
+
+
+class SequenceStatistics(Enum):
+
+    SequenceCount = 'totalSeq', int
+    BP_0_100 = 'lessThan100BP', int
+    BP_101_300 = 'between100_300BP', int
+    BP_301_1000 = 'between301_1000BP', int
+    BP_1001_plus = 'greaterThan1000BP', int
+    Minimum = 'minimumLength', int
+    Maximum = 'maximumLength', int
+    Mean = 'meanLength', float
+    Median = 'medianLength', float
+    Stdev = 'stdLength', float
+    N50 = 'N50', float
+    L50 = 'L50', float
+    N90 = 'N90', float
+    L90 = 'L90', float
+    Total = 'total_seq_length', float
+    PercentA = 'percentageA', float
+    PercentT = 'percentageT', float
+    PercentC = 'percentageC', float
+    PercentG = 'percentageG', float
+    PercentGC = 'GC_content', float
+    PercentAmbiguous = 'percentageAmbiguity', float
+    PercentMissing = 'percentageMissingData', float
+    PercentMissingGaps = 'percentageMissingDataWithGap', float
+
+    def __init__(self, label, type):
+        self.label = label
+        self.type = type
+
+    def __str__(self):
+        return self.label
+
+
+class MyCalculator:
+    @classmethod
+    def from_sequences(cls, sequences: iter[str]) -> dict[SequenceStatistics, ...]:
+        all_nucleotides = []
+        length = 0
+
+        bp_0_100 = 0
+        bp_101_300 = 0
+        bp_101_300 = 0
+        bp_301_1000 = 0
+        bp_1001_plus = 0
+        minimum = inf
+        maximum = -inf
+        sum_total = 0
+        sum_nucleotides = 0
+        sum_missing = 0
+        sum_gaps = 0
+        sum_a = 0
+        sum_t = 0
+        sum_c = 0
+        sum_g = 0
+
+        counters = (SequenceCounter.from_sequence(seq) for seq in sequences)
+        for counter in counters:
+            length += 1
+            all_nucleotides.append(counter.nucleotides)
+
+            if counter.nucleotides < 100:
+                bp_0_100 += 1
+            elif counter.nucleotides < 300:
+                bp_101_300 += 1
+            elif counter.nucleotides < 1000:
+                bp_301_1000 += 1
+            else:
+                bp_1001_plus += 1
+
+            minimum = min(minimum, counter.nucleotides)
+            maximum = max(maximum, counter.nucleotides)
+            sum_total += counter.total
+            sum_nucleotides += counter.nucleotides
+            sum_missing += counter.missing
+            sum_gaps += counter.gaps
+            sum_a += counter.a
+            sum_t += counter.t
+            sum_c += counter.c
+            sum_g += counter.g
+
+        mean = sum_nucleotides / length
+        median = statistics.median(all_nucleotides)
+        stdev = statistics.stdev(all_nucleotides)
+
+        sum_cg = sum_c + sum_g
+        sum_ambiguous = sum_nucleotides - sum_missing - sum_a - sum_t - sum_c - sum_g
+        sum_missing_and_gaps = sum_missing + sum_gaps
+
+        x = SequenceStatistics
+        return {
+            x.SequenceCount: length,
+            x.BP_0_100: bp_0_100,
+            x.BP_101_300: bp_101_300,
+            x.BP_301_1000: bp_301_1000,
+            x.BP_1001_plus: bp_1001_plus,
+            x.Minimum: minimum,
+            x.Maximum: maximum,
+            x.Mean: mean,
+            x.Median: median,
+            x.Stdev: stdev,
+            # x.N50
+            # x.L50
+            # x.N90
+            # x.L90
+            x.Total: sum_total,
+            x.PercentA: 100 * sum_a / sum_total,
+            x.PercentT: 100 * sum_t / sum_total,
+            x.PercentC: 100 * sum_c / sum_total,
+            x.PercentG: 100 * sum_g / sum_total,
+            x.PercentGC: 100 * sum_cg / sum_total,
+            x.PercentAmbiguous: 100 * sum_ambiguous / sum_total,
+            x.PercentMissing: 100 * sum_missing / sum_total,
+            x.PercentMissingGaps: 100 * sum_missing_and_gaps / sum_total,
         }
-        self.allStats = {
-            'totalSeq': 0,
-            'lessThan100BP': 0,
-            'between100_300BP': 0,
-            'between301_1000BP': 0,
-            'greaterThan1000BP': 0,
-            'minimumLength': float('inf'),
-            'maximumLength': 0,
-            'meanLength': 0,
-            'medianLength': 0,
-            'stdLength': 0,
-            'N50': 0,
-            'L50': 0,
-            'N90': 0,
-            'L90': 0,
-            'total_seq_length': 0,
-            'percentageA': 0,
-            'percentageC': 0,
-            'percentageG': 0,
-            'percentageT': 0,
-            'GC_content': 0,
-            'percentageAmbiguity': 0,
-            'percentageMissingData': 0,
-            'percentageMissingDataWithGap': 0
-        }
-        self.bufferLengths = []
 
-    def prepareStats(self, sequenceData):
-
-        # todo: remove all mentions of allStats
-
-        self.seqStats = {}
-        sequence = sequenceData.seq
-        seqLength = len(sequence) - sequence.count('-')
-
-        self.seqStats['seqLength'] = seqLength
-
-        self.seqStats['totalSeq'], self.allStats['totalSeq'] = 1, self.allStats['totalSeq'] + 1
-        self.seqStats['total_seq_length'], self.allStats['total_seq_length'] = seqLength, self.allStats[
-            'total_seq_length'] + seqLength
-
-        self.seqStats['lessThan100BP'], self.allStats['lessThan100BP'] = 0, self.allStats['lessThan100BP']
-        self.seqStats['between100_300BP'], self.allStats['between100_300BP'] = 0, self.allStats['between100_300BP']
-        self.seqStats['between301_1000BP'], self.allStats['between301_1000BP'] = 0, self.allStats['between301_1000BP']
-        self.seqStats['greaterThan1000BP'], self.allStats['greaterThan1000BP'] = 0, self.allStats['greaterThan1000BP']
-
-        self.seqStats['minimumLength'], self.allStats['minimumLength'] = seqLength, min(self.allStats['minimumLength'],
-                                                                                        seqLength)
-        self.seqStats['meanLength'], self.allStats['meanLength'] = self.allStats['total_seq_length'] / self.allStats[
-            'totalSeq'], 0
-        self.seqStats['maximumLength'], self.allStats['maximumLength'] = seqLength, max(self.allStats['minimumLength'],
-                                                                                        seqLength)
-        self.seqStats['medianLength'], self.allStats['medianLength'] = median([seqLength]), 0
-        self.seqStats['stdLength'], self.allStats['stdLength'] = float('nan'), 0
-
-        self.seqStats['N50'], self.allStats['N50'] = self.calculate_NL([seqLength], 'N', 50), 0
-        self.seqStats['L50'], self.allStats['L50'] = self.calculate_NL([seqLength], 'L', 50), 0
-        self.seqStats['N90'], self.allStats['N90'] = self.calculate_NL([seqLength], 'N', 90), 0
-        self.seqStats['L90'], self.allStats['L90'] = self.calculate_NL([seqLength], 'L', 90), 0
-
-        self.seqStats['percentageA'], self.allStats['percentageA'] = sequence.count('A') / self.allStats[
-            'total_seq_length'], \
-                                                                     self.allStats['percentageA'] + sequence.count('A')
-        self.seqStats['percentageT'], self.allStats['percentageT'] = sequence.count('T') / self.allStats[
-            'total_seq_length'], \
-                                                                     self.allStats['percentageT'] + sequence.count('T')
-        self.seqStats['percentageC'], self.allStats['percentageC'] = sequence.count('C') / self.allStats[
-            'total_seq_length'], \
-                                                                     self.allStats['percentageC'] + sequence.count('C')
-        self.seqStats['percentageG'], self.allStats['percentageG'] = sequence.count('G') / self.allStats[
-            'total_seq_length'], \
-                                                                     self.allStats['percentageG'] + sequence.count('G')
-
-        self.seqStats['GC_content'], self.allStats['GC_content'] = (sequence.count('G') + sequence.count('C')) / \
-                                                                   self.allStats['total_seq_length'], self.allStats[
-                                                                       'GC_content'] + sequence.count(
-            'G') + sequence.count('C')
-
-        ambiguityCount = (sequence.count('R') + sequence.count('Y') + sequence.count('S') + sequence.count(
-            'W') + sequence.count('K') + sequence.count('M'))
-        self.seqStats['percentageAmbiguity'], self.allStats['percentageAmbiguity'] = ambiguityCount / self.allStats[
-            'total_seq_length'], self.allStats['percentageAmbiguity'] + ambiguityCount
-
-        missingDataCount = (sequence.count('N') + sequence.count('?'))
-        self.seqStats['percentageMissingData'], self.allStats['percentageMissingData'] = missingDataCount / \
-                                                                                         self.allStats[
-                                                                                             'total_seq_length'], \
-                                                                                         self.allStats[
-                                                                                             'percentageMissingData'] + missingDataCount
-
-        missingDataWithGapsCount = (sequence.count('N') + sequence.count('?') + sequence.count('-'))
-        self.seqStats['percentageMissingDataWithGap'], self.allStats[
-            'percentageMissingDataWithGap'] = missingDataWithGapsCount / self.allStats['total_seq_length'], \
-                                              self.allStats[
-                                                  'percentageMissingDataWithGap'] + missingDataWithGapsCount
-
-        if seqLength <= 100:
-            self.seqStats['lessThan100BP'], self.allStats['lessThan100BP'] = 1, self.allStats['lessThan100BP'] + 1
-        elif seqLength <= 300:
-            self.seqStats['between100_300BP'], self.allStats['between100_300BP'] = 1, self.allStats[
-                'between100_300BP'] + 1
-        elif seqLength <= 1000:
-            self.seqStats['between301_1000BP'], self.allStats['between301_1000BP'] = 1, self.allStats[
-                'between301_1000BP'] + 1
-        else:
-            self.seqStats['greaterThan1000BP'], self.allStats['greaterThan1000BP'] = 1, self.allStats[
-                'greaterThan1000BP'] + 1
-
-        return self.seqStats
-
-    def addSequence(self, sequence):
-        seqStats = self.prepareStats(sequence)
-        self.bufferLengths.append(seqStats['seqLength'])
-
-        seqStats['meanLength'] = 0
-        seqStats['medianLength'] = 0
-        seqStats['stdLength'] = 0
-        seqStats['N50'] = 0
-        seqStats['L50'] = 0
-        seqStats['N90'] = 0
-        seqStats['L90'] = 0
-
-        self.bufferLengths.append(seqStats['total_seq_length'])
-        for key, val in seqStats.items():
-
-            if key == 'totalSeq':
-                self.bufferStats['totalSeq'] += 1
-            elif key == 'total_seq_length':
-                self.bufferStats['total_seq_length'] += seqStats['total_seq_length']
-            elif key == 'minimumLength':
-                self.bufferStats['minimumLength'] = min(self.bufferStats['minimumLength'],
-                                                                  seqStats['minimumLength'])
-            elif key == 'maximumLength':
-                self.bufferStats['maximumLength'] = min(self.bufferStats['maximumLength'],
-                                                                  seqStats['maximumLength'])
-            elif key == 'lessThan100BP':
-                self.bufferStats['lessThan100BP'] += seqStats['lessThan100BP']
-            elif key == 'between100_300BP':
-                self.bufferStats['between100_300BP'] += seqStats['between100_300BP']
-            elif key == 'between301_1000BP':
-                self.bufferStats['between301_1000BP'] += seqStats['between301_1000BP']
-            elif key == 'greaterThan1000BP':
-                self.bufferStats['greaterThan1000BP'] += seqStats['greaterThan1000BP']
-            elif key == 'percentageA':
-                self.bufferStats['percentageA'] += seqStats['percentageA'] * seqStats['total_seq_length']
-            elif key == 'percentageC':
-                self.bufferStats['percentageC'] += seqStats['percentageC'] * seqStats['total_seq_length']
-            elif key == 'percentageG':
-                self.bufferStats['percentageG'] += seqStats['percentageG'] * seqStats['total_seq_length']
-            elif key == 'percentageT':
-                self.bufferStats['percentageT'] += seqStats['percentageT'] * seqStats['total_seq_length']
-            elif key == 'GC_content':
-                self.bufferStats['GC_content'] += seqStats['GC_content'] * seqStats['total_seq_length']
-            elif key == 'percentageAmbiguity':
-                self.bufferStats['percentageAmbiguity'] += seqStats['percentageAmbiguity'] * seqStats[
-                    'total_seq_length']
-            elif key == 'percentageMissingData':
-                self.bufferStats['percentageMissingData'] += seqStats['percentageMissingData'] * seqStats[
-                    'total_seq_length']
-            elif key == 'percentageMissingDataWithGap':
-                self.bufferStats['percentageMissingDataWithGap'] += seqStats[
-                                                                                  'percentageMissingDataWithGap'] * \
-                                                                              seqStats['total_seq_length']
-            # else:
-            #     self.bufferStats[key] += val
-
-
-    def calculate(self):
-
-        self.bufferStats['meanLength'] = self.bufferStats['total_seq_length'] / self.bufferStats[
-            'totalSeq']
-        self.bufferStats['medianLength'] = median(self.genusLengths[key])
-        self.bufferStats['stdLength'] = stdev(self.genusLengths[key])
-
-        self.bufferStats['N50'] = self.calculate_NL(self.genusLengths[key], 'N', 50)
-        self.bufferStats['L50'] = self.calculate_NL(self.genusLengths[key], 'L', 50)
-        self.bufferStats['N90'] = self.calculate_NL(self.genusLengths[key], 'N', 90)
-        self.bufferStats['L90'] = self.calculate_NL(self.genusLengths[key], 'L', 90)
-
-        self.bufferStats['percentageA'] = self.bufferStats['percentageA'] / self.bufferStats[
-            'total_seq_length']
-        self.bufferStats['percentageC'] = self.bufferStats['percentageC'] / self.bufferStats[
-            'total_seq_length']
-        self.bufferStats['percentageG'] = self.bufferStats['percentageG'] / self.bufferStats[
-            'total_seq_length']
-        self.bufferStats['percentageT'] = self.bufferStats['percentageT'] / self.bufferStats[
-            'total_seq_length']
-
-        self.bufferStats['GC_content'] = self.bufferStats['GC_content'] / self.bufferStats[
-            'total_seq_length']
-        self.bufferStats['percentageAmbiguity'] = self.bufferStats['percentageAmbiguity'] / \
-                                                      self.bufferStats['total_seq_length']
-        self.bufferStats['percentageMissingData'] = self.bufferStats['percentageMissingData'] / \
-                                                        self.bufferStats['total_seq_length']
-        self.bufferStats['percentageMissingDataWithGap'] = self.bufferStats[
-                                                                   'percentageMissingDataWithGap'] / \
-                                                               self.bufferStats[
-                                                                   'total_seq_length']
-        return self.bufferStats
-
+    @staticmethod
     def calculate_NL(self, list_of_lengths, nOrL, arg):
+        # needs adjusting
 
         stats = {}
         seq_array = np.array(list_of_lengths)
