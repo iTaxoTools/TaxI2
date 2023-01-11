@@ -3,6 +3,7 @@ from __future__ import annotations
 import statistics
 import numpy as np
 from collections import Counter
+from itertools import accumulate
 from typing import NamedTuple
 import itertools
 from math import inf
@@ -33,6 +34,11 @@ class Counts(NamedTuple):
             c = counter['C'],
             g = counter['G'],
         )
+
+
+class NL(NamedTuple):
+    n: int
+    l: int
 
 
 class Statistic(Enum):
@@ -77,7 +83,7 @@ class Statistic(Enum):
 class Statistics(dict[Statistic, ...]):
     @classmethod
     def from_sequences(cls, sequences: iter[str]) -> Statistics:
-        all_nucleotides = []
+        nucleotide_counts = []
         length = 0
 
         bp_0 = 0
@@ -100,7 +106,7 @@ class Statistics(dict[Statistic, ...]):
         counts = (Counts.from_sequence(seq) for seq in sequences)
         for count in counts:
             length += 1
-            all_nucleotides.append(count.nucleotides)
+            nucleotide_counts.append(count.nucleotides)
 
             if count.nucleotides == 0:
                 bp_0 += 1
@@ -125,12 +131,15 @@ class Statistics(dict[Statistic, ...]):
             sum_g += count.g
 
         mean = sum_nucleotides / length if length else 0
-        median = statistics.median(all_nucleotides) if length else 0
-        stdev = statistics.stdev(all_nucleotides) if len(all_nucleotides) > 1 else 0
+        median = statistics.median(nucleotide_counts) if length else 0
+        stdev = statistics.stdev(nucleotide_counts) if len(nucleotide_counts) > 1 else 0
 
         sum_cg = sum_c + sum_g
         sum_ambiguous = sum_nucleotides - sum_missing - sum_a - sum_t - sum_c - sum_g
         sum_missing_and_gaps = sum_missing + sum_gaps
+
+        n_50, l_50 = cls._calculate_NL(nucleotide_counts, 50)
+        n_90, l_90 = cls._calculate_NL(nucleotide_counts, 90)
 
         return cls({
             Statistic.SequenceCount: length,
@@ -144,10 +153,10 @@ class Statistics(dict[Statistic, ...]):
             Statistic.Mean: mean,
             Statistic.Median: median,
             Statistic.Stdev: stdev,
-            # Statistic.N50
-            # Statistic.L50
-            # Statistic.N90
-            # Statistic.L90
+            Statistic.N50: n_50,
+            Statistic.L50: l_50,
+            Statistic.N90: n_90,
+            Statistic.L90: l_90,
             Statistic.Total: sum_nucleotides,
             Statistic.PercentA: 100 * sum_a / sum_nucleotides if sum_nucleotides else 0,
             Statistic.PercentT: 100 * sum_t / sum_nucleotides if sum_nucleotides else 0,
@@ -161,23 +170,12 @@ class Statistics(dict[Statistic, ...]):
         })
 
     @staticmethod
-    def calculate_NL(self, list_of_lengths, nOrL, arg):
-        # needs adjusting
-
-        stats = {}
-        seq_array = np.array(list_of_lengths)
-        sorted_lens = seq_array[np.argsort(-seq_array)]
-        stats['total_bps'] = int(np.sum(sorted_lens))
-        csum = np.cumsum(sorted_lens)
-
-        nx = int(stats['total_bps'] * (arg / 100))
-        csumn = min(csum[csum >= nx])
-        l_level = int(np.where(csum == csumn)[0])
-        n_level = int(sorted_lens[l_level])
-
-        stats['L' + str(arg)] = l_level
-        stats['N' + str(arg)] = n_level
-
-        if nOrL.upper() == 'L':
-            stats[nOrL.upper() + str(arg)] += 1
-        return stats[nOrL.upper() + str(arg)]
+    def _calculate_NL(counts: list[int], arg: int = 50) -> tuple[int, int]:
+        if not any(counts):
+            return NL(0, 0)
+        counts = sorted(counts, reverse=True)
+        target = sum(counts) * arg / 100
+        sumsum = accumulate(counts)
+        n = next((i for i, v in enumerate(sumsum) if v >= target), None)
+        assert n is not None
+        return NL(n + 1, counts[n])

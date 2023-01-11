@@ -170,6 +170,35 @@ statistic_tests = [
     StatisticTest(Statistic.PercentGaps, 50.0, ['N-']),
     StatisticTest(Statistic.PercentGaps, 50.0, ['Y-']),
     StatisticTest(Statistic.PercentGaps, 50.0, ['ATCG----']),
+
+    StatisticTest(Statistic.N50, 0, ['']),
+    StatisticTest(Statistic.L50, 0, ['']),
+    StatisticTest(Statistic.N90, 0, ['']),
+    StatisticTest(Statistic.L90, 0, ['']),
+
+    StatisticTest(Statistic.N50, 1, ['AT', 'ATCG']),
+    StatisticTest(Statistic.L50, 4, ['AT', 'ATCG']),
+
+    StatisticTest(Statistic.N50, 1, ['ATCG', 'AT']),
+    StatisticTest(Statistic.L50, 4, ['ATCG', 'AT']),
+
+    StatisticTest(Statistic.N50, 1, ['ATCG', 'ATCG']),
+    StatisticTest(Statistic.L50, 4, ['ATCG', 'ATCG']),
+
+    StatisticTest(Statistic.N90, 2, ['ATCG', 'ATCG']),
+    StatisticTest(Statistic.L90, 4, ['ATCG', 'ATCG']),
+
+    StatisticTest(Statistic.N90, 2, ['ATCG', 'ATCG----']),
+    StatisticTest(Statistic.L90, 4, ['ATCG', 'ATCG----']),
+
+    # 9 contigs with lengths from 2 to 10
+    StatisticTest(Statistic.N50, 3, list(map(lambda l: 'A' * l, range(2, 11)))),
+    StatisticTest(Statistic.L50, 8, list(map(lambda l: 'A' * l, range(2, 11)))),
+    StatisticTest(Statistic.N50, 3, list(map(lambda l: 'A' * l, range(2, 11))) + ['-']),
+    StatisticTest(Statistic.L50, 8, list(map(lambda l: 'A' * l, range(2, 11))) + ['-']),
+    StatisticTest(Statistic.N90, 7, list(map(lambda l: 'A' * l, range(2, 11)))),
+    StatisticTest(Statistic.L90, 4, list(map(lambda l: 'A' * l, range(2, 11)))),
+
 ]
 
 
