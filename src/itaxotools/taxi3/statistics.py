@@ -38,7 +38,8 @@ class Counts(NamedTuple):
 class Statistic(Enum):
 
     SequenceCount = 'totalSeq', int
-    BP_0_100 = 'lessThan100BP', int
+    BP_0 = 'zeroBP', int
+    BP_1_100 = 'lessThan100BP', int
     BP_101_300 = 'between100_300BP', int
     BP_301_1000 = 'between301_1000BP', int
     BP_1001_plus = 'greaterThan1000BP', int
@@ -59,7 +60,8 @@ class Statistic(Enum):
     PercentGC = 'GC_content', float
     PercentAmbiguous = 'percentageAmbiguity', float
     PercentMissing = 'percentageMissingData', float
-    PercentMissingGaps = 'percentageMissingDataWithGap', float
+    PercentMissingGaps = 'percentageMissingDataWithGaps', float
+    PercentGaps = 'percentageGaps', float
 
     def __init__(self, label, type):
         self.label = label
@@ -78,7 +80,8 @@ class Statistics(dict[Statistic, ...]):
         all_nucleotides = []
         length = 0
 
-        bp_0_100 = 0
+        bp_0 = 0
+        bp_1_100 = 0
         bp_101_300 = 0
         bp_101_300 = 0
         bp_301_1000 = 0
@@ -94,30 +97,32 @@ class Statistics(dict[Statistic, ...]):
         sum_c = 0
         sum_g = 0
 
-        counters = (Counts.from_sequence(seq) for seq in sequences)
-        for counter in counters:
+        counts = (Counts.from_sequence(seq) for seq in sequences)
+        for count in counts:
             length += 1
-            all_nucleotides.append(counter.nucleotides)
+            all_nucleotides.append(count.nucleotides)
 
-            if counter.nucleotides <= 100:
-                bp_0_100 += 1
-            elif counter.nucleotides <= 300:
+            if count.nucleotides == 0:
+                bp_0 += 1
+            elif count.nucleotides <= 100:
+                bp_1_100 += 1
+            elif count.nucleotides <= 300:
                 bp_101_300 += 1
-            elif counter.nucleotides <= 1000:
+            elif count.nucleotides <= 1000:
                 bp_301_1000 += 1
             else:
                 bp_1001_plus += 1
 
-            minimum = min(minimum, counter.nucleotides)
-            maximum = max(maximum, counter.nucleotides)
-            sum_total += counter.total
-            sum_nucleotides += counter.nucleotides
-            sum_missing += counter.missing
-            sum_gaps += counter.gaps
-            sum_a += counter.a
-            sum_t += counter.t
-            sum_c += counter.c
-            sum_g += counter.g
+            minimum = min(minimum, count.nucleotides)
+            maximum = max(maximum, count.nucleotides)
+            sum_total += count.total
+            sum_nucleotides += count.nucleotides
+            sum_missing += count.missing
+            sum_gaps += count.gaps
+            sum_a += count.a
+            sum_t += count.t
+            sum_c += count.c
+            sum_g += count.g
 
         mean = sum_nucleotides / length if length else 0
         median = statistics.median(all_nucleotides) if length else 0
@@ -129,7 +134,8 @@ class Statistics(dict[Statistic, ...]):
 
         return cls({
             Statistic.SequenceCount: length,
-            Statistic.BP_0_100: bp_0_100,
+            Statistic.BP_0: bp_0,
+            Statistic.BP_1_100: bp_1_100,
             Statistic.BP_101_300: bp_101_300,
             Statistic.BP_301_1000: bp_301_1000,
             Statistic.BP_1001_plus: bp_1001_plus,
@@ -142,15 +148,16 @@ class Statistics(dict[Statistic, ...]):
             # Statistic.L50
             # Statistic.N90
             # Statistic.L90
-            Statistic.Total: sum_total,
-            Statistic.PercentA: 100 * sum_a / sum_total if sum_total else 0,
-            Statistic.PercentT: 100 * sum_t / sum_total if sum_total else 0,
-            Statistic.PercentC: 100 * sum_c / sum_total if sum_total else 0,
-            Statistic.PercentG: 100 * sum_g / sum_total if sum_total else 0,
-            Statistic.PercentGC: 100 * sum_cg / sum_total if sum_total else 0,
-            Statistic.PercentAmbiguous: 100 * sum_ambiguous / sum_total if sum_total else 0,
-            Statistic.PercentMissing: 100 * sum_missing / sum_total if sum_total else 0,
+            Statistic.Total: sum_nucleotides,
+            Statistic.PercentA: 100 * sum_a / sum_nucleotides if sum_nucleotides else 0,
+            Statistic.PercentT: 100 * sum_t / sum_nucleotides if sum_nucleotides else 0,
+            Statistic.PercentC: 100 * sum_c / sum_nucleotides if sum_nucleotides else 0,
+            Statistic.PercentG: 100 * sum_g / sum_nucleotides if sum_nucleotides else 0,
+            Statistic.PercentGC: 100 * sum_cg / sum_nucleotides if sum_nucleotides else 0,
+            Statistic.PercentAmbiguous: 100 * sum_ambiguous / sum_nucleotides if sum_nucleotides else 0,
+            Statistic.PercentMissing: 100 * sum_missing / sum_nucleotides if sum_nucleotides else 0,
             Statistic.PercentMissingGaps: 100 * sum_missing_and_gaps / sum_total if sum_total else 0,
+            Statistic.PercentGaps: 100 * sum_gaps / sum_total if sum_total else 0,
         })
 
     @staticmethod
