@@ -143,7 +143,7 @@ class Statistics(dict[Statistic, ...]):
 
         mean = sum_nucleotides / length if length else 0
         median = statistics.median(nucleotide_counts) if length else 0
-        stdev = statistics.stdev(nucleotide_counts) if len(nucleotide_counts) > 1 else 0
+        stdev = statistics.pstdev(nucleotide_counts) if len(nucleotide_counts) > 1 else 0
 
         sum_cg = sum_c + sum_g
         sum_ambiguous = sum_nucleotides - sum_missing - sum_a - sum_t - sum_c - sum_g

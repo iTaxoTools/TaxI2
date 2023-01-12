@@ -107,7 +107,9 @@ statistic_tests = [
 
     StatisticTest(Statistic.Stdev, 0.0, ['ATCG', 'ATGC']),
     StatisticTest(Statistic.Stdev, 0.0, ['ATCG', 'ATGC--']),
-    StatisticTest(Statistic.Stdev, sqrt(2), ['ATCG', 'ATATAT']),
+    StatisticTest(Statistic.Stdev, 1.0, ['A' * 2, 'A' * 4]),
+    StatisticTest(Statistic.Stdev, 2.0, ['A' * 2, 'A' * 6]),
+    StatisticTest(Statistic.Stdev, sqrt(8 / 3), ['A' * 2, 'A' * 4, 'A' * 6]),
 
     StatisticTest(Statistic.PercentA, 0.0, ['']),
     StatisticTest(Statistic.PercentA, 1.0, ['A']),
