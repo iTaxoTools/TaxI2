@@ -75,3 +75,8 @@ class Container(Generic[Item]):
 
     def __len__(self):
         return sum(1 for _ in self)
+
+
+class Percentage(float):
+    def __str__(self):
+        return f'{100*self:.2f}%'

@@ -6,8 +6,10 @@ from collections import Counter
 from itertools import accumulate
 from typing import NamedTuple
 import itertools
-from math import inf
+from math import inf, isinf
 from enum import Enum
+
+from .types import Percentage
 
 
 class Counts(NamedTuple):
@@ -17,9 +19,9 @@ class Counts(NamedTuple):
     missing: int
     gaps: int
     a: int
-    t: int
     c: int
     g: int
+    t: int
 
     @classmethod
     def from_sequence(cls, seq: str) -> Counts:
@@ -30,9 +32,9 @@ class Counts(NamedTuple):
             missing = counter['N'],
             gaps = counter['-'],
             a = counter['A'],
-            t = counter['T'],
             c = counter['C'],
             g = counter['G'],
+            t = counter['T'],
         )
 
 
@@ -42,8 +44,10 @@ class NL(NamedTuple):
 
 
 class Statistic(Enum):
+    """Defines statistic labels & types. Order matters."""
 
-    SequenceCount = 'totalSeq', int
+    SequenceCount = 'sequenceCount', int
+    NucleotideCount = 'nucleotideCount', int
     BP_0 = 'zeroBP', int
     BP_1_100 = 'lessThan100BP', int
     BP_101_300 = 'between100_300BP', int
@@ -54,20 +58,19 @@ class Statistic(Enum):
     Mean = 'meanLength', float
     Median = 'medianLength', float
     Stdev = 'stdLength', float
-    N50 = 'N50', float
-    L50 = 'L50', float
-    N90 = 'N90', float
-    L90 = 'L90', float
-    Total = 'total_seq_length', float
-    PercentA = 'percentageA', float
-    PercentT = 'percentageT', float
-    PercentC = 'percentageC', float
-    PercentG = 'percentageG', float
-    PercentGC = 'GC_content', float
-    PercentAmbiguous = 'percentageAmbiguity', float
-    PercentMissing = 'percentageMissingData', float
-    PercentMissingGaps = 'percentageMissingDataWithGaps', float
-    PercentGaps = 'percentageGaps', float
+    PercentA = 'percentageA', Percentage
+    PercentC = 'percentageC', Percentage
+    PercentG = 'percentageG', Percentage
+    PercentT = 'percentageT', Percentage
+    PercentGC = 'GC_content', Percentage
+    PercentAmbiguous = 'percentageAmbiguity', Percentage
+    PercentMissing = 'percentageMissingData', Percentage
+    PercentMissingGaps = 'percentageMissingDataWithGaps', Percentage
+    PercentGaps = 'percentageGaps', Percentage
+    N50 = 'N50', int
+    L50 = 'L50', int
+    N90 = 'N90', int
+    L90 = 'L90', int
 
     def __init__(self, label, type):
         self.label = label
@@ -81,6 +84,14 @@ class Statistic(Enum):
 
 
 class Statistics(dict[Statistic, ...]):
+
+    def __init__(self, stats: dict[Statistic, ...]):
+        """Keep Enum order, convert values to the proper type"""
+        super().__init__({
+            s: s.type(stats[s]) for s in Statistic
+            if s in stats
+        })
+
     @classmethod
     def from_sequences(cls, sequences: iter[str]) -> Statistics:
         nucleotide_counts = []
@@ -143,30 +154,30 @@ class Statistics(dict[Statistic, ...]):
 
         return cls({
             Statistic.SequenceCount: length,
+            Statistic.NucleotideCount: sum_nucleotides,
             Statistic.BP_0: bp_0,
             Statistic.BP_1_100: bp_1_100,
             Statistic.BP_101_300: bp_101_300,
             Statistic.BP_301_1000: bp_301_1000,
             Statistic.BP_1001_plus: bp_1001_plus,
-            Statistic.Minimum: minimum,
-            Statistic.Maximum: maximum,
+            Statistic.Minimum: minimum if not isinf(minimum) else 0,
+            Statistic.Maximum: maximum if not isinf(maximum) else 0,
             Statistic.Mean: mean,
             Statistic.Median: median,
             Statistic.Stdev: stdev,
+            Statistic.PercentA: sum_a / sum_nucleotides if sum_nucleotides else 0,
+            Statistic.PercentC: sum_c / sum_nucleotides if sum_nucleotides else 0,
+            Statistic.PercentG: sum_g / sum_nucleotides if sum_nucleotides else 0,
+            Statistic.PercentT: sum_t / sum_nucleotides if sum_nucleotides else 0,
+            Statistic.PercentGC: sum_cg / sum_nucleotides if sum_nucleotides else 0,
+            Statistic.PercentAmbiguous: sum_ambiguous / sum_nucleotides if sum_nucleotides else 0,
+            Statistic.PercentMissing: sum_missing / sum_nucleotides if sum_nucleotides else 0,
+            Statistic.PercentMissingGaps: sum_missing_and_gaps / sum_total if sum_total else 0,
+            Statistic.PercentGaps: sum_gaps / sum_total if sum_total else 0,
             Statistic.N50: n_50,
             Statistic.L50: l_50,
             Statistic.N90: n_90,
             Statistic.L90: l_90,
-            Statistic.Total: sum_nucleotides,
-            Statistic.PercentA: 100 * sum_a / sum_nucleotides if sum_nucleotides else 0,
-            Statistic.PercentT: 100 * sum_t / sum_nucleotides if sum_nucleotides else 0,
-            Statistic.PercentC: 100 * sum_c / sum_nucleotides if sum_nucleotides else 0,
-            Statistic.PercentG: 100 * sum_g / sum_nucleotides if sum_nucleotides else 0,
-            Statistic.PercentGC: 100 * sum_cg / sum_nucleotides if sum_nucleotides else 0,
-            Statistic.PercentAmbiguous: 100 * sum_ambiguous / sum_nucleotides if sum_nucleotides else 0,
-            Statistic.PercentMissing: 100 * sum_missing / sum_nucleotides if sum_nucleotides else 0,
-            Statistic.PercentMissingGaps: 100 * sum_missing_and_gaps / sum_total if sum_total else 0,
-            Statistic.PercentGaps: 100 * sum_gaps / sum_total if sum_total else 0,
         })
 
     @staticmethod
@@ -176,6 +187,6 @@ class Statistics(dict[Statistic, ...]):
         counts = sorted(counts, reverse=True)
         target = sum(counts) * arg / 100
         sumsum = accumulate(counts)
-        n = next((i for i, v in enumerate(sumsum) if v >= target), None)
-        assert n is not None
-        return NL(n + 1, counts[n])
+        pos = next((i for i, v in enumerate(sumsum) if v >= target), None)
+        assert pos is not None
+        return NL(counts[pos], pos + 1)

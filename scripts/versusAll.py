@@ -21,33 +21,6 @@ class SubsetDistance(NamedTuple):
     d: float
 
 
-class SequenceStatistics(NamedTuple):
-    subset: str
-    numberOfSequence: int
-    lessThan100BP: int
-    between100To300BP: int
-    between301To1000BP: int
-    greaterThan1000BP: int
-    minimumLenght: int
-    maximumLenght: int
-    meanLenght: float
-    medianLenght: float
-    standardDeviation: float
-    N50: float
-    L50: float
-    N90: float
-    L90: float
-    totalLength: int
-    percentageOfA: float
-    percentageOfC: float
-    percentageOfG: float
-    percentageOfT: float
-    GCcontent: float
-    percentageOfAmbiguity: float
-    percentageOfMissingData: float
-    percentageOfMissingDataWithGaps: float
-
-
 class SummaryHandler(DistanceHandler.Linear.WithExtras):
     def _open(self, path, mode, spartitionDict, gpartitionDict):
         self.spartitionDict = spartitionDict
@@ -185,119 +158,6 @@ def writeSubsetPairs(pairDict, path, metrics):
                 buffer.extend(str(x) for x in pairDict[str(metrics[metricIndx])][(target, query)])
             f.write((current_target, query, *buffer))
 
-def calculateAllStatistics(data, stats):
-
-    sequenceLengths = []
-    for sequenceData in data:
-        sequence = sequenceData.seq
-        seqLength = len(sequence) - sequence.count('-')
-        stats['totalSeq'] += 1
-        stats['totalLengthOfSeq'] += seqLength
-        sequenceLengths.append(seqLength)
-
-        if seqLength <= 100:
-            stats['lessThan100BP'] += 1
-        elif seqLength <= 300:
-            stats['between100-300BP'] += 1
-        elif seqLength <= 1000:
-            stats['between301-1000BP'] += 1
-        else:
-            stats['greaterThan1000BP'] += 1
-
-        stats['minimumLenght'] = min(seqLength, stats['minimumLenght'])
-        stats['maximumLenght'] = max(seqLength, stats['maximumLenght'])
-
-        stats['percentageofA'] += sequence.count('A')
-        stats['percentageofC'] += sequence.count('C')
-        stats['percentageofG'] += sequence.count('G')
-        stats['percentageofT'] += sequence.count('T')
-        stats['GC content'] += sequence.count('G') + sequence.count('C')
-        stats['percentageofAmbiguity'] += sequence.count('R') + sequence.count('Y')+ sequence.count('S')+ sequence.count('W')+ sequence.count('K')+ sequence.count('M')
-        stats['percentageofMissingData'] += sequence.count('N') + sequence.count('?')
-        stats['percentageofMissingDataWithGap'] += sequence.count('N') + sequence.count('?') + sequence.count('-')
-
-    stats['meanLenght'] = stats['totalLengthOfSeq'] / stats['totalSeq']
-    stats['medianLenght'] = median(sequenceLengths)
-    stats['stdLenght'] = stdev(sequenceLengths)
-    stats['N50'] = calculate_NL(sequenceLengths, 'N', 50)
-    stats['L50'] = calculate_NL(sequenceLengths, 'L', 50)
-    stats['N90'] = calculate_NL(sequenceLengths, 'N', 90)
-    stats['L90'] = calculate_NL(sequenceLengths, 'L', 90)
-    stats['percentageofA'] = stats['percentageofA'] / stats['totalLengthOfSeq']
-    stats['percentageofC'] = stats['percentageofC'] / stats['totalLengthOfSeq']
-    stats['percentageofG'] = stats['percentageofG'] / stats['totalLengthOfSeq']
-    stats['percentageofT'] = stats['percentageofT'] / stats['totalLengthOfSeq']
-    stats['GC content'] = stats['GC content'] / stats['totalLengthOfSeq']
-    stats['percentageofAmbiguity'] = stats['percentageofAmbiguity'] / stats['totalLengthOfSeq']
-    stats['percentageofMissingData'] = stats['percentageofMissingData'] / stats['totalLengthOfSeq']
-    stats['percentageofMissingDataWithGap'] = stats['percentageofMissingDataWithGap'] / stats['totalLengthOfSeq']
-
-
-def calculateStatistics(data, spartition):
-    for sequenceData in data:
-        seqID = spartition[sequenceData.id]
-        sequence = sequenceData.seq
-        seqLength = len(sequence) - sequence.count('-')
-        total_seq = 1
-        total_seq_length = seqLength
-        lessThan100BP = 0
-        between100_300BP = 0
-        between301_1000BP = 0
-        greaterThan1000BP = 0
-        minimumLenght = seqLength
-        meanLenght = total_seq_length / total_seq
-        maximumLenght = seqLength
-        medianLenght = median([seqLength])
-        #stdLenght = stdev([seqLength])
-        N50 = calculate_NL([seqLength], 'N', 50)
-        L50 = calculate_NL([seqLength], 'L', 50)
-        N90 = calculate_NL([seqLength], 'N', 90)
-        L90 = calculate_NL([seqLength], 'L', 90)
-        percentageofA = sequence.count('A') / total_seq_length
-        percentageofT = sequence.count('T') / total_seq_length
-        percentageofC = sequence.count('C') / total_seq_length
-        percentageofG = sequence.count('G') / total_seq_length
-        GC_content = (sequence.count('G') + sequence.count('C')) / total_seq_length
-        percentageofAmbiguity = (sequence.count('R') + sequence.count('Y')+ sequence.count('S')+ sequence.count('W')+ sequence.count('K')+ sequence.count('M')) / total_seq_length
-        percentageofMissingData = (sequence.count('N') + sequence.count('?')) / total_seq_length
-        percentageofMissingDataWithGap = (sequence.count('N') + sequence.count('?') + sequence.count('-')) / total_seq_length
-
-        if seqLength <= 100:
-            lessThan100BP = 1
-        elif seqLength <= 300:
-            between100_300BP = 1
-        elif seqLength <= 1000:
-            between301_1000BP = 1
-        else:
-            greaterThan1000BP = 1
-
-        yield SequenceStatistics(
-            seqID,
-            total_seq,
-            lessThan100BP,
-            between100_300BP,
-            between301_1000BP,
-            greaterThan1000BP,
-            minimumLenght,
-            maximumLenght,
-            meanLenght,
-            medianLenght,
-            float('nan'),
-            N50,
-            L50,
-            N90,
-            L90,
-            total_seq_length,
-            percentageofA,
-            percentageofC,
-            percentageofG,
-            percentageofT,
-            GC_content,
-            percentageofAmbiguity,
-            percentageofMissingData,
-            percentageofMissingDataWithGap
-        )
-
 
 def addDistanceScore(distances, pairDict, genusPairDict, spartition, gpartition):
 
@@ -308,49 +168,6 @@ def addDistanceScore(distances, pairDict, genusPairDict, spartition, gpartition)
 
         yield distance
 
-
-def calculate_NL(list_of_lengths, nOrL,arg):
-
-    # tmp = []
-    # for tmp_number in set(list_of_lengths):
-    #     tmp += [tmp_number] * list_of_lengths.count(tmp_number) * tmp_number
-    # tmp.sort()
-    #
-    # if (len(tmp) % 2) == 0:
-    #     median = (tmp[int(len(tmp) / 2) - 1] + tmp[int(len(tmp) / 2)]) / 2
-    # else:
-    #     median = tmp[int(len(tmp) / 2)]
-    #
-    # return median
-    stats = {}
-    seq_array = np.array(list_of_lengths)
-    sorted_lens = seq_array[np.argsort(-seq_array)]
-    stats['total_bps'] = int(np.sum(sorted_lens))
-    csum = np.cumsum(sorted_lens)
-
-    nx = int(stats['total_bps'] * (arg / 100))
-    csumn = min(csum[csum >= nx])
-    l_level = int(np.where(csum == csumn)[0])
-    n_level = int(sorted_lens[l_level])
-
-    stats['L' + str(arg)] = l_level
-    stats['N' + str(arg)] = n_level
-
-    if nOrL.upper() == 'L':
-        stats[nOrL.upper() + str(arg)] +=1
-    return stats[nOrL.upper() + str(arg)]
-
-
-def writeStatistics(stats):
-
-    if type(stats) is dict:
-        with open('AllStats.txt', 'w') as f:
-            for k, v in stats.items():
-                f.write(f"{k} : {v}\n")
-    else:
-        with open('individualStats.txt', 'w') as f:
-            for stat in stats:
-                f.write(''.join(str(stat)) + '\n')
 
 def writeSubsetAginstItself(pairDict, path, metrics):
     headerList = []
@@ -399,30 +216,6 @@ def main():
         DistanceMetric.JukesCantor(),
         DistanceMetric.Kimura2P(),
     ]
-    stats = {
-        'totalSeq' : 0,
-        'lessThan100BP' : 0,
-        'between100-300BP' : 0,
-        'between301-1000BP' : 0,
-        'greaterThan1000BP' : 0,
-        'minimumLenght' : float('inf'),
-        'maximumLenght' : 0,
-        'meanLenght' : 0,
-        'medianLenght' : 0,
-        'stdLenght' : 0,
-        'N50': 0,
-        'L50': 0,
-        'N90': 0,
-        'L90': 0,
-        'totalLengthOfSeq': 0,
-        'percentageofA' : 0,
-        'percentageofC' : 0,
-        'percentageofG' : 0,
-        'percentageofT' : 0,
-        'GC content' : 0,
-        'percentageofAmbiguity': 0,
-        'percentageofMissingData': 0,
-        'percentageofMissingDataWithGap': 0}
 
     ts = perf_counter()
 
@@ -440,13 +233,14 @@ def main():
 
     data = data.normalize()
 
-    stats = MyCalculator.from_sequences(seq.seq for seq in data)
+    stats = Statistics.from_sequences(seq.seq for seq in data)
     print('AllStats:')
     print('---')
     for k, v in stats.items():
-        print(f'{str(k)} = {v}')
+        print(f'{str(k)} = {str(v)}')
     print('---')
     return
+
     allStats = StatisticsCalculator()
     # speciesStats = dict()
     # for species in gpartitionDict.values():
@@ -457,9 +251,6 @@ def main():
         allStats.addSequence(seq)
         # species = gpartitionDict[seq.id]
         # speciesStats[species].addSequence(seq)
-
-    print('allStats', allStats.calculate())
-    print('speciesStats', speciesStats)
 
     return
     # print(statsCalculator.calculateGenusStats())
