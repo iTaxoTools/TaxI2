@@ -7,7 +7,7 @@ from math import sqrt
 
 import pytest
 
-from itaxotools.taxi3.statistics import Counts, Statistic, Statistics
+from itaxotools.taxi3.statistics import Counts, Statistic, Statistics, Calculator
 
 
 class CountTest(NamedTuple):
@@ -212,3 +212,15 @@ def test_counts(test: CountTest) -> None:
 @pytest.mark.parametrize("test", statistic_tests)
 def test_statistics(test: StatisticTest) -> None:
     test.validate()
+
+def test_calculator_bad_add():
+    calc = Calculator()
+    stats = calc.calculate()
+    with pytest.raises(StopIteration):
+        calc.add('ACTG')
+
+def test_calculator_bad_calc():
+    calc = Calculator()
+    stats = calc.calculate()
+    with pytest.raises(StopIteration):
+        calc.calculate()

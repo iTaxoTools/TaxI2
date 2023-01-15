@@ -4,7 +4,7 @@ import statistics
 import numpy as np
 from collections import Counter
 from itertools import accumulate
-from typing import NamedTuple
+from typing import NamedTuple, Generator
 import itertools
 from math import inf, isinf
 from enum import Enum
@@ -84,18 +84,43 @@ class Statistic(Enum):
 
 
 class Statistics(dict[Statistic, ...]):
+    """Keep Enum order, convert values to the proper type"""
 
     def __init__(self, stats: dict[Statistic, ...]):
-        """Keep Enum order, convert values to the proper type"""
         super().__init__({
             s: s.type(stats[s]) for s in Statistic
             if s in stats
         })
 
     @classmethod
-    def from_sequences(cls, sequences: iter[str]) -> Statistics:
+    def from_sequences(self, sequences: iter[str]) -> Statistics:
+        calc = Calculator(sequences)
+        return calc.calculate()
+
+
+class Calculator:
+    """Calculate statistics from sequences"""
+
+    def __init__(self, sequences: iter[str] = []):
+        self.it = self.iter()
+        next(self.it)
+
+        for seq in sequences:
+            self.add(seq)
+
+    def add(self, seq: str) -> None:
+        """Add a sequence to calculations"""
+        self.it.send(seq)
+
+    def calculate(self) -> Statistics:
+        """Call only once to get final statistics"""
+        result = self.it.send(None)
+        return Statistics(result)
+
+    def iter(self) -> Generator[None | Statistics, str | None, None]:
+        """Send sequences to update internal state,
+        send None to get statistics"""
         nucleotide_counts = []
-        length = 0
 
         bp_0 = 0
         bp_1_100 = 0
@@ -114,9 +139,9 @@ class Statistics(dict[Statistic, ...]):
         sum_c = 0
         sum_g = 0
 
-        counts = (Counts.from_sequence(seq) for seq in sequences)
-        for count in counts:
-            length += 1
+        sequence = yield
+        while sequence is not None:
+            count = Counts.from_sequence(sequence)
             nucleotide_counts.append(count.nucleotides)
 
             if count.nucleotides == 0:
@@ -141,6 +166,9 @@ class Statistics(dict[Statistic, ...]):
             sum_c += count.c
             sum_g += count.g
 
+            sequence = yield
+
+        length = len(nucleotide_counts)
         mean = sum_nucleotides / length if length else 0
         median = statistics.median(nucleotide_counts) if length else 0
         stdev = statistics.pstdev(nucleotide_counts) if len(nucleotide_counts) > 1 else 0
@@ -149,10 +177,10 @@ class Statistics(dict[Statistic, ...]):
         sum_ambiguous = sum_nucleotides - sum_missing - sum_a - sum_t - sum_c - sum_g
         sum_missing_and_gaps = sum_missing + sum_gaps
 
-        n_50, l_50 = cls._calculate_NL(nucleotide_counts, 50)
-        n_90, l_90 = cls._calculate_NL(nucleotide_counts, 90)
+        n_50, l_50 = self._calculate_NL(nucleotide_counts, 50)
+        n_90, l_90 = self._calculate_NL(nucleotide_counts, 90)
 
-        return cls({
+        yield {
             Statistic.SequenceCount: length,
             Statistic.NucleotideCount: sum_nucleotides,
             Statistic.BP_0: bp_0,
@@ -178,7 +206,7 @@ class Statistics(dict[Statistic, ...]):
             Statistic.L50: l_50,
             Statistic.N90: n_90,
             Statistic.L90: l_90,
-        })
+        }
 
     @staticmethod
     def _calculate_NL(counts: list[int], arg: int = 50) -> tuple[int, int]:
