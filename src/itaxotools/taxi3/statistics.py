@@ -47,32 +47,32 @@ class NL(NamedTuple):
 class Statistic(Enum):
     """Defines statistic labels & types. Order matters."""
 
-    Group = 'group', str
-    SequenceCount = 'sequenceCount', int
-    NucleotideCount = 'nucleotideCount', int
-    BP_0 = 'zeroBP', int
-    BP_1_100 = 'lessThan100BP', int
-    BP_101_300 = 'between100_300BP', int
-    BP_301_1000 = 'between301_1000BP', int
-    BP_1001_plus = 'greaterThan1000BP', int
-    Minimum = 'minimumLength', int
-    Maximum = 'maximumLength', int
-    Mean = 'meanLength', float
-    Median = 'medianLength', float
-    Stdev = 'stdLength', float
-    PercentA = 'percentageA', Percentage
-    PercentC = 'percentageC', Percentage
-    PercentG = 'percentageG', Percentage
-    PercentT = 'percentageT', Percentage
-    PercentGC = 'GC_content', Percentage
-    PercentAmbiguous = 'percentageAmbiguity', Percentage
-    PercentMissing = 'percentageMissingData', Percentage
-    PercentMissingGaps = 'percentageMissingDataWithGaps', Percentage
-    PercentGaps = 'percentageGaps', Percentage
-    N50 = 'N50', int
-    L50 = 'L50', int
-    N90 = 'N90', int
-    L90 = 'L90', int
+    Group = 'Group', str
+    SequenceCount = 'Total number of sequences', int
+    NucleotideCount = 'Total length of all sequences ', int
+    BP_0 = 'Number of sequences with 0 bp', int
+    BP_1_100 = 'Number of sequences with less than 100 bp', int
+    BP_101_300 = 'Number of sequences between 101-300 bp', int
+    BP_301_1000 = 'Number of sequences between 301-1000 bp', int
+    BP_1001_plus = 'Number of sequences with more than 1000 bp', int
+    Minimum = 'Minimum sequence length', int
+    Maximum = 'Maximum sequence length ', int
+    Mean = 'Mean sequence length  ', float
+    Median = 'Median sequence length  ', float
+    Stdev = 'Standard deviation of sequence length', float
+    PercentA = 'Percentage of base A', Percentage
+    PercentC = 'Percentage of base C', Percentage
+    PercentG = 'Percentage of base G', Percentage
+    PercentT = 'Percentage of base T', Percentage
+    PercentGC = 'GC content', Percentage
+    PercentAmbiguous = 'Percentage of ambiguity codes', Percentage
+    PercentMissing = 'Percentage of missing data ', Percentage
+    PercentMissingGaps = 'Percentage of missing data including gaps', Percentage
+    PercentGaps = 'Percentage of gaps', Percentage
+    N50 = 'N50 statistic', int
+    L50 = 'L50 statistic', int
+    N90 = 'N90 statistic', int
+    L90 = 'L90 statistic', int
 
     def __init__(self, label, type):
         self.label = label

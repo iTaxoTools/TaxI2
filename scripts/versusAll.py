@@ -234,6 +234,12 @@ def main():
     data = data.normalize()
 
     allStats = StatisticsCalculator()
+
+    speciesStats = dict()
+    for species in spartitionDict.values():
+        if species not in speciesStats:
+            speciesStats[species] = StatisticsCalculator(group=species)
+
     genusStats = dict()
     for genus in gpartitionDict.values():
         if genus not in genusStats:
@@ -241,6 +247,8 @@ def main():
 
     for seq in data:
         allStats.add(seq.seq)
+        species = spartitionDict[seq.id]
+        speciesStats[species].add(seq.seq)
         genus = gpartitionDict[seq.id]
         genusStats[genus].add(seq.seq)
 
@@ -248,22 +256,18 @@ def main():
         stats = allStats.calculate()
         file.write(stats)
 
-    with StatisticsHandler.Groups('stats.groups', 'w', group_name='genus') as file:
-        for genus, calc in genusStats.items():
+    with StatisticsHandler.Groups('stats.species', 'w', group_name='species') as file:
+        for calc in speciesStats.values():
+            stats = calc.calculate()
+            file.write(stats)
+
+    with StatisticsHandler.Groups('stats.genera', 'w', group_name='genera') as file:
+        for calc in genusStats.values():
             stats = calc.calculate()
             file.write(stats)
 
     return
-    # print(statsCalculator.calculateGenusStats())
-    # print(statsCalculator.calculateAllStats())
 
-    #write stats
-
-    # calculateAllStatistics(data, stats)
-    # writeStatistics(stats)
-
-    # subsetStatistic = calculateStatistics(data, spartitionDict)
-    # writeStatistics(subsetStatistic)
 
     #Create pairs
 
