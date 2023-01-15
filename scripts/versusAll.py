@@ -233,24 +233,25 @@ def main():
 
     data = data.normalize()
 
-    stats = Statistics.from_sequences(seq.seq for seq in data)
-    print('AllStats:')
-    print('---')
-    for k, v in stats.items():
-        print(f'{str(k)} = {str(v)}')
-    print('---')
-    return
-
     allStats = StatisticsCalculator()
-    # speciesStats = dict()
-    # for species in gpartitionDict.values():
-    #     if species not in speciesStats:
-    #         speciesStats[species] = StatisticsCalculator()
+    genusStats = dict()
+    for genus in gpartitionDict.values():
+        if genus not in genusStats:
+            genusStats[genus] = StatisticsCalculator(group=genus)
 
     for seq in data:
-        allStats.addSequence(seq)
-        # species = gpartitionDict[seq.id]
-        # speciesStats[species].addSequence(seq)
+        allStats.add(seq.seq)
+        genus = gpartitionDict[seq.id]
+        genusStats[genus].add(seq.seq)
+
+    with StatisticsHandler.Single('stats.all', 'w') as file:
+        stats = allStats.calculate()
+        file.write(stats)
+
+    with StatisticsHandler.Groups('stats.groups', 'w', group_name='genus') as file:
+        for genus, calc in genusStats.items():
+            stats = calc.calculate()
+            file.write(stats)
 
     return
     # print(statsCalculator.calculateGenusStats())

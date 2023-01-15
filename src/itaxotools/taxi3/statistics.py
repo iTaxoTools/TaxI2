@@ -10,6 +10,7 @@ from math import inf, isinf
 from enum import Enum
 
 from .types import Percentage
+from .handlers import FileHandler, ReadHandle, WriteHandle
 
 
 class Counts(NamedTuple):
@@ -46,6 +47,7 @@ class NL(NamedTuple):
 class Statistic(Enum):
     """Defines statistic labels & types. Order matters."""
 
+    Group = 'group', str
     SequenceCount = 'sequenceCount', int
     NucleotideCount = 'nucleotideCount', int
     BP_0 = 'zeroBP', int
@@ -93,15 +95,16 @@ class Statistics(dict[Statistic, ...]):
         })
 
     @classmethod
-    def from_sequences(self, sequences: iter[str]) -> Statistics:
-        calc = Calculator(sequences)
+    def from_sequences(self, sequences: iter[str], group: str = None) -> Statistics:
+        calc = StatisticsCalculator(sequences, group)
         return calc.calculate()
 
 
-class Calculator:
+class StatisticsCalculator:
     """Calculate statistics from sequences"""
 
-    def __init__(self, sequences: iter[str] = []):
+    def __init__(self, sequences: iter[str] = [], group: str = None):
+        self.group = group
         self.it = self.iter()
         next(self.it)
 
@@ -115,6 +118,8 @@ class Calculator:
     def calculate(self) -> Statistics:
         """Call only once to get final statistics"""
         result = self.it.send(None)
+        if self.group:
+            result[Statistic.Group] = self.group
         return Statistics(result)
 
     def iter(self) -> Generator[None | Statistics, str | None, None]:
@@ -218,3 +223,82 @@ class Calculator:
         pos = next((i for i, v in enumerate(sumsum) if v >= target), None)
         assert pos is not None
         return NL(counts[pos], pos + 1)
+
+
+class StatisticsHandler(FileHandler[Statistics]):
+    def _open(
+        self,
+        path: Path,
+        mode: 'w' | 'w' = 'w',
+        float_formatter: str = '{:f}',
+        percentage_formatter: str = '{:f}',
+        *args, **kwargs
+    ):
+        self.formatters = {}
+        self.formatters[float] = float_formatter
+        self.formatters[Percentage] = percentage_formatter
+        super()._open(path, mode, *args, **kwargs)
+
+    def _iter_read(self) -> ReadHandle[Statistics]:
+        raise NotImplementedError()
+
+    def statisticToText(self, value):
+        formatter = self.formatters.get(type(value), '{}')
+        return formatter.format(value)
+
+
+class Single(StatisticsHandler):
+    def _iter_write(self) -> WriteHandle[Statistics]:
+        with FileHandler.Tabfile(self.path, 'w') as file:
+            try:
+                stats = yield
+                for stat, value in stats.items():
+                    file.write((str(stat), self.statisticToText(value)))
+                yield
+                raise Exception('Can only write a single statistics instance')
+            except GeneratorExit:
+                return
+
+
+class Groups(StatisticsHandler):
+    def _open(
+        self,
+        path: Path,
+        mode: 'w' | 'w' = 'w',
+        group_name: str = 'group',
+        *args, **kwargs
+    ):
+        self.group_name = group_name
+        super()._open(path, mode, *args, **kwargs)
+
+    def _iter_write(self) -> WriteHandle[Statistics]:
+        self.wrote_headers = False
+
+        with FileHandler.Tabfile(self.path, 'w') as file:
+            try:
+                stats = yield
+                self._check_stats(stats)
+                self._write_headers(file, stats)
+                self._write_stats(file, stats)
+                while True:
+                    stats = yield
+                    self._check_stats(stats)
+                    self._write_stats(file, stats)
+            except GeneratorExit:
+                return
+
+    def _check_stats(self, stats: Statistics):
+        if Statistic.Group not in stats:
+            raise Exception('Statistics must contain a group name')
+
+    def _write_headers(self, file: FileHandler, stats: Statistics):
+        if self.wrote_headers:
+            return
+        stats = [str(stat) for stat in stats]
+        out = (self.group_name, *stats[1:])
+        file.write(out)
+        self.wrote_headers = True
+
+    def _write_stats(self, file: FileHandler, stats: Statistics):
+        stats = [self.statisticToText(value) for value in stats.values()]
+        file.write((*stats,))
