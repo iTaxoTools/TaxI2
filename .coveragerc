@@ -1,0 +1,12 @@
+[run]
+omit =
+    conftest.py
+    src/itaxotools/taxi3/library/*
+    src/itaxotools/taxi3/taxi3.py
+    tests/*
+
+[report]
+exclude_lines =
+    def __repr__
+    raise NotImplementedError
+    @abstractmethod

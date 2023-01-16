@@ -75,6 +75,7 @@ setup(
             "setuptools_rust",
             "pyinstaller",
             "pytest",
+            "coverage"
             "flake8",
             "isort",
         ],
