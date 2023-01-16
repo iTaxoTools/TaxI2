@@ -70,12 +70,6 @@ def calc(aligned_pairs, metric=DistanceMetric.Uncorrected()):
         yield metric.calculate(x, y)
 
 
-def calAll(aligned_pairs, metrics):
-    for x, y in aligned_pairs:
-        for metric in metrics:
-            yield metric.calculate(x, y)
-
-
 def get_minimum(distances):
     for k, g in groupby(distances, lambda d: d.x.id):
         g = (d for d in g if d.d is not None)
@@ -96,15 +90,15 @@ def getSubset(pairs, spartition):
         yield SubsetDistance(spartition[pair.x.id], spartition[pair.y.id], 0)
 
 
-def getDictFromPartition(spartition, metrics):
-    pairDict = {}
-    allSubsets = set(spartition.values())
+def create_metric_and_partition_combinations_lists(spartition, metrics):
+    combinations = {}
+    subsets = set(spartition.values())
     for metric in metrics:
-        pairDict[str(metric)] = {}
-        for x in allSubsets:
-            for y in allSubsets:
-                pairDict[str(metric)][(x, y)] = []
-    return pairDict
+        combinations[str(metric)] = {}
+        for x in subsets:
+            for y in subsets:
+                combinations[str(metric)][(x, y)] = []
+    return combinations
 
 
 def calculate3Ms(pairDict):
@@ -185,18 +179,6 @@ def writeSubsetAginstItself(pairDict, path, metrics):
                     buffer.extend(str(x) for x in pairDict[str(metrics[metricIndx])][(sub1, sub2)])
                 f.write((sub1, *buffer))
 
-def iter_write_distances_linear(distances, path):
-    with DistanceHandler.Linear.WithExtras(path, 'w') as file:
-        for d in distances:
-            file.write(d)
-            yield d
-
-def iter_write_distances_matrix(distances, path):
-    with DistanceHandler.Matrix(path, 'w') as file:
-        for d in distances:
-            file.write(d)
-            yield d
-
 
 def calculateAll3Ms(pairDict):
     for metric in pairDict.keys():
@@ -210,12 +192,12 @@ def calculate_statistics_all(data: Sequences, path_stats: Path):
         allStats.add(seq.seq)
         yield seq
 
-    with StatisticsHandler.Single(path_stats / 'all.tsv', 'w') as file:
+    with StatisticsHandler.Single(path_stats, 'w') as file:
         stats = allStats.calculate()
         file.write(stats)
 
 
-def calculate_statistics_partition(data: Sequences, path_stats: Path, partition: Partition, file_name: str, group_name: str):
+def calculate_statistics_partition(data: Sequences, path: Path, partition: Partition, group_name: str):
     calculators = dict()
     for subset in partition.values():
         if subset not in calculators:
@@ -226,18 +208,57 @@ def calculate_statistics_partition(data: Sequences, path_stats: Path, partition:
         calculators[subset].add(seq.seq)
         yield seq
 
-    with StatisticsHandler.Groups(path_stats / file_name, 'w', group_name=group_name) as file:
+    with StatisticsHandler.Groups(path, 'w', group_name=group_name) as file:
         for calc in calculators.values():
             stats = calc.calculate()
             file.write(stats)
 
 
-def calculate_statistics_species(data: Sequences, path_stats: Path, species_partition: Partition):
-    yield from calculate_statistics_partition(data, path_stats, species_partition, 'species.tsv', 'species')
+def calculate_statistics_species(data: Sequences, path: Path, species_partition: Partition):
+    yield from calculate_statistics_partition(data, path, species_partition, 'species')
 
 
-def calculate_statistics_genera(data: Sequences, path_stats: Path, genera_partition: Partition):
-    yield from calculate_statistics_partition(data, path_stats, genera_partition, 'genera.tsv', 'genera')
+def calculate_statistics_genera(data: Sequences, path: Path, genera_partition: Partition):
+    yield from calculate_statistics_partition(data, path, genera_partition, 'genera')
+
+
+def align_pairs(pairs: SequencePairs):
+    aligner = PairwiseAligner.Biopython()
+    return aligner.align_pairs_parallel(pairs)
+
+
+def write_pairs(pairs: SequencePairs, path: Path):
+    with SequencePairHandler.Formatted(path, 'w') as file:
+        for pair in pairs:
+            file.write(pair)
+            yield pair
+
+
+def calculate_distances(pairs: SequencePairs, metrics: list[DistanceMetric]):
+    for x, y in pairs:
+        for metric in metrics:
+            yield metric.calculate(x, y)
+
+
+def write_distances_linear(distances: Distances, path: Path):
+    with DistanceHandler.Linear.WithExtras(path, 'w') as file:
+        for d in distances:
+            file.write(d)
+            yield d
+
+
+def write_distances_matrix(distances: Distances, metric: DistanceMetric, path: Path):
+    with DistanceHandler.Matrix(path, 'w') as file:
+        for d in distances:
+            if d.metric.type == metric.type:
+                file.write(d)
+            yield d
+
+
+def write_distances_multimatrix(distances: Distances, metrics: list[DistanceMetric], path: Path):
+    for metric in metrics:
+        distances = write_distances_matrix(distances, metric, path / f'matrix.{metric.label}.tsv')
+    return distances
 
 
 def main():
@@ -246,6 +267,17 @@ def main():
     path_out.mkdir(exist_ok=True)
     path_stats = path_out / 'stats'
     path_stats.mkdir(exist_ok=True)
+    path_align = path_out / 'align'
+    path_align.mkdir(exist_ok=True)
+    path_distances = path_out / 'distances'
+    path_distances.mkdir(exist_ok=True)
+
+    metrics = [
+        DistanceMetric.Uncorrected(),
+        DistanceMetric.UncorrectedWithGaps(),
+        DistanceMetric.JukesCantor(),
+        DistanceMetric.Kimura2P(),
+    ]
 
     ts = perf_counter()
 
@@ -255,36 +287,30 @@ def main():
     data = Sequences.fromPath(path_data, SequenceHandler.Tabfile, idHeader='seqid', seqHeader='sequence')
     data = data.normalize()
 
-    data = calculate_statistics_all(data, path_stats)
-    data = calculate_statistics_species(data, path_stats, species_partition)
-    data = calculate_statistics_genera(data, path_stats, genera_partition)
-    for _ in data:
+    data_left = data
+    data_left = calculate_statistics_all(data_left, path_stats / 'all.tsv')
+    data_left = calculate_statistics_species(data_left, path_stats / 'species.tsv', species_partition)
+    data_left = calculate_statistics_genera(data_left, path_stats / 'genera.tsv', genera_partition)
+    total = len(data)
+
+    species_combinations = create_metric_and_partition_combinations_lists(species_partition, metrics)
+    genera_combinations = create_metric_and_partition_combinations_lists(genera_partition, metrics)
+
+    pairs = SequencePairs.fromProduct(data_left, data)
+    pairs = align_pairs(pairs)
+    pairs = write_pairs(pairs, path_align / 'alignments.txt')
+
+    distances = calculate_distances(pairs, metrics)
+    distances = write_distances_linear(distances, path_distances / 'linear.tsv')
+    distances = write_distances_multimatrix(distances, metrics, path_distances)
+
+    for _ in distances:
         pass
 
     return
 
-    total = len(data)
 
-    pairDict = getDictFromPartition(species_partition, metrics)
-    genusPairDict = getDictFromPartition(genera_partition, metrics)
-
-    metrics = [
-        DistanceMetric.Uncorrected(),
-        DistanceMetric.UncorrectedWithGaps(),
-        DistanceMetric.JukesCantor(),
-        DistanceMetric.Kimura2P(),
-    ]
-
-    #Create pairs
-
-    pairs = SequencePairs.fromProduct(data, data)
-
-    aligner = PairwiseAligner.Biopython()
-    aligned_pairs = aligner.align_pairs_parallel(pairs)
-
-    distances = calAll(aligned_pairs, metrics)
-
-    distances = addDistanceScore(distances, pairDict, genusPairDict, species_partition, genera_partition)
+    distances = addDistanceScore(distances, species_combinations, genera_combinations, species_partition, genera_partition)
 
     # write matrics file
     distances = iter_write_distances_matrix(distances, path_out)
@@ -302,19 +328,19 @@ def main():
 
     #calculate mean, min, max
 
-    calculateAll3Ms(pairDict)
-    calculateAll3Ms(genusPairDict)
+    calculateAll3Ms(species_combinations)
+    calculateAll3Ms(genera_combinations)
 
-    print(genusPairDict)
+    print(genera_combinations)
 
     # #write subset pairs
-    writeSubsetAginstItself(pairDict, 'subsetAgainstItself', metrics)
-    writeSubsetPairs(pairDict, 'subsetPair', metrics)
+    writeSubsetAginstItself(species_combinations, 'subsetAgainstItself', metrics)
+    writeSubsetPairs(species_combinations, 'subsetPair', metrics)
     #
     #
     # #write genus pairs
-    writeSubsetAginstItself(genusPairDict, 'genusAgainstItself', metrics)
-    writeSubsetPairs(genusPairDict, 'genusPair', metrics)
+    writeSubsetAginstItself(genera_combinations, 'genusAgainstItself', metrics)
+    writeSubsetPairs(genera_combinations, 'genusPair', metrics)
 
 
     tf = perf_counter()

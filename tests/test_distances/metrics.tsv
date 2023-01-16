@@ -1,4 +1,4 @@
-target	query	p-distance	p-distance with gaps	jc	k2p
+target	query	p	p-gaps	jc	k2p
 agggtcgttaggtcagtcgt	agggacgttaggtcagtcgt	0.05	0.05	0.052	0.052
 agggtcgttaggtcagtcgt	aggttcgttaagtcagtcgt	0.10	0.10	0.107	0.108
 agggtcgttaggtcagtcgt	aggatcgatagatccgttgt	0.25	0.25	0.304	0.311

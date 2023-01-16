@@ -313,8 +313,8 @@ write_tests = [
 
 
 label_tests = [
-    LabelTest(DistanceMetric.Uncorrected(), 'p-distance'),
-    LabelTest(DistanceMetric.UncorrectedWithGaps(), 'p-distance with gaps'),
+    LabelTest(DistanceMetric.Uncorrected(), 'p'),
+    LabelTest(DistanceMetric.UncorrectedWithGaps(), 'p-gaps'),
     LabelTest(DistanceMetric.JukesCantor(), 'jc'),
     LabelTest(DistanceMetric.Kimura2P(), 'k2p'),
     LabelTest(DistanceMetric.NCD(), 'ncd'),

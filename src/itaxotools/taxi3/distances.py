@@ -294,7 +294,7 @@ class Unknown(DistanceMetric):
 
 
 class Uncorrected(DistanceMetric):
-    label = 'p-distance'
+    label = 'p'
 
     def _calculate(self, x: str, y: str) -> float:
         distance = calc.seq_distances_p(x, y)
@@ -302,7 +302,7 @@ class Uncorrected(DistanceMetric):
 
 
 class UncorrectedWithGaps(DistanceMetric):
-    label = 'p-distance with gaps'
+    label = 'p-gaps'
 
     def _calculate(self, x: str, y: str) -> float:
         distance = calc.seq_distances_p_gaps(x, y)

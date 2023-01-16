@@ -1,4 +1,4 @@
-idx	idy	p-distance	p-distance with gaps	jc	k2p	ncd	bbc(0)
+idx	idy	p	p-gaps	jc	k2p	ncd	bbc(0)
 id1	id2	0.11	0.12	0.13	0.14	0.15	0.16
 id1	id3	0.21	0.22	0.23	0.24	0.25	0.26
 id1	id4	0.31	0.32	0.33	0.34	0.35	0.36
