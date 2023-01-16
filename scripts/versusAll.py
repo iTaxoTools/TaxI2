@@ -219,10 +219,8 @@ def main():
 
     ts = perf_counter()
 
-    spartition_file = PartitionFile.Tabfile(path_data)
-    gpartition_file = PartitionFile.Tabfile.Genus(path_data)
-    spartitionDict = Partition.fromFile(spartition_file, idHeader='seqid', subsetHeader='organism')
-    gpartitionDict = Partition.fromFile(gpartition_file, idHeader='seqid', subsetHeader='organism')
+    spartitionDict = Partition.fromPath(path_data, PartitionHandler.Tabfile, idHeader='seqid', subHeader='organism')
+    gpartitionDict = Partition.fromPath(path_data, PartitionHandler.Tabfile, idHeader='seqid', subHeader='organism', filter=PartitionHandler.subset_first_word)
 
     pairDict = getDictFromPartition(spartitionDict, metrics)
     genusPairDict = getDictFromPartition(gpartitionDict, metrics)

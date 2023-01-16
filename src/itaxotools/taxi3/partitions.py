@@ -1,107 +1,116 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import NamedTuple
+from typing import NamedTuple, Callable
 from contextlib import contextmanager
+from abc import abstractmethod
 
 from itaxotools.spart_parser import Spart as SpartParserSpart
 
 from .sequences import Sequence, Sequences
 from .types import Container, Type
+from .handlers import FileHandler, ReadHandle, WriteHandle
+
+
+class Classification(NamedTuple):
+    individual: str
+    subset: str
 
 
 class Partition(dict[str, str]):
+    """Keys are individuals, values are subsets"""
     @classmethod
-    def fromFile(cls, file: PartitionFile, *args, **kwargs) -> Partition:
-        return file.get(*args, **kwargs)
+    def fromPath(cls, path: Path, handler: PartitionFile, *args, **kwargs) -> Partition:
+        return handler.as_dict(path, *args, **kwargs)
 
 
-class PartitionFile(Type):
-    """Handlers for spartition files"""
-
-    def __init__(self, path: Path):
-        self.path = path
-
-    def read(self, *args, **kwargs) -> iter[tuple[str, str]]:
-        raise NotImplementedError()
-
-    def get(self, *args, **kwargs) -> Partition:
+class PartitionHandler(FileHandler[Classification]):
+    @classmethod
+    def as_dict(cls, path: Path, *args, **kwargs) -> Partition:
         spartition = Partition()
-        for individual, subset in self.read(*args, **kwargs):
+        for individual, subset in cls(path, 'r', *args, **kwargs):
             spartition[individual] = subset
         return spartition
 
+    def _open(
+        self,
+        path: Path,
+        mode: 'r' | 'w' = 'r',
+        filter: Callable[[Classification], Classification] = None,
+        *args, **kwargs
+    ):
+        self.filter = filter
+        super()._open(path, mode, *args, **kwargs)
 
-class Tabular(PartitionFile):
-
-    def iter_rows(self):
+    def _iter_write(self) -> WriteHandle[Sequence]:
         raise NotImplementedError()
 
-    @contextmanager
-    def open(self):
-        yield self.iter_rows()
+    def _iter_read(self, *args, **kwargs) -> ReadHandle[Classification]:
+        inner_generator = self._iter_read_inner(*args, **kwargs)
+        yield next(inner_generator)
+        for classification in inner_generator:
+            if self.filter:
+                classification = self.filter(classification)
+            yield classification
 
-    def read(
+    @abstractmethod
+    def _iter_read_inner(self, *args, **kwargs) -> ReadHandle[Classification]:
+        while False:
+            yield Classification()
+
+    @staticmethod
+    def subset_first_word(classification: Classification) -> Classification:
+        individual, subset = classification
+        first_word = subset.split()[0]
+        return Classification(individual, first_word)
+
+
+class Tabular(PartitionHandler):
+    subhandler = FileHandler.Tabular
+
+    def _iter_read_inner(
         self,
         idHeader: str = None,
-        subsetHeader: str = None,
+        subHeader: str = None,
         hasHeader: bool = False,
         idColumn: int = 0,
-        subsetColumn: int = 1,
-    ) -> Partition:
+        subColumn: int = 1,
+    ) -> ReadHandle[Classification]:
 
-        with self.open() as rows:
+        if idHeader and subHeader:
+            columns = (idHeader, subHeader)
+            hasHeader = True
+        else:
+            columns = (idColumn, subColumn)
 
-            # Checking headers
-            if idHeader and subsetHeader:
-                hasHeader = True
-            if hasHeader:
-                headers = next(rows)
-                idColumn, subsetColumn = headers.index(idHeader), headers.index(subsetHeader)
+        with self.subhandler(
+            self.path,
+            has_headers=hasHeader,
+            columns=columns,
+        ) as rows:
 
-            # Getting id and seq
-            for row in rows:
-                if len(row) <= 1:
-                    continue
-                id = row[idColumn]
-                sub = row[subsetColumn]
-
-                yield (id, sub)
+            yield self
+            for individual, subset in rows:
+                yield Classification(individual, subset)
 
 
-class Tabfile(Tabular, PartitionFile):
-    def iter_rows(self) -> iter[tuple[str, ...]]:
-        with open(self.path) as file:
-            for line in file:
-                yield line.strip().split('\t')
+class Tabfile(Tabular, PartitionHandler):
+    subhandler = FileHandler.Tabular.Tabfile
 
 
-class Excel(Tabular, PartitionFile):
-    def iter_rows(self) -> iter[tuple[str, ...]]:
-        wb = load_workbook(filename=self.path, read_only=True)
-        ws = wb.worksheets[0]
-        for row in ws.iter_rows(values_only=True):
-            row = list(row)
-            while row and row[-1] is None:
-                del row[-1]
-            yield [x if x else '' for x in row]
-        wb.close
+class Excel(Tabular, PartitionHandler):
+    subhandler = FileHandler.Tabular.Excel
 
 
-class Spart(PartitionFile):
-    def read(self, spartition=None) -> Partition:
+class Spart(PartitionHandler):
+
+    def _iter_read_inner(self, spartition: str = None) -> ReadHandle[Classification]:
         spart = SpartParserSpart.fromPath(self.path)
 
         if spartition is None:
             spartition = spart.getSpartitions()[0]
+        yield self
 
         for subset in spart.getSpartitionSubsets(spartition):
             for individual in spart.getSubsetIndividuals(spartition, subset):
-                yield (individual, subset)
-
-
-class Genus(Tabfile):
-    def read(self, *args, **kwargs) -> Partition:
-         for id, organism in super().read(*args, **kwargs):
-             genus = organism.split()[0]
-             yield (id, genus)
+                yield Classification(individual, subset)

@@ -6,7 +6,7 @@ from typing import Callable, NamedTuple
 import pytest
 from utility import assert_eq_files
 
-from itaxotools.taxi3.partitions import Partition, PartitionFile
+from itaxotools.taxi3.partitions import Partition, PartitionHandler
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 
@@ -14,16 +14,23 @@ TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 class ReadTest(NamedTuple):
     fixture: Callable[[], SequencePairs]
     input: str
-    file: PartitionFile
+    handler: PartitionHandler
     kwargs: dict = {}
 
-    def validate(self, generated: Partition):
-        fixture = self.fixture()
-        print(generated)
-        assert fixture == generated
+    @property
+    def input_path(self) -> Path:
+        return TEST_DATA_DIR / self.input
+
+    @property
+    def fixed(self) -> SequencePairs:
+        return self.fixture()
+
+    def validate(self):
+        generated = Partition.fromPath(self.input_path, self.handler, **self.kwargs)
+        assert generated == self.fixed
 
 
-def spartition_simple() -> SequencePairs:
+def spartition_simple() -> Partition:
     return {
         'sample1': 'speciesA',
         'sample2': 'speciesA',
@@ -35,7 +42,7 @@ def spartition_simple() -> SequencePairs:
     }
 
 
-def spartition_matricial() -> SequencePairs:
+def spartition_matricial() -> Partition:
     return {
         'sample1': '1',
         'sample2': '1',
@@ -47,15 +54,30 @@ def spartition_matricial() -> SequencePairs:
     }
 
 
+def spartition_genera() -> Partition:
+    return {
+        'sample1': 'genusX',
+        'sample2': 'genusX',
+        'sample3': 'genusX',
+        'sample4': 'genusX',
+        'sample5': 'genusY',
+        'sample6': 'genusY',
+        'sample7': 'genusY',
+    }
+
+
 read_tests = [
-    ReadTest(spartition_simple, 'simple.tsv', PartitionFile.Tabfile, dict(idHeader='seqid', subsetHeader='organism')),
-    ReadTest(spartition_simple, 'simple.xml', PartitionFile.Spart),
-    ReadTest(spartition_matricial, 'simple.spart', PartitionFile.Spart),
+    ReadTest(spartition_simple, 'simple.tsv', PartitionHandler.Tabfile),
+    ReadTest(spartition_simple, 'extras.tsv', PartitionHandler.Tabfile,
+        dict(idHeader='seqid', subHeader='organism')),
+    ReadTest(spartition_genera, 'genera.tsv', PartitionHandler.Tabfile,
+        dict(filter=PartitionHandler.subset_first_word,
+            idHeader='seqid', subHeader='organism')),
+    ReadTest(spartition_simple, 'simple.xml', PartitionHandler.Spart),
+    ReadTest(spartition_matricial, 'simple.spart', PartitionHandler.Spart),
 ]
 
 
 @pytest.mark.parametrize("test", read_tests)
 def test_read_pairs(test: ReadTest) -> None:
-    input_path = TEST_DATA_DIR / test.input
-    spartition = test.file(input_path).get(**test.kwargs)
-    test.validate(spartition)
+    test.validate()

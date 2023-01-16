@@ -1,0 +1,8 @@
+seqid	specimen_voucher	organism	sequence
+sample1	voucher1	genusX speciesA	ATCG
+sample2	voucher2	genusX speciesA	ATCG
+sample3	voucher3	genusX speciesA	ATCG
+sample4	voucher4	genusX speciesA	ATCG
+sample5	voucher5	genusY speciesB	ATCG
+sample6	voucher6	genusY speciesB	ATCG
+sample7	voucher7	genusY speciesC	ATCG
