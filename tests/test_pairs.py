@@ -7,7 +7,7 @@ import pytest
 from utility import assert_eq_files
 
 from itaxotools.taxi3.pairs import (
-    SequencePair, SequencePairFile, SequencePairs)
+    SequencePair, SequencePairHandler, SequencePairs)
 from itaxotools.taxi3.sequences import Sequence, Sequences
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
@@ -16,24 +16,47 @@ TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 class ReadTest(NamedTuple):
     fixture: Callable[[], SequencePairs]
     input: str
-    file: SequencePairFile
+    handler: SequencePairHandler
     kwargs: dict = {}
 
-    def validate(self, generated: SequencePairs):
-        fixture_list = list(self.fixture())
-        generated_list = list(generated)
-        assert len(fixture_list) == len(generated_list)
-        for pair in fixture_list:
+    @property
+    def input_path(self) -> Path:
+        return TEST_DATA_DIR / self.input
+
+    @property
+    def fixed(self) -> SequencePairs:
+        return self.fixture()
+
+    def validate(self):
+        pairs = SequencePairs.fromPath(self.input_path, self.handler, **self.kwargs)
+        generated_list = list(pairs)
+        fixed_list = list(self.fixed)
+        assert len(fixed_list) == len(generated_list)
+        for pair in fixed_list:
             assert pair in generated_list
 
 
 class WriteTest(NamedTuple):
     fixture: Callable[[], SequencePairs]
     output: str
-    file: SequencePairFile
+    handler: SequencePairHandler
+    kwargs: dict = {}
 
-    def generate(self) -> SequencePairs:
+    @property
+    def fixed_path(self) -> Path:
+        return TEST_DATA_DIR / self.output
+
+    @property
+    def fixed(self) -> SequencePairs:
         return self.fixture()
+
+    def validate(self, tmp_path: Path) -> None:
+        output_path = tmp_path / self.output
+        print('!!', output_path)
+        with self.handler(output_path, 'w', **self.kwargs) as file:
+            for pair in self.fixed:
+                file.write(pair)
+        assert_eq_files(output_path, self.fixed_path, ignore=r'\n')
 
 
 def pairs_simple() -> SequencePairs:
@@ -54,14 +77,14 @@ def pairs_simple() -> SequencePairs:
 
 
 read_tests = [
-    ReadTest(pairs_simple, 'simple.tsv', SequencePairFile.Tabfile),
-    ReadTest(pairs_simple, 'simple.formatted', SequencePairFile.Formatted),
+    ReadTest(pairs_simple, 'simple.tsv', SequencePairHandler.Tabfile),
+    ReadTest(pairs_simple, 'simple.formatted', SequencePairHandler.Formatted),
 ]
 
 
 write_tests = [
-    WriteTest(pairs_simple, 'simple.tsv', SequencePairFile.Tabfile),
-    WriteTest(pairs_simple, 'simple.formatted', SequencePairFile.Formatted),
+    WriteTest(pairs_simple, 'simple.tsv', SequencePairHandler.Tabfile),
+    WriteTest(pairs_simple, 'simple.formatted', SequencePairHandler.Formatted),
 ]
 
 
@@ -90,15 +113,9 @@ def test_pairs_from_product() -> None:
 
 @pytest.mark.parametrize("test", read_tests)
 def test_read_pairs(test: ReadTest) -> None:
-    input_path = TEST_DATA_DIR / test.input
-    pairs = test.file(input_path).read(**test.kwargs)
-    test.validate(pairs)
+    test.validate()
 
 
 @pytest.mark.parametrize("test", write_tests)
 def test_write_pairs(test: WriteTest, tmp_path: Path) -> None:
-    fixed_path = TEST_DATA_DIR / test.output
-    output_path = tmp_path / test.output
-    pairs = iter(test.generate())
-    test.file(output_path).write(pairs)
-    assert_eq_files(output_path, fixed_path, ignore=r'\n')
+    test.validate(tmp_path)

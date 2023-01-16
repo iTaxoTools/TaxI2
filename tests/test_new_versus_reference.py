@@ -7,7 +7,7 @@ import pytest
 from utility import assert_eq_files
 
 from itaxotools.taxi3.pairs import (
-    SequencePair, SequencePairFile, SequencePairs)
+    SequencePair, SequencePairHandler, SequencePairs)
 from itaxotools.taxi3.sequences import Sequence, Sequences
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
