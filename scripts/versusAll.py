@@ -22,9 +22,9 @@ class SubsetDistance(NamedTuple):
 
 
 class SummaryHandler(DistanceHandler.Linear.WithExtras):
-    def _open(self, path, mode, spartitionDict, gpartitionDict):
-        self.spartitionDict = spartitionDict
-        self.gpartitionDict = gpartitionDict
+    def _open(self, path, mode, species_partition, genera_partition):
+        self.species_partition = species_partition
+        self.genera_partition = genera_partition
         super()._open(path, mode, tagX=' (query 1)', tagY=' (query 2)')
 
     def _write_headers(self, file: FileHandler.Tabfile, line: list[Distance]):
@@ -47,10 +47,10 @@ class SummaryHandler(DistanceHandler.Linear.WithExtras):
         extrasX = line[0].x.extras.values()
         extrasY = line[0].y.extras.values()
         scores = [self.distanceToText(distance.d) for distance in line]
-        genusX = self.gpartitionDict[idx]
-        genusY = self.gpartitionDict[idy]
-        speciesX = self.spartitionDict[idx]
-        speciesY = self.spartitionDict[idy]
+        genusX = self.genera_partition[idx]
+        genusY = self.genera_partition[idy]
+        speciesX = self.species_partition[idx]
+        speciesY = self.species_partition[idy]
         comparison_type = self._get_comparison_type(genusX, genusY, speciesX, speciesY)
         out = (idx, idy, *scores, *extrasX, *extrasY, genusX, speciesX, genusY, speciesY, comparison_type)
         file.write(out)
@@ -203,69 +203,77 @@ def calculateAll3Ms(pairDict):
         calculate3Ms(pairDict[metric])
 
 
+def calculate_statistics_all(data: Sequences, path_stats: Path):
+    allStats = StatisticsCalculator()
+
+    for seq in data:
+        allStats.add(seq.seq)
+        yield seq
+
+    with StatisticsHandler.Single(path_stats / 'all.tsv', 'w') as file:
+        stats = allStats.calculate()
+        file.write(stats)
+
+
+def calculate_statistics_partition(data: Sequences, path_stats: Path, partition: Partition, file_name: str, group_name: str):
+    calculators = dict()
+    for subset in partition.values():
+        if subset not in calculators:
+            calculators[subset] = StatisticsCalculator(group=subset)
+
+    for seq in data:
+        subset = partition[seq.id]
+        calculators[subset].add(seq.seq)
+        yield seq
+
+    with StatisticsHandler.Groups(path_stats / file_name, 'w', group_name=group_name) as file:
+        for calc in calculators.values():
+            stats = calc.calculate()
+            file.write(stats)
+
+
+def calculate_statistics_species(data: Sequences, path_stats: Path, species_partition: Partition):
+    yield from calculate_statistics_partition(data, path_stats, species_partition, 'species.tsv', 'species')
+
+
+def calculate_statistics_genera(data: Sequences, path_stats: Path, genera_partition: Partition):
+    yield from calculate_statistics_partition(data, path_stats, genera_partition, 'genera.tsv', 'genera')
+
 
 def main():
     path_data = Path(argv[1])
     path_out = Path(argv[2])
-    path_out_2 = Path(argv[3])
-    pairDict = {}
-    genusPairDict = {}
+    path_out.mkdir(exist_ok=True)
+    path_stats = path_out / 'stats'
+    path_stats.mkdir(exist_ok=True)
+
+    ts = perf_counter()
+
+    species_partition = Partition.fromPath(path_data, PartitionHandler.Tabfile, idHeader='seqid', subHeader='organism')
+    genera_partition = Partition.fromPath(path_data, PartitionHandler.Tabfile, idHeader='seqid', subHeader='organism', filter=PartitionHandler.subset_first_word)
+
+    data = Sequences.fromPath(path_data, SequenceHandler.Tabfile, idHeader='seqid', seqHeader='sequence')
+    data = data.normalize()
+
+    data = calculate_statistics_all(data, path_stats)
+    data = calculate_statistics_species(data, path_stats, species_partition)
+    data = calculate_statistics_genera(data, path_stats, genera_partition)
+    for _ in data:
+        pass
+
+    return
+
+    total = len(data)
+
+    pairDict = getDictFromPartition(species_partition, metrics)
+    genusPairDict = getDictFromPartition(genera_partition, metrics)
+
     metrics = [
         DistanceMetric.Uncorrected(),
         DistanceMetric.UncorrectedWithGaps(),
         DistanceMetric.JukesCantor(),
         DistanceMetric.Kimura2P(),
     ]
-
-    ts = perf_counter()
-
-    spartitionDict = Partition.fromPath(path_data, PartitionHandler.Tabfile, idHeader='seqid', subHeader='organism')
-    gpartitionDict = Partition.fromPath(path_data, PartitionHandler.Tabfile, idHeader='seqid', subHeader='organism', filter=PartitionHandler.subset_first_word)
-
-    pairDict = getDictFromPartition(spartitionDict, metrics)
-    genusPairDict = getDictFromPartition(gpartitionDict, metrics)
-
-    data = Sequences.fromPath(path_data, SequenceHandler.Tabfile, idHeader='seqid', seqHeader='sequence')
-
-    total = len(data)
-
-    data = data.normalize()
-
-    allStats = StatisticsCalculator()
-
-    speciesStats = dict()
-    for species in spartitionDict.values():
-        if species not in speciesStats:
-            speciesStats[species] = StatisticsCalculator(group=species)
-
-    genusStats = dict()
-    for genus in gpartitionDict.values():
-        if genus not in genusStats:
-            genusStats[genus] = StatisticsCalculator(group=genus)
-
-    for seq in data:
-        allStats.add(seq.seq)
-        species = spartitionDict[seq.id]
-        speciesStats[species].add(seq.seq)
-        genus = gpartitionDict[seq.id]
-        genusStats[genus].add(seq.seq)
-
-    with StatisticsHandler.Single('stats.all', 'w') as file:
-        stats = allStats.calculate()
-        file.write(stats)
-
-    with StatisticsHandler.Groups('stats.species', 'w', group_name='species') as file:
-        for calc in speciesStats.values():
-            stats = calc.calculate()
-            file.write(stats)
-
-    with StatisticsHandler.Groups('stats.genera', 'w', group_name='genera') as file:
-        for calc in genusStats.values():
-            stats = calc.calculate()
-            file.write(stats)
-
-    return
-
 
     #Create pairs
 
@@ -276,7 +284,7 @@ def main():
 
     distances = calAll(aligned_pairs, metrics)
 
-    distances = addDistanceScore(distances, pairDict, genusPairDict, spartitionDict, gpartitionDict)
+    distances = addDistanceScore(distances, pairDict, genusPairDict, species_partition, genera_partition)
 
     # write matrics file
     distances = iter_write_distances_matrix(distances, path_out)
@@ -284,7 +292,7 @@ def main():
     # write linear file
     distances = iter_write_distances_linear(distances, path_out_2)
 
-    with SummaryHandler('summaryFile', 'w', spartitionDict, gpartitionDict) as file:
+    with SummaryHandler('summaryFile', 'w', species_partition, genera_partition) as file:
         for distance in distances:
             if 'organism' in distance.x.extras:
                 del distance.x.extras['organism']
