@@ -2,7 +2,9 @@ from itertools import groupby
 from pathlib import Path
 from sys import argv
 from time import perf_counter
-from statistics import median, stdev
+from statistics import mean, median, stdev
+from typing import NamedTuple
+from math import inf
 from itaxotools.taxi3.align import *
 from itaxotools.taxi3.distances import *
 from itaxotools.taxi3.pairs import *
@@ -15,10 +17,60 @@ from typing import NamedTuple
 import numpy as np
 
 
-class SubsetDistance(NamedTuple):
-    subX: str
-    subY: str
+class GenericDistance(NamedTuple):
+    metric: DistanceMetric
+    idx: str
+    idy: str
     d: float
+
+
+class SimpleStatistics(NamedTuple):
+    min: float
+    max: float
+    mean: float
+
+
+class DistanceStatistics(NamedTuple):
+    idx: str
+    idy: str
+    min: float
+    max: float
+    mean: float
+
+
+class SimpleAggregator:
+    def __init__(self):
+        self.sum = 0.0
+        self.min = inf
+        self.max = 0.0
+        self.n = 0
+
+    def add(self, value: float):
+        self.sum += value
+        if value < self.min:
+            self.min = value
+        if value > self.max:
+            self.max = value
+        self.n += 1
+
+    def calculate(self):
+        mean = self.sum / self.n if self.n else 0.0
+        return SimpleStatistics(self.min, self.max, mean)
+
+
+class DistanceAggregator:
+    def __init__(self):
+        self.aggs = dict()
+
+    def add(self, d: GenericDistance):
+        if (d.idx, d.idy) not in self.aggs:
+            self.aggs[(d.idx, d.idy)] = SimpleAggregator()
+        self.aggs[(d.idx, d.idy)].add(d.d)
+
+    def __iter__(self):
+        for (idx, idy), agg in self.aggs.items():
+            stats = agg.calculate()
+            yield DistanceStatistics(idx, idy, stats.min, stats.max, stats.mean)
 
 
 class SummaryHandler(DistanceHandler.Linear.WithExtras):
@@ -65,29 +117,8 @@ class SummaryHandler(DistanceHandler.Linear.WithExtras):
         return 'inter-genus'
 
 
-def calc(aligned_pairs, metric=DistanceMetric.Uncorrected()):
-    for x, y in aligned_pairs:
-        yield metric.calculate(x, y)
-
-
-def get_minimum(distances):
-    for k, g in groupby(distances, lambda d: d.x.id):
-        g = (d for d in g if d.d is not None)
-        d = min(g, key = lambda x: x.d)
-        yield d
-
-
-def progress(distances, total):
-
-    for index, distance in enumerate(distances):
-        print(f"\r Loading... {index}/{total} = {(round(float(index)/float(total)  * 100, 2))}", end="")
-        yield distance
-
-
-def getSubset(pairs, spartition):
-
-    for pair in pairs:
-        yield SubsetDistance(spartition[pair.x.id], spartition[pair.y.id], 0)
+def multiply(g, n):
+    return (x for x in g for i in range(n))
 
 
 def create_metric_and_partition_combinations_lists(spartition, metrics):
@@ -127,12 +158,7 @@ def calculate3Ms(pairDict):
         sumPairs = 0
 
 
-def multiply(g, n):
-    return (x for x in g for i in range(n))
-
-
 def writeSubsetPairs(pairDict, path, metrics):
-
     headerList = []
     for metric in metrics:
         for m in ["mean", "minimum", "maximum"]:
@@ -151,16 +177,6 @@ def writeSubsetPairs(pairDict, path, metrics):
             for metricIndx in range(1, len(metrics)):
                 buffer.extend(str(x) for x in pairDict[str(metrics[metricIndx])][(target, query)])
             f.write((current_target, query, *buffer))
-
-
-def addDistanceScore(distances, pairDict, genusPairDict, spartition, gpartition):
-
-    for distance in distances:
-        metric = str(distance.metric)
-        pairDict[metric][spartition[distance.x.id], spartition[distance.y.id]].append(distance.d)
-        genusPairDict[metric][gpartition[distance.x.id], gpartition[distance.y.id]].append(distance.d)
-
-        yield distance
 
 
 def writeSubsetAginstItself(pairDict, path, metrics):
@@ -198,33 +214,38 @@ def calculate_statistics_all(data: Sequences, path_stats: Path):
 
 
 def calculate_statistics_partition(data: Sequences, path: Path, partition: Partition, group_name: str):
-    calculators = dict()
-    for subset in partition.values():
-        if subset not in calculators:
-            calculators[subset] = StatisticsCalculator(group=subset)
+    try:
+        calculators = dict()
+        for subset in partition.values():
+            if subset not in calculators:
+                calculators[subset] = StatisticsCalculator(group=subset)
 
-    for seq in data:
-        subset = partition[seq.id]
-        calculators[subset].add(seq.seq)
-        yield seq
+        for seq in data:
+            subset = partition[seq.id]
+            calculators[subset].add(seq.seq)
+            yield seq
 
-    with StatisticsHandler.Groups(path, 'w', group_name=group_name) as file:
-        for calc in calculators.values():
-            stats = calc.calculate()
-            file.write(stats)
+    except GeneratorExit:
+        pass
+
+    finally:
+        with StatisticsHandler.Groups(path, 'w', group_name=group_name) as file:
+            for calc in calculators.values():
+                stats = calc.calculate()
+                file.write(stats)
 
 
-def calculate_statistics_species(data: Sequences, path: Path, species_partition: Partition):
-    yield from calculate_statistics_partition(data, path, species_partition, 'species')
+def calculate_statistics_species(data: Sequences, path: Path, partition: Partition):
+    yield from calculate_statistics_partition(data, path, partition, 'species')
 
 
-def calculate_statistics_genera(data: Sequences, path: Path, genera_partition: Partition):
-    yield from calculate_statistics_partition(data, path, genera_partition, 'genera')
+def calculate_statistics_genera(data: Sequences, path: Path, partition: Partition):
+    yield from calculate_statistics_partition(data, path, partition, 'genera')
 
 
 def align_pairs(pairs: SequencePairs):
     aligner = PairwiseAligner.Biopython()
-    return aligner.align_pairs_parallel(pairs)
+    return aligner.align_pairs(pairs)
 
 
 def write_pairs(pairs: SequencePairs, path: Path):
@@ -261,6 +282,43 @@ def write_distances_multimatrix(distances: Distances, metrics: list[DistanceMetr
     return distances
 
 
+def aggregate_distances(distances: Distances, partition: Partition, metrics: list[DistanceMetric]):
+    try:
+        aggregators = dict()
+        for metric in metrics:
+            aggregators[str(metric)] = DistanceAggregator()
+
+        for distance in distances:
+            subset_x = partition[distance.x.id]
+            subset_y = partition[distance.y.id]
+            generic = GenericDistance(distance.metric, subset_x, subset_y, distance.d)
+            aggregators[str(generic.metric)].add(generic)
+            yield generic
+
+    except GeneratorExit:
+        pass
+
+    finally:
+        for metric in metrics:
+            print(str(metric).center(60, '-'))
+            for stats in aggregators[str(metric)]:
+                print(stats)
+
+
+def aggregate_distances_species(distances: Distances, partition: Partition, metrics: list[DistanceMetric]):
+    return aggregate_distances(distances, partition, metrics)
+
+
+def aggregate_distances_genera(distances: Distances, partition: Partition, metrics: list[DistanceMetric]):
+    return aggregate_distances(distances, partition, metrics)
+
+
+def progress(distances, total):
+    for index, distance in enumerate(distances):
+        print(f"\rCalculating... {index}/{total} = {(round(float(index)/float(total)  * 100, 2))}%", end="")
+        yield distance
+
+
 def main():
     path_data = Path(argv[1])
     path_out = Path(argv[2])
@@ -291,7 +349,6 @@ def main():
     data_left = calculate_statistics_all(data_left, path_stats / 'all.tsv')
     data_left = calculate_statistics_species(data_left, path_stats / 'species.tsv', species_partition)
     data_left = calculate_statistics_genera(data_left, path_stats / 'genera.tsv', genera_partition)
-    total = len(data)
 
     species_combinations = create_metric_and_partition_combinations_lists(species_partition, metrics)
     genera_combinations = create_metric_and_partition_combinations_lists(genera_partition, metrics)
@@ -304,7 +361,14 @@ def main():
     distances = write_distances_linear(distances, path_distances / 'linear.tsv')
     distances = write_distances_multimatrix(distances, metrics, path_distances)
 
-    for _ in distances:
+    distances = multiply(distances, 3)
+    distances_species = aggregate_distances_species(distances, species_partition, metrics)
+    distances_genera = aggregate_distances_genera(distances, genera_partition, metrics)
+    distances = (distances for distances, _, _ in zip(distances, distances_species, distances_genera))
+
+    distances = progress(distances, len(metrics) * len(data) ** 2)
+
+    for x in distances:
         pass
 
     return
@@ -312,11 +376,6 @@ def main():
 
     distances = addDistanceScore(distances, species_combinations, genera_combinations, species_partition, genera_partition)
 
-    # write matrics file
-    distances = iter_write_distances_matrix(distances, path_out)
-
-    # write linear file
-    distances = iter_write_distances_linear(distances, path_out_2)
 
     with SummaryHandler('summaryFile', 'w', species_partition, genera_partition) as file:
         for distance in distances:
