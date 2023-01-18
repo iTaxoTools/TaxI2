@@ -262,23 +262,32 @@ class VersusAll:
         self.input_species: Partition = None
         self.input_genera: Partition = None
 
-        self.analyze_species: bool = True
-        self.analyze_genera: bool = True
+        self.params = AttrDict()
 
-        self.do_pairwise_alignment: bool = True
-        self.should_write_aligned_pairs: bool = True
-        self.pairwise_scores: Scores = None
+        self.params.pairs = AttrDict()
+        self.params.pairs.align: bool = True
+        self.params.pairs.write: bool = True
+        self.params.pairs.scores: Scores = None
 
-        self.distance_metrics: list[DistanceMetric] = None
-        self.should_write_distances_linear: bool = True
-        self.should_write_distances_matricial: bool = True
-        self.distances_percentile: bool = False
-        self.distances_formatter: str = '{:.4f}'
-        self.distances_missing: str = 'NA'
+        self.params.subsets = AttrDict()
+        self.params.subsets.species: bool = True
+        self.params.subsets.genera: bool = True
 
-        self.stats_all: bool = True
-        self.stats_species: bool = True
-        self.stats_genera: bool = True
+        self.params.distances = AttrDict()
+        self.params.distances.metrics: list[DistanceMetric] = None
+        self.params.distances.write_linear: bool = True
+        self.params.distances.write_matricial: bool = True
+
+        self.params.format = AttrDict()
+        self.params.format.float: str = '{:.4f}'
+        self.params.format.percentage: str = '{:.2f}'
+        self.params.format.missing: str = 'NA'
+        self.params.format.percentage_multiply: bool = False
+
+        self.params.stats = AttrDict()
+        self.params.stats.all: bool = True
+        self.params.stats.species: bool = True
+        self.params.stats.genera: bool = True
 
     def set_input_sequences_from_path(self, path: Path) -> None:
         self.input_sequences = Sequences.fromPath(path, SequenceHandler.Tabfile, idHeader='seqid', seqHeader='sequence')
@@ -312,7 +321,7 @@ class VersusAll:
         path.mkdir(parents=True, exist_ok=True)
 
     def check_metrics(self):
-        self.distance_metrics = self.distance_metrics or [
+        self.params.distances.metrics = self.params.distances.metrics or [
                 DistanceMetric.Uncorrected(),
                 DistanceMetric.UncorrectedWithGaps(),
                 DistanceMetric.JukesCantor(),
@@ -320,7 +329,7 @@ class VersusAll:
             ]
 
     def calculate_statistics_all(self, sequences: Sequences):
-        if not self.stats_all:
+        if not self.params.stats.all:
             yield from sequences
             return
 
@@ -336,13 +345,13 @@ class VersusAll:
             file.write(stats)
 
     def calculate_statistics_species(self, sequences: Sequences):
-        if not self.stats_species:
+        if not self.params.stats.species:
             return sequences
 
         return self._calculate_statistics_partition(sequences, self.input_species, 'species', self.paths.stats_species)
 
     def calculate_statistics_genera(self, sequences: Sequences):
-        if not self.stats_genera:
+        if not self.params.stats.genera:
             return sequences
 
         return self._calculate_statistics_partition(sequences, self.input_genera, 'genera', self.paths.stats_genera)
@@ -370,7 +379,7 @@ class VersusAll:
                     file.write(stats)
 
     def align_pairs(self, pairs: SequencePairs):
-        if not self.do_pairwise_alignment:
+        if not self.params.pairs.align:
             yield from pairs
             return
 
@@ -378,7 +387,7 @@ class VersusAll:
         yield from aligner.align_pairs(pairs)
 
     def write_pairs(self, pairs: SequencePairs):
-        if not self.should_write_aligned_pairs:
+        if not self.params.pairs.write:
             yield from pairs
             return
 
@@ -390,11 +399,11 @@ class VersusAll:
 
     def calculate_distances(self, pairs: SequencePairs):
         for x, y in pairs:
-            for metric in self.distance_metrics:
+            for metric in self.params.distances.metrics:
                 yield metric.calculate(x, y)
 
     def write_distances_linear(self, distances: Distances):
-        if not self.should_write_distances_linear:
+        if not self.params.distances.write_linear:
             yield from distances
             return
 
@@ -405,11 +414,11 @@ class VersusAll:
                 yield distance
 
     def write_distances_multimatrix(self, distances: Distances):
-        if not self.should_write_distances_matricial:
+        if not self.params.distances.write_matricial:
             return distances
 
         self.create_parents(self.paths.distances_matricial)
-        for metric in self.distance_metrics:
+        for metric in self.params.distances.metrics:
             distances = self._write_distances_matrix(distances, metric, self.paths.distances_matricial / f'{metric.label}.tsv')
         return distances
 
@@ -421,19 +430,19 @@ class VersusAll:
                 yield distance
 
     def aggregate_distances_species(self, distances: Distances):
-        if not self.analyze_species:
+        if not self.params.subsets.species:
             return distances
         return self._aggregate_distances(distances, self.input_species, 'species', self.paths.subsets)
 
     def aggregate_distances_genera(self, distances: Distances):
-        if not self.analyze_genera:
+        if not self.params.subsets.genera:
             return distances
         return self._aggregate_distances(distances, self.input_genera, 'genera', self.paths.subsets)
 
     def _aggregate_distances(self, distances: Distances, partition: Partition, group_name: str, path: Path):
         try:
             aggregators = dict()
-            for metric in self.distance_metrics:
+            for metric in self.params.distances.metrics:
                 aggregators[str(metric)] = DistanceAggregator(metric)
 
             for distance in distances:
@@ -497,7 +506,7 @@ class VersusAll:
         distances_genera = self.aggregate_distances_genera(distances)
         distances = (distances for distances, _, _ in zip(distances, distances_species, distances_genera))
 
-        distances = progress(distances, len(self.distance_metrics) * len(sequences) ** 2)
+        distances = progress(distances, len(self.params.distances.metrics) * len(sequences) ** 2)
 
         distances = self.write_summary(distances)
 
