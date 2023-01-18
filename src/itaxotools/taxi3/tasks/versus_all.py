@@ -1,20 +1,19 @@
 from __future__ import annotations
+
 from itertools import groupby, product, chain
 from pathlib import Path
-from sys import argv
 from time import perf_counter
 from statistics import mean, median, stdev
 from typing import NamedTuple, TextIO
 from math import inf
-from itaxotools.taxi3.align import *
-from itaxotools.taxi3.distances import *
-from itaxotools.taxi3.pairs import *
-from itaxotools.taxi3.sequences import *
-from itaxotools.taxi3.partitions import *
-from itaxotools.taxi3.handlers import *
-from itaxotools.taxi3.statistics import *
-from typing import NamedTuple
-import numpy as np
+
+from itaxotools.taxi3.align import PairwiseAligner
+from itaxotools.taxi3.distances import Distances, DistanceHandler, DistanceMetric
+from itaxotools.taxi3.pairs import SequencePairs, SequencePairHandler
+from itaxotools.taxi3.sequences import Sequences, SequenceHandler
+from itaxotools.taxi3.partitions import Partition, PartitionHandler
+from itaxotools.taxi3.statistics import StatisticsCalculator, StatisticsHandler
+from itaxotools.taxi3.handlers import FileHandler
 
 
 class AttrDict(dict):
@@ -206,50 +205,8 @@ class SummaryHandler(DistanceHandler.Linear.WithExtras):
         return 'inter-genus'
 
 
-def multiply(g, n):
-    return (x for x in g for i in range(n))
-
-
-def calculate_statistics_all(data: Sequences, path_stats: Path):
-    allStats = StatisticsCalculator()
-
-    for seq in data:
-        allStats.add(seq.seq)
-        yield seq
-
-    with StatisticsHandler.Single(path_stats, 'w', float_formatter='{:.2f}', percentage_formatter='{:.2f}') as file:
-        stats = allStats.calculate()
-        file.write(stats)
-
-
-def calculate_statistics_partition(data: Sequences, partition: Partition, group_name: str, path: Path):
-    try:
-        calculators = dict()
-        for subset in partition.values():
-            if subset not in calculators:
-                calculators[subset] = StatisticsCalculator(group=subset)
-
-        for seq in data:
-            subset = partition[seq.id]
-            calculators[subset].add(seq.seq)
-            yield seq
-
-    except GeneratorExit:
-        pass
-
-    finally:
-        with StatisticsHandler.Groups(path, 'w', group_name=group_name, float_formatter='{:.2f}', percentage_formatter='{:.2f}') as file:
-            for calc in calculators.values():
-                stats = calc.calculate()
-                file.write(stats)
-
-
-def calculate_statistics_species(data: Sequences, partition: Partition, path: Path):
-    yield from calculate_statistics_partition(data, partition, 'species', path)
-
-
-def calculate_statistics_genera(data: Sequences, partition: Partition, path: Path):
-    yield from calculate_statistics_partition(data, partition, 'genera', path)
+def multiply(iterator: iter, n: int):
+    return (item for item in iterator for i in range(n))
 
 
 def align_pairs(pairs: SequencePairs):
@@ -414,9 +371,9 @@ class VersusAll:
         self.distances_formatter: str = '{:.4f}'
         self.distances_missing: str = 'NA'
 
-        self.stats_all: bool = True
-        self.stats_species: bool = True
-        self.stats_genus: bool = True
+        self.stats_all: bool = False
+        self.stats_species: bool = False
+        self.stats_genera: bool = False
 
     def set_input_sequences_from_path(self, path: Path) -> None:
         self.input_sequences = Sequences.fromPath(path, SequenceHandler.Tabfile, idHeader='seqid', seqHeader='sequence')
@@ -427,17 +384,29 @@ class VersusAll:
     def set_input_genera_from_path(self, path: Path) -> None:
         self.input_genera = Partition.fromPath(path, PartitionHandler.Tabfile, idHeader='seqid', subHeader='organism', filter=PartitionHandler.subset_first_word)
 
-    def create_directories(self):
+    def generate_paths(self):
         assert self.work_dir
 
-        self.paths.out = self.work_dir
-        self.paths.stats = self.work_dir / 'stats'
-        self.paths.align = self.work_dir / 'align'
+        self.paths.summary = self.work_dir / 'summary.tsv'
+        self.paths.stats_all = self.work_dir / 'stats' / 'all.tsv'
+        self.paths.stats_species = self.work_dir / 'stats' / 'species.tsv'
+        self.paths.stats_genera = self.work_dir / 'stats' / 'genera.tsv'
+        self.paths.alignments = self.work_dir / 'align' / 'alignments.txt'
         self.paths.distances = self.work_dir / 'distances'
         self.paths.subsets = self.work_dir / 'subsets'
 
-        for path in self.paths.values():
-            path.mkdir(exist_ok=True)
+        for path in [
+            self.paths.summary,
+            self.paths.alignments,
+            self.paths.distances,
+            self.paths.subsets,
+        ]:
+            self.create_parents(path)
+
+    def create_parents(self, path: Path):
+        if path.suffix:
+            path = path.parent
+        path.mkdir(parents=True, exist_ok=True)
 
     def check_metrics(self):
         self.distance_metrics = self.distance_metrics or [
@@ -447,22 +416,74 @@ class VersusAll:
                 DistanceMetric.Kimura2P(),
             ]
 
+    def calculate_statistics_all(self, sequences: Sequences):
+        if not self.stats_all:
+            yield from sequences
+            return
+
+        allStats = StatisticsCalculator()
+
+        for sequence in sequences:
+            allStats.add(sequence.seq)
+            yield sequence
+
+        self.create_parents(self.paths.stats_all)
+        with StatisticsHandler.Single(self.paths.stats_all, 'w', float_formatter='{:.2f}', percentage_formatter='{:.2f}') as file:
+            stats = allStats.calculate()
+            file.write(stats)
+
+    def calculate_statistics_species(self, sequences: Sequences):
+        if not self.stats_species:
+            yield from sequences
+            return
+
+        yield from self._calculate_statistics_partition(sequences, self.input_species, 'species', self.paths.stats_species)
+
+    def calculate_statistics_genera(self, sequences: Sequences):
+        if not self.stats_genera:
+            yield from sequences
+            return
+
+        yield from self._calculate_statistics_partition(sequences, self.input_genera, 'genera', self.paths.stats_genera)
+
+    def _calculate_statistics_partition(self, sequences: Sequences, partition: Partition, group_name: str, path: Path):
+        try:
+            calculators = dict()
+            for subset in partition.values():
+                if subset not in calculators:
+                    calculators[subset] = StatisticsCalculator(group=subset)
+
+            for sequence in sequences:
+                subset = partition[sequence.id]
+                calculators[subset].add(sequence.seq)
+                yield sequence
+
+        except GeneratorExit:
+            pass
+
+        finally:
+            self.create_parents(path)
+            with StatisticsHandler.Groups(path, 'w', group_name=group_name, float_formatter='{:.2f}', percentage_formatter='{:.2f}') as file:
+                for calc in calculators.values():
+                    stats = calc.calculate()
+                    file.write(stats)
+
     def start(self) -> None:
         ts = perf_counter()
 
-        self.create_directories()
+        self.generate_paths()
         self.check_metrics()
 
-        data = self.input_sequences.normalize()
+        sequences = self.input_sequences.normalize()
 
-        data_left = data
-        data_left = calculate_statistics_all(data_left, self.paths.stats / 'all.tsv')
-        data_left = calculate_statistics_species(data_left, self.input_species, self.paths.stats / 'species.tsv')
-        data_left = calculate_statistics_genera(data_left, self.input_genera, self.paths.stats / 'genera.tsv')
+        sequences_left = sequences
+        sequences_left = self.calculate_statistics_all(sequences_left)
+        sequences_left = self.calculate_statistics_species(sequences_left)
+        sequences_left = self.calculate_statistics_genera(sequences_left)
 
-        pairs = SequencePairs.fromProduct(data_left, data)
+        pairs = SequencePairs.fromProduct(sequences_left, sequences)
         pairs = align_pairs(pairs)
-        pairs = write_pairs(pairs, self.paths.align / 'alignments.txt')
+        pairs = write_pairs(pairs, self.paths.alignments)
 
         distances = calculate_distances(pairs, self.distance_metrics)
         distances = write_distances_linear(distances, self.paths.distances / 'linear.tsv')
@@ -473,9 +494,9 @@ class VersusAll:
         distances_genera = aggregate_distances_genera(distances, self.input_genera, self.distance_metrics, 'genera', self.paths.subsets)
         distances = (distances for distances, _, _ in zip(distances, distances_species, distances_genera))
 
-        distances = progress(distances, len(self.distance_metrics) * len(data) ** 2)
+        distances = progress(distances, len(self.distance_metrics) * len(sequences) ** 2)
 
-        distances = write_summary(distances, self.input_species, self.input_genera, self.paths.out / 'summary.tsv')
+        distances = write_summary(distances, self.input_species, self.input_genera, self.paths.summary)
 
         for x in distances:
             pass
