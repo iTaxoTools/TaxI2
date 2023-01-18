@@ -58,6 +58,7 @@ setup(
     ],
     python_requires=">=3.9, <4",
     install_requires=[
+        "itaxotools-common==0.2.dev4",
         "DNAconvert",
         "spart_parser",
         "alfpy",
@@ -75,7 +76,7 @@ setup(
             "setuptools_rust",
             "pyinstaller",
             "pytest",
-            "coverage"
+            "coverage",
             "flake8",
             "isort",
         ],

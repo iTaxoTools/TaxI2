@@ -7,13 +7,15 @@ from statistics import mean, median, stdev
 from typing import NamedTuple, TextIO
 from math import inf
 
-from itaxotools.taxi3.align import PairwiseAligner
-from itaxotools.taxi3.distances import Distances, DistanceHandler, DistanceMetric
-from itaxotools.taxi3.pairs import SequencePairs, SequencePairHandler
-from itaxotools.taxi3.sequences import Sequences, SequenceHandler
-from itaxotools.taxi3.partitions import Partition, PartitionHandler
-from itaxotools.taxi3.statistics import StatisticsCalculator, StatisticsHandler
-from itaxotools.taxi3.handlers import FileHandler
+from itaxotools.common.utility import AttrDict
+
+from ..align import PairwiseAligner
+from ..distances import Distances, DistanceHandler, DistanceMetric
+from ..pairs import SequencePairs, SequencePairHandler
+from ..sequences import Sequences, SequenceHandler
+from ..partitions import Partition, PartitionHandler
+from ..statistics import StatisticsCalculator, StatisticsHandler
+from ..handlers import FileHandler
 
 
 def multiply(iterator: iter, n: int):
@@ -25,15 +27,6 @@ def progress(distances, total):
         print(f"\rCalculating... {index}/{total} = {100*index/total:.2f}%", end="")
         yield distance
     print('\nFinalizing...')
-
-
-class AttrDict(dict):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.__dict__ = self
-
-    def __iter__(self):
-        return iter(self.values())
 
 
 class GenericDistance(NamedTuple):
