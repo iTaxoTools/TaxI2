@@ -9,7 +9,11 @@ def main():
     task.set_input_species_from_path(Path(argv[1]))
     task.set_input_genera_from_path(Path(argv[1]))
     task.work_dir = Path(argv[2])
-    task.start()
+    results = task.start()
+    print('')
+    print(f'Output directory: {results.output_directory}')
+    print(f'Time taken: {results.seconds_taken:.4f}s')
+
 
 if __name__ == '__main__':
     main()

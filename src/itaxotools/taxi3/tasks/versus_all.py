@@ -209,29 +209,10 @@ class SummaryHandler(DistanceHandler.Linear.WithExtras):
         return 'inter-genus'
 
 
-# class SequenceInfo(NamedTuple):
-#     type: str
-#     file_size: int
-#
-#
-# class TabularSequenceInfo(SequenceInfo):
-#     headers: list[str]
-#
-#
-# class PartitionInfo(NamedTuple):
-#     type: str
-#     file_size: int
-#
-#
-# class TabularPartitionInfo(PartitionInfo):
-#     headers: list[str]
-#
-#
-# class SpartitionInfo(PartitionInfo):
-#     spartitions: list[str]
-#
-#
-# class Results(NamedTuple):
+class Results(NamedTuple):
+    output_directory: Path
+    seconds_taken: float
+
 #     stats_all: Path | None
 #     stats_species: Path | None
 #     stats_genus: Path | None
@@ -244,7 +225,6 @@ class SummaryHandler(DistanceHandler.Linear.WithExtras):
 #
 #     matrices: dict[str, Path]
 #
-#     time_taken: ...
 #
 #     number_of_files_created: int
 
@@ -514,6 +494,5 @@ class VersusAll:
             pass
 
         tf = perf_counter()
-        print(f'Time taken: {tf-ts:.4f}s')
 
-        return
+        return Results(self.work_dir, tf - ts)
