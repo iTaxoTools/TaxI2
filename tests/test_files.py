@@ -53,6 +53,15 @@ def test_identify_file(test: IdentifyTest) -> None:
     "test", [
     InfoTest('simple.fasta', dict(format=FileFormat.Fasta, size=15)),
     InfoTest('simple.tsv', dict(format=FileFormat.Tabfile, size=21, headers=['id', 'seq'])),
+    InfoTest('full.tsv', dict(
+        format=FileFormat.Tabfile,
+        headers=['seqid', 'voucher', 'organism', 'genus', 'species', 'sequence'],
+        header_individuals='seqid',
+        header_sequences='sequence',
+        header_organism='organism',
+        header_species='species',
+        header_genus='genus',
+        )),
     InfoTest('empty.txt', dict(format=FileFormat.Unknown, size=0)),
 ])
 def test_get_file_info(test: InfoTest) -> None:

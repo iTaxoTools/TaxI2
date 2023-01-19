@@ -44,25 +44,23 @@ class FileInfo(Type):
 @dataclass
 class Tabfile(FileInfo):
     headers: list[str]
-    header_id: str | None
-    header_seq: str | None
+    header_individuals: str | None
+    header_sequences: str | None
+    header_organism: str | None
     header_species: str | None
     header_genus: str | None
 
     @classmethod
     def get(cls, path: Path):
         headers = FileHandler.Tabfile(path, has_headers=True).headers
-        header_id = 'id' if 'id' in headers else None
-        header_seq = 'seq' if 'seq' in headers else None
-        header_species = 'organism' if 'organism' in headers else None
-        header_genus = 'organism' if 'organism' in headers else None
 
         return cls(
             headers = list(headers),
-            header_id = header_id,
-            header_seq = header_seq,
-            header_species = header_species,
-            header_genus = header_genus,
+            header_individuals = 'seqid' if 'seqid' in headers else None,
+            header_sequences = 'sequence' if 'sequence' in headers else None,
+            header_organism = 'organism' if 'organism' in headers else None,
+            header_species = 'species' if 'species' in headers else None,
+            header_genus = 'genus' if 'genus' in headers else None,
             **asdict(FileInfo.get(path))
         )
 
