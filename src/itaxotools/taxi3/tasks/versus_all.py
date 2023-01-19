@@ -22,11 +22,11 @@ def multiply(iterator: iter, n: int):
     return (item for item in iterator for i in range(n))
 
 
-def progress(distances, total):
-    for index, distance in enumerate(distances, 1):
+def console_report(caption, index, total):
+    if caption == 'Finalizing...':
+        print('\nFinalizing...')
+    else:
         print(f"\rCalculating... {index}/{total} = {100*index/total:.2f}%", end="")
-        yield distance
-    print('\nFinalizing...')
 
 
 class GenericDistance(NamedTuple):
@@ -236,7 +236,7 @@ class VersusAll:
         self.work_dir: Path = None
         self.paths = AttrDict()
 
-        self.progress_handler: Callable = progress
+        self.progress_handler: Callable = console_report
 
         self.input_sequences: Sequences = None
         self.input_species: Partition = None
@@ -460,6 +460,13 @@ class VersusAll:
                 file.write(distance)
                 yield distance
 
+    def report_progress(self, distances):
+        total = len(self.params.distances.metrics) * len(self.input_sequences) ** 2
+        for index, distance in enumerate(distances, 1):
+            self.progress_handler('distance.x.id', index, total)
+            yield distance
+        self.progress_handler('Finalizing...', 0, 0)
+
     def start(self) -> None:
         ts = perf_counter()
 
@@ -486,9 +493,9 @@ class VersusAll:
         distances_genera = self.aggregate_distances_genera(distances)
         distances = (distances for distances, _, _ in zip(distances, distances_species, distances_genera))
 
-        distances = progress(distances, len(self.params.distances.metrics) * len(sequences) ** 2)
-
         distances = self.write_summary(distances)
+
+        distances = self.report_progress(distances)
 
         for _ in distances:
             pass
