@@ -165,48 +165,80 @@ class SubsetIdentityStatisticsHandler(SubsetStatisticsHandler):
         file.write(out)
 
 
+class SubsetPair(NamedTuple):
+    x: str
+    y: str
+
+
+class SubsetDistance(NamedTuple):
+    distance: Distance
+    genera: SubsetPair | None
+    species: SubsetPair | None
+
+    def get_comparison_type(self) -> str:
+        same_genera = bool(self.genera.x == self.genera.y) if self.genera else None
+        same_species = bool(self.species.x == self.species.y) if self.species else None
+        return {
+            (None, None): '-',
+            (None, True): 'intra-species',
+            (None, False): 'inter-species',
+            (False, None): 'inter-genus',
+            (False, True): 'inter-genus',
+            (False, False): 'inter-genus',
+            (True, None): 'intra-genus',
+            (True, True): 'intra-species',
+            (True, False): 'inter-species',
+        }[(same_genera, same_species)]
+
+
+
 class SummaryHandler(DistanceHandler.Linear.WithExtras):
-    def _open(self, path, mode, species_partition, genera_partition):
-        self.species_partition = species_partition
-        self.genera_partition = genera_partition
+    def _open(self, path, mode):
         super()._open(path, mode, tagX=' (query 1)', tagY=' (query 2)')
 
-    def _write_headers(self, file: FileHandler.Tabfile, line: list[Distance]):
+    def _assemble_line(self) -> Generator[None, SubsetDistance, list[SubsetDistance]]:
+        buffer = self.buffer
+        try:
+            while True:
+                distance = yield
+                buffer.append(distance)
+                if any((
+                    buffer[0].distance.x.id != buffer[-1].distance.x.id,
+                    buffer[0].distance.y.id != buffer[-1].distance.y.id,
+                )):
+                    self.buffer = buffer[-1:]
+                    return buffer[:-1]
+        except GeneratorExit:
+            return
+
+    def _write_headers(self, file: FileHandler.Tabfile, line: list[SubsetDistance]):
         if self.wrote_headers:
             return
         idxHeader = self.idxHeader + self.tagX
         idyHeader = self.idyHeader + self.tagY
-        extrasX = [key + self.tagX for key in line[0].x.extras.keys()]
-        extrasY = [key + self.tagY for key in line[0].y.extras.keys()]
-        metrics = [str(distance.metric) for distance in line]
+        extrasX = [key + self.tagX for key in line[0].distance.x.extras.keys()]
+        extrasY = [key + self.tagY for key in line[0].distance.y.extras.keys()]
+        metrics = [str(subset_distance.distance.metric) for subset_distance in line]
         infoX = ('genus' + self.tagX, 'species' + self.tagX)
         infoY = ('genus' + self.tagY, 'species' + self.tagY)
         out = (idxHeader, idyHeader, *metrics, *extrasX, *extrasY, *infoX, *infoY, 'comparison_type')
         file.write(out)
         self.wrote_headers = True
 
-    def _write_scores(self, file: FileHandler.Tabfile, line: list[Distance]):
-        idx = line[0].x.id
-        idy = line[0].y.id
-        extrasX = line[0].x.extras.values()
-        extrasY = line[0].y.extras.values()
-        scores = [self.distanceToText(distance.d) for distance in line]
-        genusX = self.genera_partition[idx]
-        genusY = self.genera_partition[idy]
-        speciesX = self.species_partition[idx]
-        speciesY = self.species_partition[idy]
-        comparison_type = self._get_comparison_type(genusX, genusY, speciesX, speciesY)
-        out = (idx, idy, *scores, *extrasX, *extrasY, genusX, speciesX, genusY, speciesY, comparison_type)
+    def _write_scores(self, file: FileHandler.Tabfile, line: list[SubsetDistance]):
+        first = line[0]
+        idx = first.distance.x.id
+        idy = first.distance.y.id
+        extrasX = first.distance.x.extras.values()
+        extrasY = first.distance.y.extras.values()
+        scores = [self.distanceToText(subset_distance.distance.d) for subset_distance in line]
+        genusX = first.genera.x if first.genera else '-'
+        genusY = first.genera.y if first.genera else '-'
+        speciesX = first.species.x if first.species else '-'
+        speciesY = first.species.y if first.species else '-'
+        comparison_type = first.get_comparison_type()
+        out = (idx, idy, *scores, *extrasX, *extrasY, genusX or '-', speciesX or '-', genusY or '-', speciesY or '-', comparison_type)
         file.write(out)
-
-    @staticmethod
-    def _get_comparison_type(genusX, genusY, speciesX, speciesY) -> str:
-        if genusX == genusY:
-            if speciesX == speciesY:
-                return 'intra-species'
-            else:
-                return 'inter-species'
-        return 'inter-genus'
 
 
 class Results(NamedTuple):
@@ -238,9 +270,10 @@ class VersusAll:
 
         self.progress_handler: Callable = console_report
 
-        self.input_sequences: Sequences = None
-        self.input_species: Partition = None
-        self.input_genera: Partition = None
+        self.input = AttrDict()
+        self.input.sequences: Sequences = None
+        self.input.species: Partition = None
+        self.input.genera: Partition = None
 
         self.params = AttrDict()
 
@@ -248,10 +281,6 @@ class VersusAll:
         self.params.pairs.align: bool = True
         self.params.pairs.write: bool = True
         self.params.pairs.scores: Scores = None
-
-        self.params.subsets = AttrDict()
-        self.params.subsets.species: bool = True
-        self.params.subsets.genera: bool = True
 
         self.params.distances = AttrDict()
         self.params.distances.metrics: list[DistanceMetric] = None
@@ -268,15 +297,6 @@ class VersusAll:
         self.params.stats.all: bool = True
         self.params.stats.species: bool = True
         self.params.stats.genera: bool = True
-
-    def set_input_sequences_from_path(self, path: Path) -> None:
-        self.input_sequences = Sequences.fromPath(path, SequenceHandler.Tabfile, idHeader='seqid', seqHeader='sequence')
-
-    def set_input_species_from_path(self, path: Path) -> None:
-        self.input_species = Partition.fromPath(path, PartitionHandler.Tabfile, idHeader='seqid', subHeader='organism')
-
-    def set_input_genera_from_path(self, path: Path) -> None:
-        self.input_genera = Partition.fromPath(path, PartitionHandler.Tabfile, idHeader='seqid', subHeader='organism', filter=PartitionHandler.subset_first_word)
 
     def generate_paths(self):
         assert self.work_dir
@@ -325,16 +345,20 @@ class VersusAll:
             file.write(stats)
 
     def calculate_statistics_species(self, sequences: Sequences):
+        if not self.input.species:
+            return sequences
         if not self.params.stats.species:
             return sequences
 
-        return self._calculate_statistics_partition(sequences, self.input_species, 'species', self.paths.stats_species)
+        return self._calculate_statistics_partition(sequences, self.input.species, 'species', self.paths.stats_species)
 
     def calculate_statistics_genera(self, sequences: Sequences):
+        if not self.input.genera:
+            return sequences
         if not self.params.stats.genera:
             return sequences
 
-        return self._calculate_statistics_partition(sequences, self.input_genera, 'genera', self.paths.stats_genera)
+        return self._calculate_statistics_partition(sequences, self.input.genera, 'genera', self.paths.stats_genera)
 
     def _calculate_statistics_partition(self, sequences: Sequences, partition: Partition, group_name: str, path: Path):
         try:
@@ -409,17 +433,17 @@ class VersusAll:
                     file.write(distance)
                 yield distance
 
-    def aggregate_distances_species(self, distances: Distances):
-        if not self.params.subsets.species:
-            return distances
-        return self._aggregate_distances(distances, self.input_species, 'species', self.paths.subsets)
+    def aggregate_distances_species(self, distances: Distances) -> iter[SubsetPair | None]:
+        if not self.input.species:
+            return (None for _ in distances)
+        return self._aggregate_distances(distances, self.input.species, 'species', self.paths.subsets)
 
-    def aggregate_distances_genera(self, distances: Distances):
-        if not self.params.subsets.genera:
-            return distances
-        return self._aggregate_distances(distances, self.input_genera, 'genera', self.paths.subsets)
+    def aggregate_distances_genera(self, distances: Distances) -> iter[SubsetPair | None]:
+        if not self.input.genera:
+            return (None for _ in distances)
+        return self._aggregate_distances(distances, self.input.genera, 'genera', self.paths.subsets)
 
-    def _aggregate_distances(self, distances: Distances, partition: Partition, group_name: str, path: Path):
+    def _aggregate_distances(self, distances: Distances, partition: Partition, group_name: str, path: Path) -> iter[SubsetPair]:
         try:
             aggregators = dict()
             for metric in self.params.distances.metrics:
@@ -430,7 +454,7 @@ class VersusAll:
                 subset_y = partition[distance.y.id]
                 generic = GenericDistance(distance.metric, subset_x, subset_y, distance.d)
                 aggregators[str(generic.metric)].add(generic)
-                yield generic
+                yield SubsetPair(subset_x, subset_y)
 
         except GeneratorExit:
             pass
@@ -450,20 +474,22 @@ class VersusAll:
                     else:
                         pairs_file.write(bunch)
 
-    def write_summary(self, distances):
-        with SummaryHandler(self.paths.summary, 'w', self.input_species, self.input_genera) as file:
+    def write_summary(self, distances: iter[SubsetDistance]):
+        with SummaryHandler(self.paths.summary, 'w') as file:
             for distance in distances:
-                if 'organism' in distance.x.extras:
-                    del distance.x.extras['organism']
-                if 'organism' in distance.y.extras:
-                    del distance.y.extras['organism']
+                # if 'organism' in distance.x.extras:
+                #     del distance.x.extras['organism']
+                # if 'organism' in distance.y.extras:
+                #     del distance.y.extras['organism']
                 file.write(distance)
                 yield distance
 
-    def report_progress(self, distances):
-        total = len(self.params.distances.metrics) * len(self.input_sequences) ** 2
+    def report_progress(self, distances: iter[SubsetDistance]):
+        total = len(self.params.distances.metrics) * len(self.input.sequences) ** 2
+        from sys import stderr
         for index, distance in enumerate(distances, 1):
             self.progress_handler('distance.x.id', index, total)
+            print(index, str(distance.distance.metric), distance.distance.x.id, distance.distance.y.id, file=stderr)
             yield distance
         self.progress_handler('Finalizing...', 0, 0)
 
@@ -473,7 +499,7 @@ class VersusAll:
         self.generate_paths()
         self.check_metrics()
 
-        sequences = self.input_sequences.normalize()
+        sequences = self.input.sequences.normalize()
 
         sequences_left = sequences
         sequences_left = self.calculate_statistics_all(sequences_left)
@@ -489,15 +515,15 @@ class VersusAll:
         distances = self.write_distances_multimatrix(distances)
 
         distances = multiply(distances, 3)
-        distances_species = self.aggregate_distances_species(distances)
-        distances_genera = self.aggregate_distances_genera(distances)
-        distances = (distances for distances, _, _ in zip(distances, distances_species, distances_genera))
+        genera_pair = self.aggregate_distances_genera(distances)
+        species_pair = self.aggregate_distances_species(distances)
+        subset_distances = (SubsetDistance(d, g, s) for d, g, s in zip(distances, genera_pair, species_pair))
 
-        distances = self.write_summary(distances)
+        subset_distances = self.write_summary(subset_distances)
 
-        distances = self.report_progress(distances)
+        subset_distances = self.report_progress(subset_distances)
 
-        for _ in distances:
+        for _ in subset_distances:
             pass
 
         tf = perf_counter()
