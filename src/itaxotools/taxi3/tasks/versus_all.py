@@ -16,7 +16,7 @@ from ..sequences import Sequences, SequenceHandler
 from ..partitions import Partition, PartitionHandler
 from ..statistics import StatisticsCalculator, StatisticsHandler
 from ..handlers import FileHandler
-
+from ..plot import HistogramPlotter
 
 def multiply(iterator: iter, n: int):
     return (item for item in iterator for i in range(n))
@@ -191,7 +191,6 @@ class SubsetDistance(NamedTuple):
         }[(same_genera, same_species)]
 
 
-
 class SummaryHandler(DistanceHandler.Linear.WithExtras):
     def _open(self, path, mode):
         super()._open(path, mode, tagX=' (query 1)', tagY=' (query 2)')
@@ -287,6 +286,9 @@ class VersusAll:
         self.params.distances.write_linear: bool = True
         self.params.distances.write_matricial: bool = True
 
+        self.params.plot = AttrDict()
+        self.params.plot.histograms: bool = True
+
         self.params.format = AttrDict()
         self.params.format.float: str = '{:.4f}'
         self.params.format.percentage: str = '{:.2f}'
@@ -309,6 +311,7 @@ class VersusAll:
         self.paths.distances_linear = self.work_dir / 'distances' / 'linear.tsv'
         self.paths.distances_matricial = self.work_dir / 'distances' / 'matricial'
         self.paths.subsets = self.work_dir / 'subsets'
+        self.paths.plots = self.work_dir / 'plots'
 
         for path in [
             self.paths.summary,
@@ -474,6 +477,17 @@ class VersusAll:
                     else:
                         pairs_file.write(bunch)
 
+    def plot_histograms(self, distances: iter[SubsetDistance]):
+        if not self.params.plot.histograms:
+            yield from distances
+
+        plotter = HistogramPlotter()
+        for subset_distance in distances:
+            plotter.add(str(subset_distance.distance.metric), subset_distance.distance.d, subset_distance.get_comparison_type())
+            yield subset_distance
+        self.create_parents(self.paths.plots)
+        plotter.plot(self.paths.plots)
+
     def write_summary(self, distances: iter[SubsetDistance]):
         with SummaryHandler(self.paths.summary, 'w') as file:
             for distance in distances:
@@ -486,10 +500,8 @@ class VersusAll:
 
     def report_progress(self, distances: iter[SubsetDistance]):
         total = len(self.params.distances.metrics) * len(self.input.sequences) ** 2
-        from sys import stderr
         for index, distance in enumerate(distances, 1):
             self.progress_handler('distance.x.id', index, total)
-            print(index, str(distance.distance.metric), distance.distance.x.id, distance.distance.y.id, file=stderr)
             yield distance
         self.progress_handler('Finalizing...', 0, 0)
 
@@ -519,6 +531,7 @@ class VersusAll:
         species_pair = self.aggregate_distances_species(distances)
         subset_distances = (SubsetDistance(d, g, s) for d, g, s in zip(distances, genera_pair, species_pair))
 
+        subset_distances = self.plot_histograms(subset_distances)
         subset_distances = self.write_summary(subset_distances)
 
         subset_distances = self.report_progress(subset_distances)
