@@ -10,6 +10,13 @@ from matplotlib import rc
 
 
 class HistogramPoint(NamedTuple):
+    _types = [
+        'intra-species',
+        'inter-species',
+        'intra-genus',
+        'inter-genus',
+    ]
+
     value: float
     type: str
 
@@ -37,16 +44,31 @@ class HistogramPlotter:
             path = output_path / metric
             path.mkdir(exist_ok=True)
             df = pd.DataFrame(self.metrics[metric], columns=HistogramPoint._fields)
-            self.plot_layered(metric, df, path / f'{metric}_layered_hist')
-            self.plot_histogram(metric, df, 'stack', path / f'{metric}_stacked_hist')
-            self.plot_histogram(metric, df, 'dodge', path / f'{metric}_dodge_hist')
-            df['type'] = df['type'].str.replace('inter-genus', 'inter-species')
-            self.plot_layered(metric, df, path / f'{metric}_layered_hist_no_genus')
-            self.plot_histogram(metric, df, 'stack', path / f'{metric}_stacked_hist_no_genus')
-            self.plot_histogram(metric, df, 'dodge', path / f'{metric}_dodge_hist_no_genus')
+            types = list(df['type'].unique())
+            palette = self.palette_from_types(types)
 
-    def plot_layered(self, metric: str, df: pd.DataFrame, path: Path):
-        g = sns.FacetGrid(df, row='type', height=1.5, aspect=4)
+            self.plot_layered(metric, df, palette, path / f'{metric}_layered_hist')
+            self.plot_histogram(metric, df, 'stack', palette, path / f'{metric}_stacked_hist')
+            self.plot_histogram(metric, df, 'dodge', palette, path / f'{metric}_dodge_hist')
+
+            if not all((
+                any(type in types for type in ['inter-species', 'intra-species']),
+                any(type in types for type in ['inter-genus', 'intra-genus']),
+            )):
+                continue
+
+            path = path / 'no_genus'
+            path.mkdir(exist_ok=True)
+            df['type'] = df['type'].str.replace('inter-genus', 'inter-species')
+            if 'inter-genus' in types:
+                types.remove('inter-genus')
+            palette = self.palette_from_types(types)
+            self.plot_layered(metric, df, palette, path / f'{metric}_layered_hist_no_genus')
+            self.plot_histogram(metric, df, 'stack', palette, path / f'{metric}_stacked_hist_no_genus')
+            self.plot_histogram(metric, df, 'dodge', palette, path / f'{metric}_dodge_hist_no_genus')
+
+    def plot_layered(self, metric: str, df: pd.DataFrame, palette: list[tuple], path: Path):
+        g = sns.FacetGrid(df, row='type', hue='type', palette=palette, height=1.5, aspect=4)
         g.map_dataframe(sns.histplot, x='value', binwidth=self.binwindth, binrange=(0.0, 1.0))
         g.set_axis_labels('distance', 'Count')
         g.set_xlabels(metric)
@@ -54,9 +76,9 @@ class HistogramPlotter:
             g.savefig(path.with_suffix(f'.{format}'), transparent=True)
         plt.close(g.fig)
 
-    def plot_histogram(self, metric: str, df: pd.DataFrame, multiple: str, path: Path):
+    def plot_histogram(self, metric: str, df: pd.DataFrame, multiple: str, palette: list[tuple], path: Path):
         fig, ax = plt.subplots()
-        sns.histplot(df, x='value', hue='type', multiple=multiple, binwidth=self.binwindth, binrange=(0.0, 1.0), ax=ax)
+        sns.histplot(df, x='value', hue='type', multiple=multiple, binwidth=self.binwindth, binrange=(0.0, 1.0), palette=palette, ax=ax)
         sns.despine()
 
         ax.margins(x=0.01)
@@ -68,3 +90,10 @@ class HistogramPlotter:
         for format in self.formats:
             fig.savefig(path.with_suffix(f'.{format}'), transparent=True)
         plt.close(fig)
+
+    @staticmethod
+    def palette_from_types(types: list[str]) -> list[tuple]:
+        """Make sure each type has consistent color among runs"""
+        indices = [HistogramPoint._types.index(type) for type in types]
+        palette = sns.color_palette()
+        return [palette[index] for index in indices]
