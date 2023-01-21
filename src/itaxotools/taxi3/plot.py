@@ -22,11 +22,12 @@ class HistogramPoint(NamedTuple):
 
 
 class HistogramPlotter:
-    def __init__(self, formats: list[str] = None, binwindth = 0.05, palette = None):
-        self.metrics: dict[str, HistogramPoint] = dict()
+    def __init__(self, formats: list[str] = None, palette = None, binwidth = 0.05):
         self.formats = formats or ['png']
-        self.binwindth = binwindth
-        self.palette = palette
+        self.palette = palette or sns.color_palette()
+        self.binwidth = binwidth
+
+        self.metrics: dict[str, HistogramPoint] = dict()
 
     def add(self, metric: str, value: float, type: str):
         if not metric in self.metrics:
@@ -69,7 +70,7 @@ class HistogramPlotter:
 
     def plot_layered(self, metric: str, df: pd.DataFrame, palette: list[tuple], path: Path):
         g = sns.FacetGrid(df, row='type', hue='type', palette=palette, height=1.5, aspect=4)
-        g.map_dataframe(sns.histplot, x='value', binwidth=self.binwindth, binrange=(0.0, 1.0))
+        g.map_dataframe(sns.histplot, x='value', binwidth=self.binwidth, binrange=(0.0, 1.0))
         g.set_axis_labels('distance', 'Count')
         g.set_xlabels(metric)
         for format in self.formats:
@@ -78,7 +79,7 @@ class HistogramPlotter:
 
     def plot_histogram(self, metric: str, df: pd.DataFrame, multiple: str, palette: list[tuple], path: Path):
         fig, ax = plt.subplots()
-        sns.histplot(df, x='value', hue='type', multiple=multiple, binwidth=self.binwindth, binrange=(0.0, 1.0), palette=palette, ax=ax)
+        sns.histplot(df, x='value', hue='type', multiple=multiple, binwidth=self.binwidth, binrange=(0.0, 1.0), palette=palette, ax=ax)
         sns.despine()
 
         ax.margins(x=0.01)
@@ -91,9 +92,8 @@ class HistogramPlotter:
             fig.savefig(path.with_suffix(f'.{format}'), transparent=True)
         plt.close(fig)
 
-    @staticmethod
-    def palette_from_types(types: list[str]) -> list[tuple]:
+    def palette_from_types(self, types: list[str]) -> list[tuple]:
         """Make sure each type has consistent color among runs"""
         indices = [HistogramPoint._types.index(type) for type in types]
-        palette = sns.color_palette()
+        palette = self.palette
         return [palette[index] for index in indices]

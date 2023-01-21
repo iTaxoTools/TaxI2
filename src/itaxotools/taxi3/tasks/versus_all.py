@@ -288,6 +288,9 @@ class VersusAll:
 
         self.params.plot = AttrDict()
         self.params.plot.histograms: bool = True
+        self.params.plot.binwidth: float = None
+        self.params.plot.formats: list[str] = None
+        self.params.plot.palette: list[tuple] = None
 
         self.params.format = AttrDict()
         self.params.format.float: str = '{:.4f}'
@@ -481,7 +484,11 @@ class VersusAll:
         if not self.params.plot.histograms:
             yield from distances
 
-        plotter = HistogramPlotter()
+        plotter = HistogramPlotter(
+            formats = self.params.plot.formats,
+            palette = self.params.plot.palette,
+            binwidth = self.params.plot.binwidth,
+        )
         for subset_distance in distances:
             plotter.add(str(subset_distance.distance.metric), subset_distance.distance.d, subset_distance.get_comparison_type())
             yield subset_distance
