@@ -58,7 +58,9 @@ class SimpleAggregator:
         self.max = 0.0
         self.n = 0
 
-    def add(self, value: float):
+    def add(self, value: float | None):
+        if value is None:
+            return
         self.sum += value
         if value < self.min:
             self.min = value
@@ -393,7 +395,7 @@ class VersusAll:
             yield from pairs
             return
 
-        aligner = PairwiseAligner.Biopython()
+        aligner = PairwiseAligner.Biopython(self.params.pairs.scores)
         yield from aligner.align_pairs(pairs)
 
     def write_pairs(self, pairs: SequencePairs):

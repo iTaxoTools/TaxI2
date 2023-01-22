@@ -212,7 +212,7 @@ class Tabular(FileHandler):
 
 class Tabfile(Tabular, FileHandler):
     def _iter_read_rows(self) -> ReadHandle[Row]:
-        with open(self.path, 'r') as file:
+        with open(self.path, 'r', encoding='utf-8', errors='surrogateescape') as file:
             for line in file:
                 line = line[:-1]
                 if not line:
