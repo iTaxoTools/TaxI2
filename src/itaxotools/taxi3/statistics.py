@@ -232,17 +232,21 @@ class StatisticsHandler(FileHandler[Statistics]):
         mode: 'w' | 'w' = 'w',
         float_formatter: str = '{:f}',
         percentage_formatter: str = '{:f}',
+        percentage_multiply: bool = False,
         *args, **kwargs
     ):
         self.formatters = {}
         self.formatters[float] = float_formatter
         self.formatters[Percentage] = percentage_formatter
+        self.percentage_multiply = percentage_multiply
         super()._open(path, mode, *args, **kwargs)
 
     def _iter_read(self) -> ReadHandle[Statistics]:
         raise NotImplementedError()
 
     def statisticToText(self, value):
+        if isinstance(value, Percentage) and self.percentage_multiply:
+            value = Percentage(value * 100)
         formatter = self.formatters.get(type(value), '{}')
         return formatter.format(value)
 

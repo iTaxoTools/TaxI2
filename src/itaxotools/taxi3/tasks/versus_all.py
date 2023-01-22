@@ -194,8 +194,8 @@ class SubsetDistance(NamedTuple):
 
 
 class SummaryHandler(DistanceHandler.Linear.WithExtras):
-    def _open(self, path, mode):
-        super()._open(path, mode, tagX=' (query 1)', tagY=' (query 2)')
+    def _open(self, path, mode, *args, **kwargs):
+        super()._open(path, mode, tagX=' (query 1)', tagY=' (query 2)', *args, **kwargs)
 
     def _assemble_line(self) -> Generator[None, SubsetDistance, list[SubsetDistance]]:
         buffer = self.buffer
@@ -348,7 +348,12 @@ class VersusAll:
             yield sequence
 
         self.create_parents(self.paths.stats_all)
-        with StatisticsHandler.Single(self.paths.stats_all, 'w', float_formatter='{:.2f}', percentage_formatter='{:.2f}') as file:
+        with StatisticsHandler.Single(
+            self.paths.stats_all, 'w',
+            float_formatter = self.params.format.float,
+            percentage_formatter = self.params.format.percentage,
+            percentage_multiply = self.params.format.percentage_multiply,
+        ) as file:
             stats = allStats.calculate()
             file.write(stats)
 
@@ -385,7 +390,13 @@ class VersusAll:
 
         finally:
             self.create_parents(path)
-            with StatisticsHandler.Groups(path, 'w', group_name=group_name, float_formatter='{:.2f}', percentage_formatter='{:.2f}') as file:
+            with StatisticsHandler.Groups(
+                path, 'w',
+                group_name = group_name,
+                float_formatter = self.params.format.float,
+                percentage_formatter = self.params.format.percentage,
+                percentage_multiply = self.params.format.percentage_multiply,
+            ) as file:
                 for calc in calculators.values():
                     stats = calc.calculate()
                     file.write(stats)
@@ -414,13 +425,26 @@ class VersusAll:
             for metric in self.params.distances.metrics:
                 yield metric.calculate(x, y)
 
+    def adjust_distances(self, distances: Distances):
+        if not self.params.format.percentage_multiply:
+            yield from distances
+            return
+
+        for distance in distances:
+            distance = distance._replace(d = distance.d * 100)
+            yield distance
+
     def write_distances_linear(self, distances: Distances):
         if not self.params.distances.write_linear:
             yield from distances
             return
 
         self.create_parents(self.paths.distances_linear)
-        with DistanceHandler.Linear.WithExtras(self.paths.distances_linear, 'w') as file:
+        with DistanceHandler.Linear.WithExtras(
+            self.paths.distances_linear, 'w',
+            missing = self.params.format.missing,
+            formatter = self.params.format.float,
+        ) as file:
             for distance in distances:
                 file.write(distance)
                 yield distance
@@ -431,11 +455,15 @@ class VersusAll:
 
         self.create_parents(self.paths.distances_matricial)
         for metric in self.params.distances.metrics:
-            distances = self._write_distances_matrix(distances, metric, self.paths.distances_matricial / f'{metric.label}.tsv')
+            distances = self._write_distances_matrix(distances, metric, self.paths.distances_matricial / f'{str(metric)}.tsv')
         return distances
 
     def _write_distances_matrix(self, distances: Distances, metric: DistanceMetric, path: Path):
-        with DistanceHandler.Matrix(path, 'w') as file:
+        with DistanceHandler.Matrix(
+            path, 'w',
+            missing = self.params.format.missing,
+            formatter = self.params.format.float,
+        ) as file:
             for distance in distances:
                 if distance.metric.type == metric.type:
                     file.write(distance)
@@ -470,8 +498,14 @@ class VersusAll:
         finally:
             self.create_parents(path)
             with (
-                SubsetPairsStatisticsHandler(path / f'{group_name}.pairs.tsv', 'w', formatter='{:.4f}') as pairs_file,
-                SubsetIdentityStatisticsHandler(path / f'{group_name}.identity.tsv', 'w', formatter='{:.4f}') as identity_file,
+                SubsetPairsStatisticsHandler(
+                    path / f'{group_name}.pairs.tsv', 'w',
+                    formatter = self.params.format.float,
+                ) as pairs_file,
+                SubsetIdentityStatisticsHandler(
+                    path / f'{group_name}.identity.tsv', 'w',
+                    formatter = self.params.format.float,
+                ) as identity_file,
             ):
                 aggs = aggregators.values()
                 iterators = (iter(agg) for agg in aggs)
@@ -490,6 +524,7 @@ class VersusAll:
             formats = self.params.plot.formats,
             palette = self.params.plot.palette,
             binwidth = self.params.plot.binwidth,
+            binfactor = 100.0 if self.params.format.percentage_multiply else 1.0,
         )
         for subset_distance in distances:
             plotter.add(str(subset_distance.distance.metric), subset_distance.distance.d, subset_distance.get_comparison_type())
@@ -498,7 +533,11 @@ class VersusAll:
         plotter.plot(self.paths.plots)
 
     def write_summary(self, distances: iter[SubsetDistance]):
-        with SummaryHandler(self.paths.summary, 'w') as file:
+        with SummaryHandler(
+            self.paths.summary, 'w',
+            missing = self.params.format.missing,
+            formatter = self.params.format.float,
+        ) as file:
             for distance in distances:
                 # if 'organism' in distance.x.extras:
                 #     del distance.x.extras['organism']
@@ -532,6 +571,7 @@ class VersusAll:
         pairs = self.write_pairs(pairs)
 
         distances = self.calculate_distances(pairs)
+        distances = self.adjust_distances(distances)
         distances = self.write_distances_linear(distances)
         distances = self.write_distances_multimatrix(distances)
 

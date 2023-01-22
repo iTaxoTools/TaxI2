@@ -22,10 +22,11 @@ class HistogramPoint(NamedTuple):
 
 
 class HistogramPlotter:
-    def __init__(self, formats: list[str] = None, palette = None, binwidth = 0.05):
+    def __init__(self, formats: list[str] = None, palette = None, binwidth = 0.05, binfactor = 1.0):
         self.formats = formats or ['png']
         self.palette = palette or sns.color_palette()
         self.binwidth = binwidth
+        self.binfactor = binfactor
 
         self.metrics: dict[str, HistogramPoint] = dict()
 
@@ -70,23 +71,20 @@ class HistogramPlotter:
 
     def plot_layered(self, metric: str, df: pd.DataFrame, palette: list[tuple], path: Path):
         g = sns.FacetGrid(df, row='type', hue='type', palette=palette, height=1.5, aspect=4)
-        g.map_dataframe(sns.histplot, x='value', binwidth=self.binwidth, binrange=(0.0, 1.0))
-        g.set_axis_labels('distance', 'Count')
-        g.set_xlabels(metric)
+        g.map_dataframe(sns.histplot, x='value', binwidth=self.binwidth * self.binfactor, binrange=(0.0, self.binfactor))
+        g.set_xlabels(f'{metric} distance')
+        g.set_ylabels('Count')
         for format in self.formats:
             g.savefig(path.with_suffix(f'.{format}'), transparent=True)
         plt.close(g.fig)
 
     def plot_histogram(self, metric: str, df: pd.DataFrame, multiple: str, palette: list[tuple], path: Path):
         fig, ax = plt.subplots()
-        sns.histplot(df, x='value', hue='type', multiple=multiple, binwidth=self.binwidth, binrange=(0.0, 1.0), palette=palette, ax=ax)
+        sns.histplot(df, x='value', hue='type', multiple=multiple, binwidth=self.binwidth * self.binfactor, binrange=(0.0, self.binfactor), palette=palette, ax=ax)
         sns.despine()
 
-        ax.margins(x=0.01)
-        ax.set_title(ax.get_title(), fontsize=20)
-        ax.set_xlabel(ax.get_xlabel(), fontsize=12)
-        ax.set_ylabel(ax.get_ylabel(), fontsize=12)
-        ax.tick_params(axis='both', labelsize=10)
+        ax.set_xlabel(f'{metric} distance')
+        ax.set_ylabel('Count')
 
         for format in self.formats:
             fig.savefig(path.with_suffix(f'.{format}'), transparent=True)
