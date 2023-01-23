@@ -5,6 +5,7 @@ from itaxotools.taxi3.tasks.versus_all import VersusAll
 from itaxotools.taxi3.sequences import Sequences, SequenceHandler
 from itaxotools.taxi3.partitions import Partition, PartitionHandler
 
+
 def main(input_path: Path, output_path: Path):
     task = VersusAll()
     task.input.sequences = Sequences.fromPath(input_path, SequenceHandler.Tabfile, idHeader='seqid', seqHeader='sequence')
