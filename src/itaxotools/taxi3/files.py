@@ -8,6 +8,7 @@ from dataclasses import dataclass, asdict
 
 from .types import Type
 from .handlers import FileHandler
+from .encoding import sanitize
 
 
 class Identifier:
@@ -53,6 +54,7 @@ class Tabfile(FileInfo):
     @classmethod
     def get(cls, path: Path):
         headers = FileHandler.Tabfile(path, has_headers=True).headers
+        headers = [sanitize(header) for header in headers]
 
         return cls(
             headers = list(headers),

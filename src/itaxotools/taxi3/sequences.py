@@ -9,6 +9,7 @@ from Bio.SeqIO.FastaIO import SimpleFastaParser
 
 from .types import Container, Type
 from .handlers import FileHandler, ReadHandle, WriteHandle
+from .encoding import sanitize
 
 
 class Sequence(NamedTuple):
@@ -84,10 +85,12 @@ class Tabular(SequenceHandler):
         ) as rows:
 
             headers = rows.headers
+            if headers is not None:
+                headers = [sanitize(header) for header in headers]
             extras = dict()
             yield self
             for row in rows:
-                id = row[0]
+                id = sanitize(row[0])
                 seq = row[1]
                 if headers is not None:
                     extras = { k: v for (k, v) in zip(headers[2:], row[2:]) }
