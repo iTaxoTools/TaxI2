@@ -15,6 +15,7 @@ class HistogramPoint(NamedTuple):
         'inter-species',
         'intra-genus',
         'inter-genus',
+        '-',
     ]
 
     value: float
