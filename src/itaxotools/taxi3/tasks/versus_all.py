@@ -24,6 +24,7 @@ def multiply(iterator: iter, n: int):
 
 def console_report(caption, index, total):
     if caption == 'Finalizing...':
+        print(f"\rCalculating... {total}/{total} = {100:.2f}%", end="")
         print('\nFinalizing...')
     else:
         print(f"\rCalculating... {index}/{total} = {100*index/total:.2f}%", end="")
@@ -277,6 +278,7 @@ class VersusAll:
         self.input.genera: Partition = None
 
         self.params = AttrDict()
+        self.progress_interval: float = 0.015
 
         self.params.pairs = AttrDict()
         self.params.pairs.align: bool = True
@@ -290,7 +292,7 @@ class VersusAll:
 
         self.params.plot = AttrDict()
         self.params.plot.histograms: bool = True
-        self.params.plot.binwidth: float = None
+        self.params.plot.binwidth: float = 0.05
         self.params.plot.formats: list[str] = None
         self.params.plot.palette: list[tuple] = None
 
@@ -548,10 +550,14 @@ class VersusAll:
 
     def report_progress(self, distances: iter[SubsetDistance]):
         total = len(self.params.distances.metrics) * len(self.input.sequences) ** 2
+        last_time = perf_counter()
         for index, distance in enumerate(distances, 1):
-            self.progress_handler('distance.x.id', index, total)
+            new_time = perf_counter()
+            if new_time - last_time >= self.progress_interval:
+                self.progress_handler('distance.x.id', index, total)
+                last_time = new_time
             yield distance
-        self.progress_handler('Finalizing...', 0, 0)
+        self.progress_handler('Finalizing...', total, total)
 
     def start(self) -> None:
         ts = perf_counter()
