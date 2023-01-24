@@ -191,7 +191,7 @@ class VersusReference:
                 file.write(distance)
                 yield distance
 
-    def report_progress(self, distances: iter[SubsetDistance]):
+    def report_progress(self, distances: iter[Distance]):
         total = len(self.params.distances.metrics) * len(self.input.sequences) ** 2
         last_time = perf_counter()
         for index, distance in enumerate(distances, 1):
