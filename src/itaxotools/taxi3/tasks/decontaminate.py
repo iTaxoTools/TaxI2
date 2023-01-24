@@ -48,8 +48,6 @@ class SummaryLine(NamedTuple):
     query_id: str
     outgroup_id: str
     outgroup_distance: float
-    ingroup_id: str
-    ingroup_distance: float
     contaminant: bool
 
 
@@ -77,8 +75,6 @@ class SummaryHandle(FileHandler[SummaryLine]):
             line.query_id,
             line.outgroup_id,
             self.formatter.format(line.outgroup_distance),
-            line.ingroup_id,
-            self.formatter.format(line.ingroup_distance),
             'Yes' if line.contaminant else 'No',
         )
 
@@ -92,7 +88,7 @@ class SummaryHandle(FileHandler[SummaryLine]):
             return
 
 
-class Decontaminate2:
+class Decontaminate:
 
     def __init__(self):
 
@@ -104,13 +100,11 @@ class Decontaminate2:
 
         self.input: Sequences = None
         self.outgroup: Sequences = None
-        self.ingroup: Sequences = None
 
         self.params = AttrDict()
 
-        self.params.weights = AttrDict()
-        self.params.weights.outgroup: float = 1.0
-        self.params.weights.ingroup: float = 1.0
+        self.params.thresholds = AttrDict()
+        self.params.thresholds.similarity: float = 0.07
 
         self.params.pairs = AttrDict()
         self.params.pairs.align: bool = True
@@ -140,10 +134,8 @@ class Decontaminate2:
         self.paths.decontaminated = self.work_dir / f'decontaminated{extension}'
         self.paths.contaminants = self.work_dir / f'contaminants{extension}'
         self.paths.aligned_pairs = self.work_dir / 'aligned_pairs.txt'
-        self.paths.outgroup_linear = self.work_dir / 'distances' / f'outgroup.{metric}.linear.tsv'
-        self.paths.outgroup_matrix = self.work_dir / 'distances' / f'outgroup.{metric}.matricial.tsv'
-        self.paths.ingroup_linear = self.work_dir / 'distances' / f'ingroup.{metric}.linear.tsv'
-        self.paths.ingroup_matrix = self.work_dir / 'distances' / f'ingroup.{metric}.matricial.tsv'
+        self.paths.distances_linear = self.work_dir / 'distances' / f'{metric}.linear.tsv'
+        self.paths.distances_matrix = self.work_dir / 'distances' / f'{metric}.matricial.tsv'
 
     def create_parents(self, path: Path):
         if path.suffix:
@@ -199,10 +191,7 @@ class Decontaminate2:
                 yield distance
 
     def write_outgroup_distances_linear(self, distances: iter[Distance]) -> iter[Distance]:
-        return self.write_distances_linear(distances, self.paths.outgroup_linear)
-
-    def write_ingroup_distances_linear(self, distances: iter[Distance]) -> iter[Distance]:
-        return self.write_distances_linear(distances, self.paths.ingroup_linear)
+        return self.write_distances_linear(distances, self.paths.distances_linear)
 
     def write_distances_matrix(self, distances: iter[Distance], path: Path) -> iter[Distance]:
         if not self.params.distances.write_matricial:
@@ -220,10 +209,7 @@ class Decontaminate2:
                 yield distance
 
     def write_outgroup_distances_matrix(self, distances: iter[Distance]) -> iter[Distance]:
-        return self.write_distances_matrix(distances, self.paths.outgroup_matrix)
-
-    def write_ingroup_distances_matrix(self, distances: iter[Distance]) -> iter[Distance]:
-        return self.write_distances_matrix(distances, self.paths.ingroup_matrix)
+        return self.write_distances_matrix(distances, self.paths.distances_matrix)
 
     def group_distances_left(self, distances: iter[Distance]) -> iter[iter[Distance]]:
         for _, group in groupby(distances, lambda distance: distance.x.id):
@@ -239,23 +225,17 @@ class Decontaminate2:
         self,
         sequences: iter[Sequence],
         out_minimums: iter[Distance],
-        in_minimums: iter[Distance],
     ) -> iter[tuple[Verdict, SummaryLine]]:
 
-        outgroup_weight = self.params.weights.outgroup
-        ingroup_weight = self.params.weights.ingroup
-        all = zip(sequences, out_minimums, in_minimums)
-        for sequence, outgroup_minimum, ingroup_minimum in all:
-            outgroup_distance = outgroup_minimum.d * outgroup_weight
-            ingroup_distance = ingroup_minimum.d * ingroup_weight
-            is_contaminant = bool(outgroup_distance <= ingroup_distance)
+        threshold = self.params.thresholds.similarity
+        all = zip(sequences, out_minimums)
+        for sequence, outgroup_minimum in all:
+            is_contaminant = bool(outgroup_minimum.d <= threshold)
             verdict = Verdict(sequence, is_contaminant)
             line = SummaryLine(
                 query_id = sequence.id,
                 outgroup_id = outgroup_minimum.y.id,
-                outgroup_distance = outgroup_distance,
-                ingroup_id = ingroup_minimum.y.id,
-                ingroup_distance = ingroup_distance,
+                outgroup_distance = outgroup_minimum.d,
                 contaminant = is_contaminant,
             )
             yield (verdict, line)
@@ -264,10 +244,9 @@ class Decontaminate2:
         self,
         sequences: iter[Sequence],
         out_minimums: iter[Distance],
-        in_minimums: iter[Distance],
     ) -> tuple[iter[Verdict], iter[SummaryLine]]:
 
-        data = self._find_contaminants(sequences, out_minimums, in_minimums)
+        data = self._find_contaminants(sequences, out_minimums)
         return split(data, lambda x: x[0], lambda x: x[1])
 
     def write_file_decontaminated(self, verdicts: iter[Verdict]) -> iter[Verdict]:
@@ -324,17 +303,7 @@ class Decontaminate2:
         out_groups = self.group_distances_left(out_distances)
         out_minimums = self.get_minimum_distances(out_groups)
 
-        ingroup = self.ingroup.normalize()
-        in_pairs = SequencePairs.fromProduct(data, ingroup)
-        in_pairs = self.align_pairs(in_pairs)
-        in_pairs = self.write_pairs(in_pairs)
-        in_distances = self.calculate_distances(in_pairs)
-        in_distances = self.write_ingroup_distances_linear(in_distances)
-        in_distances = self.write_ingroup_distances_matrix(in_distances)
-        in_groups = self.group_distances_left(in_distances)
-        in_minimums = self.get_minimum_distances(in_groups)
-
-        verdicts, lines = self.find_contaminants(data, out_minimums, in_minimums)
+        verdicts, lines = self.find_contaminants(data, out_minimums)
         verdicts = self.write_file_decontaminated(verdicts)
         verdicts = self.write_file_contaminants(verdicts)
         verdicts = self.report_progress(verdicts)
