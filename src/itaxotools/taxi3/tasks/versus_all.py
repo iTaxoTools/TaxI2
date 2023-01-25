@@ -240,7 +240,7 @@ class SummaryHandler(DistanceHandler.Linear.WithExtras):
         speciesX = first.species.x if first.species else '-'
         speciesY = first.species.y if first.species else '-'
         comparison_type = first.get_comparison_type()
-        out = (idx, idy, *scores, *extrasX, *extrasY, genusX or '-', speciesX or '-', genusY or '-', speciesY or '-', str(comparison_type))
+        out = (idx, idy, *scores, *extrasX, *extrasY, genusX or '-', speciesX or '-', genusY or '-', speciesY or '-', comparison_type.label)
         file.write(out)
 
 
