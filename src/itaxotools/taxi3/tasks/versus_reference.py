@@ -192,7 +192,7 @@ class VersusReference:
                 yield distance
 
     def report_progress(self, distances: iter[Distance]):
-        total = len(self.params.distances.metrics) * len(self.input.sequences) ** 2
+        total = len(self.input.data) * len(self.input.reference)
         last_time = perf_counter()
         for index, distance in enumerate(distances, 1):
             new_time = perf_counter()
