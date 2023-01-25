@@ -10,6 +10,7 @@ from itaxotools.spart_parser import Spart as SpartParserSpart
 from .sequences import Sequence, Sequences
 from .types import Container, Type
 from .handlers import FileHandler, ReadHandle, WriteHandle
+from .encoding import sanitize
 
 
 class Classification(NamedTuple):
@@ -91,6 +92,8 @@ class Tabular(PartitionHandler):
 
             yield self
             for individual, subset in rows:
+                individual = sanitize(individual)
+                subset = sanitize(subset)
                 yield Classification(individual, subset)
 
 
