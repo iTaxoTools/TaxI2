@@ -12,6 +12,7 @@ def main(data_path: Path, outgroup_path: Path, output_path: Path):
     task.input = Sequences.fromPath(data_path, SequenceHandler.Tabfile, idHeader='seqid', seqHeader='sequence')
     task.outgroup = Sequences.fromPath(outgroup_path, SequenceHandler.Tabfile, idHeader='seqid', seqHeader='sequence')
     task.params.thresholds.similarity = 0.07
+    task.params.pairs.align = False
     task.set_output_format_from_path(data_path)
     results = task.start()
     print('')

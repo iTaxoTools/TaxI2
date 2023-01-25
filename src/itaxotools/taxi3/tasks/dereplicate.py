@@ -189,6 +189,10 @@ class Dereplicate:
                 yield pair
 
     def normalize_pairs(self, pairs: iter[SequencePair]) -> iter[SequencePair]:
+        if not self.params.pairs.align:
+            yield from pairs
+            return
+
         for pair in pairs:
             yield SequencePair(pair.x.normalize(), pair.y.normalize())
 

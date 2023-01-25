@@ -403,6 +403,11 @@ class VersusAll:
                     stats = calc.calculate()
                     file.write(stats)
 
+    def normalize_sequences(self, sequences: Sequences) -> Sequences:
+        if not self.params.pairs.align:
+            return sequences
+        return sequences.normalize()
+
     def align_pairs(self, pairs: SequencePairs):
         if not self.params.pairs.align:
             yield from pairs
@@ -565,7 +570,8 @@ class VersusAll:
         self.generate_paths()
         self.check_metrics()
 
-        sequences = self.input.sequences.normalize()
+        sequences = self.input.sequences
+        sequences = self.normalize_sequences(sequences)
 
         sequences_left = sequences
         sequences_left = self.calculate_statistics_all(sequences_left)

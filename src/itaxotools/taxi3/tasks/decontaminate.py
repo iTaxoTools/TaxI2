@@ -156,6 +156,11 @@ class Decontaminate:
             path = path.parent
         path.mkdir(parents=True, exist_ok=True)
 
+    def normalize_sequences(self, sequences: Sequences) -> Sequences:
+        if not self.params.pairs.align:
+            return sequences
+        return sequences.normalize()
+
     def align_pairs(self, pairs: iter[SequencePair]) -> iter[SequencePair]:
         if not self.params.pairs.align:
             yield from pairs
@@ -304,16 +309,21 @@ class Decontaminate:
         self.check_params()
         self.generate_paths()
 
-        data = self.input.normalize()
+        data = self.input
+        outgroup = self.outgroup
 
-        outgroup = self.outgroup.normalize()
-        out_pairs = SequencePairs.fromProduct(data, outgroup)
+        data_normalized = self.normalize_sequences(data)
+        outgroup_normalized = self.normalize_sequences(outgroup)
+
+        out_pairs = SequencePairs.fromProduct(data_normalized, outgroup_normalized)
         out_pairs = self.align_pairs(out_pairs)
         out_pairs = self.write_pairs(out_pairs)
+
         out_distances = self.calculate_distances(out_pairs)
         out_distances = self.adjust_distances(out_distances)
         out_distances = self.write_outgroup_distances_linear(out_distances)
         out_distances = self.write_outgroup_distances_matrix(out_distances)
+
         out_groups = self.group_distances_left(out_distances)
         out_minimums = self.get_minimum_distances(out_groups)
 

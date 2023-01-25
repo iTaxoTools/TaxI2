@@ -10,6 +10,7 @@ def main(data_path: Path, reference_path: Path, output_path: Path):
     task.work_dir = Path(output_path)
     task.input.data = Sequences.fromPath(data_path, SequenceHandler.Tabfile, idHeader='seqid', seqHeader='sequence')
     task.input.reference = Sequences.fromPath(reference_path, SequenceHandler.Tabfile, idHeader='seqid', seqHeader='sequence')
+    task.params.pairs.align = False
     results = task.start()
     print('')
     print(f'Output directory: {results.output_directory}')

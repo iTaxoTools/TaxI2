@@ -153,7 +153,8 @@ class Decontaminate2:
         self.paths.summary = self.work_dir / 'summary.tsv'
         self.paths.decontaminated = self.work_dir / f'decontaminated{extension}'
         self.paths.contaminants = self.work_dir / f'contaminants{extension}'
-        self.paths.aligned_pairs = self.work_dir / 'aligned_pairs.txt'
+        self.paths.outgroup_aligned_pairs = self.work_dir / 'aligned_pairs' / 'outgroup.txt'
+        self.paths.ingroup_aligned_pairs = self.work_dir / 'aligned_pairs' / 'ingroup.txt'
         self.paths.outgroup_linear = self.work_dir / 'distances' / f'outgroup.{metric}.linear.tsv'
         self.paths.outgroup_matrix = self.work_dir / 'distances' / f'outgroup.{metric}.matricial.tsv'
         self.paths.ingroup_linear = self.work_dir / 'distances' / f'ingroup.{metric}.linear.tsv'
@@ -164,6 +165,11 @@ class Decontaminate2:
             path = path.parent
         path.mkdir(parents=True, exist_ok=True)
 
+    def normalize_sequences(self, sequences: Sequences) -> Sequences:
+        if not self.params.pairs.align:
+            return sequences
+        return sequences.normalize()
+
     def align_pairs(self, pairs: iter[SequencePair]) -> iter[SequencePair]:
         if not self.params.pairs.align:
             yield from pairs
@@ -172,13 +178,24 @@ class Decontaminate2:
         aligner = PairwiseAligner.Biopython(self.params.pairs.scores)
         yield from aligner.align_pairs(pairs)
 
-    def write_pairs(self, pairs: iter[SequencePair]) -> iter[SequencePair]:
+    def write_outgroup_pairs(self, pairs: iter[SequencePair]) -> iter[SequencePair]:
         if not self.params.pairs.write:
             yield from pairs
             return
 
-        self.create_parents(self.paths.aligned_pairs)
-        with SequencePairHandler.Formatted(self.paths.aligned_pairs, 'w') as file:
+        self.create_parents(self.paths.outgroup_aligned_pairs)
+        with SequencePairHandler.Formatted(self.paths.outgroup_aligned_pairs, 'w') as file:
+            for pair in pairs:
+                file.write(pair)
+                yield pair
+
+    def write_ingroup_pairs(self, pairs: iter[SequencePair]) -> iter[SequencePair]:
+        if not self.params.pairs.write:
+            yield from pairs
+            return
+
+        self.create_parents(self.paths.ingroup_aligned_pairs)
+        with SequencePairHandler.Formatted(self.paths.ingroup_aligned_pairs, 'w') as file:
             for pair in pairs:
                 file.write(pair)
                 yield pair
@@ -325,12 +342,17 @@ class Decontaminate2:
         self.check_params()
         self.generate_paths()
 
-        data = self.input.normalize()
+        data = self.input
+        outgroup = self.outgroup
+        ingroup = self.ingroup
 
-        outgroup = self.outgroup.normalize()
-        out_pairs = SequencePairs.fromProduct(data, outgroup)
+        data_normalized = self.normalize_sequences(data)
+        outgroup_normalized = self.normalize_sequences(outgroup)
+        ingroup_normalized = self.normalize_sequences(ingroup)
+
+        out_pairs = SequencePairs.fromProduct(data_normalized, outgroup_normalized)
         out_pairs = self.align_pairs(out_pairs)
-        out_pairs = self.write_pairs(out_pairs)
+        out_pairs = self.write_outgroup_pairs(out_pairs)
         out_distances = self.calculate_distances(out_pairs)
         out_distances = self.adjust_distances(out_distances)
         out_distances = self.write_outgroup_distances_linear(out_distances)
@@ -338,10 +360,9 @@ class Decontaminate2:
         out_groups = self.group_distances_left(out_distances)
         out_minimums = self.get_minimum_distances(out_groups)
 
-        ingroup = self.ingroup.normalize()
-        in_pairs = SequencePairs.fromProduct(data, ingroup)
+        in_pairs = SequencePairs.fromProduct(data_normalized, ingroup_normalized)
         in_pairs = self.align_pairs(in_pairs)
-        in_pairs = self.write_pairs(in_pairs)
+        in_pairs = self.write_ingroup_pairs(in_pairs)
         in_distances = self.calculate_distances(in_pairs)
         in_distances = self.write_ingroup_distances_linear(in_distances)
         in_distances = self.write_ingroup_distances_matrix(in_distances)

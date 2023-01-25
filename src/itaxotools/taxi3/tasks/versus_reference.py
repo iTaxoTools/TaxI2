@@ -94,6 +94,11 @@ class VersusReference:
         if self.params.distances.metric in self.params.distances.extra_metrics:
             self.params.distances.extra_metrics.remove(self.params.distances.metric)
 
+    def normalize_sequences(self, sequences: Sequences) -> Sequences:
+        if not self.params.pairs.align:
+            return sequences
+        return sequences.normalize()
+
     def align_pairs(self, pairs: SequencePairs):
         if not self.params.pairs.align:
             yield from pairs
@@ -110,6 +115,7 @@ class VersusReference:
         self.create_parents(self.paths.aligned_pairs)
         with SequencePairHandler.Formatted(self.paths.aligned_pairs, 'w') as file:
             for pair in pairs:
+                print(pair)
                 file.write(pair)
                 yield pair
 
@@ -208,8 +214,11 @@ class VersusReference:
         self.check_metrics()
         self.generate_paths()
 
-        data = self.input.data.normalize()
-        reference = self.input.reference.normalize()
+        data = self.input.data
+        data = self.normalize_sequences(data)
+
+        reference = self.input.reference
+        reference = self.normalize_sequences(reference)
 
         pairs = SequencePairs.fromProduct(data, reference)
         pairs = self.align_pairs(pairs)
