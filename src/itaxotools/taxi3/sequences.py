@@ -99,7 +99,7 @@ class Tabular(SequenceHandler):
             extras = dict()
             yield self
             for row in rows:
-                id = sanitize(row[0])
+                id = row[0]
                 seq = row[1]
                 if headers is not None:
                     extras = { k: v for (k, v) in zip(headers[2:], row[2:]) }

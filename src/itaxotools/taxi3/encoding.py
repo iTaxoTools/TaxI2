@@ -88,5 +88,5 @@ ext_ascii_trans = str.maketrans(ext_ascii_dict)
 def sanitize(text: str) -> str:
     """Replaces special characters in a string with underscores"""
     text = unicodedata.normalize('NFKC', text).translate(ext_ascii_trans)
-    text = re.sub(r'^\W+', '', text)
-    return re.sub(r'\W+', '_', text)
+    text = re.sub(r'^[^\w ]+', '', text)
+    return re.sub(r'[^\w ]+', '_', text)
