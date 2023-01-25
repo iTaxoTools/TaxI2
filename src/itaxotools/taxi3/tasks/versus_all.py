@@ -16,7 +16,8 @@ from ..sequences import Sequences, SequenceHandler
 from ..partitions import Partition, PartitionHandler
 from ..statistics import StatisticsCalculator, StatisticsHandler
 from ..handlers import FileHandler
-from ..plot import HistogramPlotter
+from ..plot import HistogramPlotter, ComparisonType
+
 
 def multiply(iterator: iter, n: int):
     return (item for item in iterator for i in range(n))
@@ -182,15 +183,15 @@ class SubsetDistance(NamedTuple):
         same_genera = bool(self.genera.x == self.genera.y) if self.genera else None
         same_species = bool(self.species.x == self.species.y) if self.species else None
         return {
-            (None, None): '-',
-            (None, True): 'intra-species',
-            (None, False): 'inter-species',
-            (False, None): 'inter-genus',
-            (False, True): 'inter-genus',
-            (False, False): 'inter-genus',
-            (True, None): 'intra-genus',
-            (True, True): 'intra-species',
-            (True, False): 'inter-species',
+            (None, None): ComparisonType.Unknown,
+            (None, True): ComparisonType.IntraSpecies,
+            (None, False): ComparisonType.InterSpecies,
+            (False, None): ComparisonType.InterGenus,
+            (False, True): ComparisonType.InterGenus,
+            (False, False): ComparisonType.InterGenus,
+            (True, None): ComparisonType.IntraGenus,
+            (True, True): ComparisonType.IntraSpecies,
+            (True, False): ComparisonType.InterSpecies,
         }[(same_genera, same_species)]
 
 
@@ -239,7 +240,7 @@ class SummaryHandler(DistanceHandler.Linear.WithExtras):
         speciesX = first.species.x if first.species else '-'
         speciesY = first.species.y if first.species else '-'
         comparison_type = first.get_comparison_type()
-        out = (idx, idy, *scores, *extrasX, *extrasY, genusX or '-', speciesX or '-', genusY or '-', speciesY or '-', comparison_type)
+        out = (idx, idy, *scores, *extrasX, *extrasY, genusX or '-', speciesX or '-', genusY or '-', speciesY or '-', str(comparison_type))
         file.write(out)
 
 
