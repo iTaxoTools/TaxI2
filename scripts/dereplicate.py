@@ -8,9 +8,11 @@ from itaxotools.taxi3.sequences import Sequences, SequenceHandler
 def main(data_path: Path, output_path: Path):
     task = Dereplicate()
     task.work_dir = Path(output_path)
+    # task.input = Sequences.fromPath(data_path, SequenceHandler.Fasta)
     task.input = Sequences.fromPath(data_path, SequenceHandler.Tabfile, idHeader='seqid', seqHeader='sequence')
     task.params.thresholds.length = 20
-    task.params.thresholds.similarity = 0.05
+    task.params.thresholds.similarity = 0.0001
+    task.set_output_format_from_path(data_path)
     results = task.start()
     print('')
     print(f'Output directory: {results.output_directory}')

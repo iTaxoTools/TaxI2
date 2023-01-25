@@ -17,6 +17,7 @@ from ..partitions import Partition, PartitionHandler
 from ..statistics import StatisticsCalculator, StatisticsHandler
 from ..handlers import FileHandler, ReadHandle, WriteHandle
 from ..plot import HistogramPlotter
+from ..files import FileFormat
 
 
 def multiply(iterator: iter, n: int):
@@ -84,6 +85,7 @@ class SummaryHandle(FileHandler[SummaryLine]):
 
     def _iter_write(self, *args, **kwargs) -> WriteHandle[SummaryLine]:
         try:
+            headers = SummaryLine._fields
             with FileHandler.Tabfile(self.path, 'w') as file:
                 while True:
                     line = yield
@@ -105,6 +107,7 @@ class Decontaminate2:
         self.input: Sequences = None
         self.outgroup: Sequences = None
         self.ingroup: Sequences = None
+        self.output_format: FileFormat = None
 
         self.params = AttrDict()
 
@@ -127,14 +130,25 @@ class Decontaminate2:
         self.params.format.missing: str = 'NA'
         self.params.format.percentage_multiply: bool = False
 
-    def check_metric(self):
+    def set_output_format_from_path(self, path: Path):
+        self.output_format = FileFormat.identify(path)
+
+    def get_output_handler(self, path: Path):
+        if self.output_format == FileFormat.Fasta:
+            return SequenceHandler.Fasta(path, 'w')
+        if self.output_format == FileFormat.Tabfile:
+            return SequenceHandler.Tabfile(path, 'w', idHeader='seqid', seqHeader='sequence')
+        raise Exception('Unknown file format')
+
+    def check_params(self):
+        self.output_format = self.output_format or FileFormat.Tabfile
         self.params.distances.metric = self.params.distances.metric or DistanceMetric.Uncorrected()
 
     def generate_paths(self):
         assert self.work_dir
         self.create_parents(self.work_dir)
         metric = str(self.params.distances.metric)
-        extension = '.tsv'
+        extension = self.output_format.extension
 
         self.paths.summary = self.work_dir / 'summary.tsv'
         self.paths.decontaminated = self.work_dir / f'decontaminated{extension}'
@@ -271,14 +285,14 @@ class Decontaminate2:
         return split(data, lambda x: x[0], lambda x: x[1])
 
     def write_file_decontaminated(self, verdicts: iter[Verdict]) -> iter[Verdict]:
-        with SequenceHandler.Tabfile(self.paths.decontaminated, 'w') as file:
+        with self.get_output_handler(self.paths.decontaminated) as file:
             for verdict in verdicts:
                 if not verdict.contaminant:
                     file.write(verdict.sequence)
                 yield verdict
 
     def write_file_contaminants(self, verdicts: iter[Verdict]) -> iter[Verdict]:
-        with SequenceHandler.Tabfile(self.paths.contaminants, 'w') as file:
+        with self.get_output_handler(self.paths.contaminants) as file:
             for verdict in verdicts:
                 if verdict.contaminant:
                     file.write(verdict.sequence)
@@ -308,7 +322,7 @@ class Decontaminate2:
     def start(self) -> None:
         ts = perf_counter()
 
-        self.check_metric()
+        self.check_params()
         self.generate_paths()
 
         data = self.input.normalize()

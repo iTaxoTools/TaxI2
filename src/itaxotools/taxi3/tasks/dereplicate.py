@@ -17,6 +17,7 @@ from ..partitions import Partition, PartitionHandler
 from ..statistics import StatisticsCalculator, StatisticsHandler
 from ..handlers import FileHandler, ReadHandle, WriteHandle
 from ..plot import HistogramPlotter
+from ..files import FileFormat
 
 
 def multiply(iterator: iter, n: int):
@@ -93,7 +94,8 @@ class SummaryHandle(FileHandler[SummaryLine]):
 
     def _iter_write(self, *args, **kwargs) -> WriteHandle[SummaryLine]:
         try:
-            with FileHandler.Tabfile(self.path, 'w') as file:
+            headers = SummaryLine._fields
+            with FileHandler.Tabfile(self.path, 'w', columns=headers) as file:
                 while True:
                     line = yield
                     file.write(self.format_line(line))
@@ -112,6 +114,7 @@ class Dereplicate:
         self.progress_interval: float = 0.015
 
         self.input: Sequences = None
+        self.output_format: FileFormat = None
         self.excluded: set[str] = set()
 
         self.params = AttrDict()
@@ -135,11 +138,25 @@ class Dereplicate:
         self.params.format.missing: str = 'NA'
         self.params.format.percentage_multiply: bool = False
 
+    def set_output_format_from_path(self, path: Path):
+        self.output_format = FileFormat.identify(path)
+
+    def get_output_handler(self, path: Path):
+        if self.output_format == FileFormat.Fasta:
+            return SequenceHandler.Fasta(path, 'w')
+        if self.output_format == FileFormat.Tabfile:
+            return SequenceHandler.Tabfile(path, 'w', idHeader='seqid', seqHeader='sequence')
+        raise Exception('Unknown file format')
+
+    def check_params(self):
+        self.output_format = self.output_format or FileFormat.Tabfile
+        self.params.distances.metric = self.params.distances.metric or DistanceMetric.Uncorrected()
+
     def generate_paths(self):
         assert self.work_dir
         self.create_parents(self.work_dir)
         metric = str(self.params.distances.metric)
-        extension = '.tsv'
+        extension = self.output_format.extension
 
         self.paths.summary = self.work_dir / 'summary.tsv'
         self.paths.dereplicated = self.work_dir / f'dereplicated{extension}'
@@ -152,9 +169,6 @@ class Dereplicate:
         if path.suffix:
             path = path.parent
         path.mkdir(parents=True, exist_ok=True)
-
-    def check_metric(self):
-        self.params.distances.metric = self.params.distances.metric or DistanceMetric.Uncorrected()
 
     def drop_short_sequences(self, sequences: iter[Sequence]) -> iter[Sequence]:
         for sequence in sequences:
@@ -332,26 +346,27 @@ class Dereplicate:
                 yield line
 
     def write_file_dereplicated(self, sequences: iter[Sequence]) -> iter[Sequence]:
-        with SequenceHandler.Tabfile(self.paths.dereplicated, 'w') as file:
+        with self.get_output_handler(self.paths.dereplicated) as file:
             for sequence in sequences:
                 if sequence.id not in self.excluded:
                     file.write(sequence)
                 yield sequence
 
     def write_file_excluded(self, sequences: iter[Sequence]) -> iter[Sequence]:
-        with SequenceHandler.Tabfile(self.paths.excluded, 'w') as file:
+        with self.get_output_handler(self.paths.excluded) as file:
             for sequence in sequences:
                 if sequence.id in self.excluded:
                     file.write(sequence)
                 yield sequence
 
     def report_progress(self, distances: iter[Distance], data):
+        section = len(data)
         total = len(data) ** 2
         last_time = perf_counter()
         for index, distance in enumerate(distances, 1):
             new_time = perf_counter()
             if new_time - last_time >= self.progress_interval:
-                self.progress_handler('distance.x.id', index, total)
+                self.progress_handler('distance.x.id', index, total - len(self.excluded) * section)
                 last_time = new_time
             yield distance
         self.progress_handler('Finalizing...', total, total)
@@ -360,7 +375,7 @@ class Dereplicate:
         ts = perf_counter()
 
         self.excluded = set()
-        self.check_metric()
+        self.check_params()
         self.generate_paths()
 
         data = Sequences(self.drop_short_sequences, self.input)

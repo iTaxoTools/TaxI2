@@ -44,7 +44,16 @@ class Fasta(SequenceHandler):
                 yield Sequence(*data)
 
     def _iter_write(self) -> WriteHandle[Sequence]:
-        raise NotImplementedError()
+        with open(self.path, 'w') as handle:
+            try:
+                while True:
+                    sequence = yield
+                    handle.write('>' + sequence.id + '\n')
+                    for i in range(0, len(sequence.seq), 60):
+                        handle.write(sequence.seq[i : i + 60] + '\n')
+                    handle.write('\n')
+            except GeneratorExit:
+                return
 
 
 class Genbank(SequenceHandler):

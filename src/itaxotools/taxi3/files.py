@@ -68,13 +68,14 @@ class Tabfile(FileInfo):
 
 
 class FileFormat(Enum):
-    Fasta = 'Fasta', Identifier.isFasta, FileInfo
-    Tabfile = 'Tabfile', Identifier.isTabFile, FileInfo.Tabfile
-    Excel = 'Excel', None, None
-    Unknown = 'Unknown', None, None
+    Fasta = 'Fasta', '.fas', Identifier.isFasta, FileInfo
+    Tabfile = 'Tabfile', '.tsv', Identifier.isTabFile, FileInfo.Tabfile
+    Excel = 'Excel', '.xlsx', None, None
+    Unknown = 'Unknown', None, None, None
 
-    def __init__(self, label, identifier, info):
+    def __init__(self, label, extension, identifier, info):
         self.label = label
+        self.extension = extension
         self.identifier = identifier or (lambda _: False)
         self.info = info or FileInfo
 

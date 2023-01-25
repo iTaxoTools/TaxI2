@@ -8,11 +8,13 @@ from itaxotools.taxi3.sequences import Sequences, SequenceHandler
 def main(data_path: Path, outgroup_path: Path, ingroup_path: Path, output_path: Path):
     task = Decontaminate2()
     task.work_dir = Path(output_path)
+    # task.input = Sequences.fromPath(data_path, SequenceHandler.Fasta)
     task.input = Sequences.fromPath(data_path, SequenceHandler.Tabfile, idHeader='seqid', seqHeader='sequence')
     task.outgroup = Sequences.fromPath(outgroup_path, SequenceHandler.Tabfile, idHeader='seqid', seqHeader='sequence')
     task.ingroup = Sequences.fromPath(ingroup_path, SequenceHandler.Tabfile, idHeader='seqid', seqHeader='sequence')
     task.params.weights.outgroup = 1
     task.params.weights.ingroup = 1
+    task.set_output_format_from_path(data_path)
     results = task.start()
     print('')
     print(f'Output directory: {results.output_directory}')
