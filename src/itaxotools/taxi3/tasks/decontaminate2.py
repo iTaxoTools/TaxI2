@@ -93,7 +93,7 @@ class SummaryHandle(FileHandler[SummaryLine]):
     def _iter_write(self, *args, **kwargs) -> WriteHandle[SummaryLine]:
         try:
             headers = SummaryLine._fields
-            with FileHandler.Tabfile(self.path, 'w') as file:
+            with FileHandler.Tabfile(self.path, 'w', columns=headers) as file:
                 while True:
                     line = yield
                     file.write(self.format_line(line))
@@ -293,7 +293,7 @@ class Decontaminate2:
         all = zip(sequences, out_minimums, in_minimums)
         for sequence, outgroup_minimum, ingroup_minimum in all:
             outgroup_distance = outgroup_minimum.d
-            ingroup_distance = outgroup_minimum.d
+            ingroup_distance = ingroup_minimum.d
             if outgroup_distance is not None:
                 outgroup_distance *= outgroup_weight
             if ingroup_distance is not None:
