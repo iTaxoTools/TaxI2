@@ -62,11 +62,18 @@ class SummaryHandle(FileHandler[SummaryLine]):
         self,
         path: Path,
         mode: 'r' | 'w' = 'w',
+        missing: str = 'NA',
         formatter: str = '{:f}',
         *args, **kwargs
     ):
+        self.missing = missing
         self.formatter = formatter
         super()._open(path, mode, *args, **kwargs)
+
+    def distance_to_text(self, d: float | None) -> str:
+        if d is None:
+            return self.missing
+        return self.formatter.format(d)
 
     def _iter_read(self, *args, **kwargs) -> ReadHandle[SummaryLine]:
         raise NotImplementedError()
@@ -75,7 +82,7 @@ class SummaryHandle(FileHandler[SummaryLine]):
         return (
             line.query_id,
             line.outgroup_id,
-            self.formatter.format(line.outgroup_distance),
+            self.distance_to_text(line.outgroup_distance),
             'Yes' if line.contaminant else 'No',
         )
 
@@ -285,6 +292,7 @@ class Decontaminate:
     def write_summary(self, lines: iter[SummaryLine]) -> iter[SummaryLine]:
         with SummaryHandle(
             self.paths.summary, 'w',
+            missing = self.params.format.missing,
             formatter = self.params.format.float,
         ) as file:
             for line in lines:

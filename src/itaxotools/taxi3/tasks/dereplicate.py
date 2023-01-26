@@ -71,11 +71,18 @@ class SummaryHandle(FileHandler[SummaryLine]):
         self,
         path: Path,
         mode: 'r' | 'w' = 'w',
+        missing: str = 'NA',
         formatter: str = '{:f}',
         *args, **kwargs
     ):
+        self.missing = missing
         self.formatter = formatter
         super()._open(path, mode, *args, **kwargs)
+
+    def distance_to_text(self, d: float | None) -> str:
+        if d is None:
+            return self.missing
+        return self.formatter.format(d)
 
     def _iter_read(self, *args, **kwargs) -> ReadHandle[SummaryLine]:
         raise NotImplementedError()
@@ -86,10 +93,10 @@ class SummaryHandle(FileHandler[SummaryLine]):
             str(line.query_length),
             line.included_id,
             str(line.included_length),
-            self.formatter.format(line.included_distance),
+            self.distance_to_text(line.included_distance),
             line.excluded_id,
             str(line.excluded_length),
-            self.formatter.format(line.excluded_distance),
+            self.distance_to_text(line.excluded_distance),
         )
 
     def _iter_write(self, *args, **kwargs) -> WriteHandle[SummaryLine]:
@@ -261,11 +268,12 @@ class Dereplicate:
 
     def check_similar_distances(self, distances: iter[Distance]) -> iter[bool]:
         similarity = self.params.thresholds.similarity
+        print('similarity == ', similarity)
         for distance in distances:
-            if distance.d <= similarity:
-                yield True
-            else:
+            if distance.d is None:
                 yield False
+            else:
+                yield bool(distance.d <= similarity)
 
     def combine_all_info(
         self,
@@ -342,6 +350,7 @@ class Dereplicate:
     def write_summary(self, lines: iter[SummaryLine]) -> iter[SummaryLine]:
         with SummaryHandle(
             self.paths.summary, 'w',
+            missing = self.params.format.missing,
             formatter = self.params.format.float,
         ) as file:
             for line in lines:
