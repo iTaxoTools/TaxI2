@@ -268,9 +268,10 @@ class Decontaminate2:
             yield group
 
     def get_minimum_distances(self, groups: iter[iter[Distance]]) -> iter[Distance]:
+        def get_distance_value(distance: Distance):
+            return distance.d if distance.d is not None else inf
         for distances in groups:
-            distances = (distance for distance in distances if distance.d is not None)
-            minimum_distance = min(distances, key = lambda distance: distance.d)
+            minimum_distance = min(distances, key = get_distance_value)
             yield minimum_distance
 
     def _find_contaminants(
@@ -280,13 +281,25 @@ class Decontaminate2:
         in_minimums: iter[Distance],
     ) -> iter[tuple[Verdict, SummaryLine]]:
 
+        def check_if_contaminant(outgroup_distance, ingroup_distance) -> bool:
+            if outgroup_distance is None:
+                return False
+            if ingroup_distance is None:
+                return True
+            return bool(outgroup_distance < ingroup_distance)
+
         outgroup_weight = self.params.weights.outgroup
         ingroup_weight = self.params.weights.ingroup
         all = zip(sequences, out_minimums, in_minimums)
         for sequence, outgroup_minimum, ingroup_minimum in all:
-            outgroup_distance = outgroup_minimum.d * outgroup_weight
-            ingroup_distance = ingroup_minimum.d * ingroup_weight
-            is_contaminant = bool(outgroup_distance <= ingroup_distance)
+            outgroup_distance = outgroup_minimum.d
+            ingroup_distance = outgroup_minimum.d
+            if outgroup_distance is not None:
+                outgroup_distance *= outgroup_weight
+            if ingroup_distance is not None:
+                ingroup_distance *= ingroup_weight
+
+            is_contaminant = check_if_contaminant(outgroup_distance, ingroup_distance)
             verdict = Verdict(sequence, is_contaminant)
             line = SummaryLine(
                 query_id = sequence.id,
