@@ -5,6 +5,7 @@ from typing import NamedTuple, Callable
 from contextlib import contextmanager
 from abc import abstractmethod
 
+from Bio.SeqIO.FastaIO import SimpleFastaParser
 from itaxotools.spart_parser import Spart as SpartParserSpart
 
 from .sequences import Sequence, Sequences
@@ -116,4 +117,17 @@ class Spart(PartitionHandler):
 
         for subset in spart.getSpartitionSubsets(spartition):
             for individual in spart.getSubsetIndividuals(spartition, subset):
+                yield Classification(individual, subset)
+
+
+class Fasta(PartitionHandler):
+
+    def _iter_read_inner(self) -> ReadHandle[Classification]:
+        with open(self.path, 'r') as handle:
+            yield self
+            for title, _ in SimpleFastaParser(handle):
+                try:
+                    individual, subset = title.split('|', 1)
+                except ValueError as e:
+                    raise ValueError(f'Could not extract partition info from fasta line: {title}')
                 yield Classification(individual, subset)

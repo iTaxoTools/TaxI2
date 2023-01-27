@@ -75,6 +75,10 @@ read_tests = [
             idHeader='seqid', subHeader='organism')),
     ReadTest(spartition_simple, 'simple.xml', PartitionHandler.Spart),
     ReadTest(spartition_matricial, 'simple.spart', PartitionHandler.Spart),
+    ReadTest(spartition_simple, 'simple.fas', PartitionHandler.Fasta),
+    ReadTest(spartition_simple, 'simple.fas', PartitionHandler.Fasta),
+    ReadTest(spartition_genera, 'genera.fas', PartitionHandler.Fasta,
+        dict(filter=PartitionHandler.subset_first_word)),
 ]
 
 
