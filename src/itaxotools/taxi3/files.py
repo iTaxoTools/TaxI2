@@ -74,14 +74,7 @@ class Fasta(FileInfo):
 
     @classmethod
     def get(cls, path: Path):
-        has_subsets = False
-        with PartitionHandler.Fasta(path, 'r') as file:
-            try:
-                file.read()
-                has_subsets = True
-            except ValueError:
-                pass
-
+        has_subsets = PartitionHandler.Fasta.has_subsets(path,)
         return cls(
             has_subsets = has_subsets,
             **asdict(FileInfo.get(path))

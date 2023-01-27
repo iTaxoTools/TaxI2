@@ -37,7 +37,24 @@ class SequenceHandler(FileHandler[Sequence]):
 
 
 class Fasta(SequenceHandler):
-    def _iter_read(self) -> ReadHandle[Sequence]:
+    def _iter_read(self, parse_organism: bool = False) -> ReadHandle[Sequence]:
+        if parse_organism:
+            yield from self._iter_read_organism()
+        else:
+            yield from self._iter_read_plain()
+
+    def _iter_read_organism(self) -> ReadHandle[Sequence]:
+        with open(self.path, 'r') as handle:
+            yield self
+            for title, sequence in SimpleFastaParser(handle):
+                try:
+                    id, organism = title.split('|', 1)
+                except ValueError:
+                    id = title
+                    organism = None
+                yield Sequence(id, sequence, extras=dict(organism=organism))
+
+    def _iter_read_plain(self) -> ReadHandle[Sequence]:
         with open(self.path, 'r') as handle:
             yield self
             for data in SimpleFastaParser(handle):

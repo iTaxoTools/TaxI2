@@ -42,6 +42,15 @@ def spartition_simple() -> Partition:
     }
 
 
+def spartition_missing() -> Partition:
+    return {
+        'sample3': 'speciesA',
+        'sample4': 'speciesA',
+        'sample6': 'speciesB',
+        'sample7': 'speciesC',
+    }
+
+
 def spartition_matricial() -> Partition:
     return {
         'sample1': '1',
@@ -76,7 +85,7 @@ read_tests = [
     ReadTest(spartition_simple, 'simple.xml', PartitionHandler.Spart),
     ReadTest(spartition_matricial, 'simple.spart', PartitionHandler.Spart),
     ReadTest(spartition_simple, 'simple.fas', PartitionHandler.Fasta),
-    ReadTest(spartition_simple, 'simple.fas', PartitionHandler.Fasta),
+    ReadTest(spartition_missing, 'missing.fas', PartitionHandler.Fasta),
     ReadTest(spartition_genera, 'genera.fas', PartitionHandler.Fasta,
         dict(filter=PartitionHandler.subset_first_word)),
 ]

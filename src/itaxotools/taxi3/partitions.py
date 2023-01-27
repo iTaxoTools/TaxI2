@@ -129,5 +129,13 @@ class Fasta(PartitionHandler):
                 try:
                     individual, subset = title.split('|', 1)
                 except ValueError as e:
-                    raise ValueError(f'Could not extract partition info from fasta line: {title}')
+                    print(f'Could not extract partition info from fasta line: {title}')
+                    continue
                 yield Classification(individual, subset)
+
+    @classmethod
+    def has_subsets(self, path: Path) -> bool:
+        with open(path, 'r') as handle:
+            for title, _ in SimpleFastaParser(handle):
+                data = title.split('|', 1)
+                return len(data) == 2

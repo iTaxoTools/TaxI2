@@ -66,6 +66,14 @@ def sequences_simple() -> Sequences:
     ])
 
 
+def sequences_organism() -> Sequences:
+    return Sequences([
+        Sequence('id1', 'ATC', {'organism': 'X'}),
+        Sequence('id2', 'ATG', {'organism': 'Y'}),
+        Sequence('id3', 'ATA', {'organism': 'Z'}),
+    ])
+
+
 def sequences_headers() -> Sequences:
     return Sequences([
         Sequence('id1', 'ATC', {'voucher': 'X'}),
@@ -87,6 +95,7 @@ def sequences_empty() -> Sequences:
     ReadTest(sequences_simple, 'simple.xlsx', SequenceHandler.Excel),
     ReadTest(sequences_headers, 'headers.tsv', SequenceHandler.Tabfile, dict(idHeader='seqid', seqHeader='sequences')),
     ReadTest(sequences_headers, 'headers.xlsx', SequenceHandler.Excel, dict(idHeader='seqid', seqHeader='sequences')),
+    ReadTest(sequences_organism, 'species.fas', SequenceHandler.Fasta, dict(parse_organism=True)),
     ReadTest(sequences_empty, 'empty.tsv', SequenceHandler.Tabfile, dict(idHeader='seqid', seqHeader='sequences')),
 ])
 def test_read_sequences(test: ReadTest) -> None:
