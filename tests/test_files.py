@@ -51,7 +51,9 @@ def test_identify_file(test: IdentifyTest) -> None:
 
 @pytest.mark.parametrize(
     "test", [
-    InfoTest('simple.fasta', dict(format=FileFormat.Fasta, size=15)),
+    InfoTest('simple.fasta', dict(format=FileFormat.Fasta, has_subsets=False, size=15)),
+    InfoTest('species.fasta', dict(format=FileFormat.Fasta, has_subsets=True, size=23)),
+    InfoTest('simple.fasta', dict(format=FileFormat.Fasta, has_subsets=False, size=15)),
     InfoTest('simple.tsv', dict(format=FileFormat.Tabfile, size=21, headers=['id', 'seq'])),
     InfoTest('full.tsv', dict(
         format=FileFormat.Tabfile,

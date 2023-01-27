@@ -8,6 +8,7 @@ from dataclasses import dataclass, asdict
 
 from .types import Type
 from .handlers import FileHandler
+from .partitions import PartitionHandler
 from .encoding import sanitize
 
 
@@ -67,8 +68,28 @@ class Tabfile(FileInfo):
         )
 
 
+@dataclass
+class Fasta(FileInfo):
+    has_subsets: bool
+
+    @classmethod
+    def get(cls, path: Path):
+        has_subsets = False
+        with PartitionHandler.Fasta(path, 'r') as file:
+            try:
+                file.read()
+                has_subsets = True
+            except ValueError:
+                pass
+
+        return cls(
+            has_subsets = has_subsets,
+            **asdict(FileInfo.get(path))
+        )
+
+
 class FileFormat(Enum):
-    Fasta = 'Fasta', '.fas', Identifier.isFasta, FileInfo
+    Fasta = 'Fasta', '.fas', Identifier.isFasta, FileInfo.Fasta
     Tabfile = 'Tabfile', '.tsv', Identifier.isTabFile, FileInfo.Tabfile
     Excel = 'Excel', '.xlsx', None, None
     Unknown = 'Unknown', None, None, None
