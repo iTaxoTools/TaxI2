@@ -53,6 +53,8 @@ class PartitionHandler(FileHandler[Classification]):
         for classification in inner_generator:
             if self.filter:
                 classification = self.filter(classification)
+            if classification is None:
+                continue
             yield classification
 
     @abstractmethod
@@ -63,7 +65,11 @@ class PartitionHandler(FileHandler[Classification]):
     @staticmethod
     def subset_first_word(classification: Classification) -> Classification:
         individual, subset = classification
-        first_word = subset.split()[0]
+        try:
+            first_word, rest = subset.split(' ', 1)
+        except ValueError:
+            print(f'Cannot split subset {subset} for individual {individual}')
+            return None
         return Classification(individual, first_word)
 
 

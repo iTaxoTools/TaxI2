@@ -147,6 +147,10 @@ class SubsetPairsStatisticsHandler(SubsetStatisticsHandler):
     def _write_stats(self, file: TextIO, bunch: tuple[DistanceStatistics]):
         idx = bunch[0].idx
         idy = bunch[0].idy
+        if idx is None:
+            idx = '?'
+        if idy is None:
+            idy = '?'
         stats = ((stats.min, stats.max, stats.mean) for stats in bunch)
         stats = (self.distanceToText(stat) for stat in chain(*stats))
         out = (idx, idy, *stats)
@@ -163,6 +167,8 @@ class SubsetIdentityStatisticsHandler(SubsetStatisticsHandler):
 
     def _write_stats(self, file: TextIO, bunch: tuple[DistanceStatistics]):
         idx = bunch[0].idx
+        if idx is None:
+            idx = '?'
         stats = ((stats.min, stats.max, stats.mean) for stats in bunch)
         stats = (self.distanceToText(stat) for stat in chain(*stats))
         out = (idx, *stats)
@@ -384,8 +390,9 @@ class VersusAll:
                     calculators[subset] = StatisticsCalculator(group=subset)
 
             for sequence in sequences:
-                subset = partition[sequence.id]
-                calculators[subset].add(sequence.seq)
+                subset = partition.get(sequence.id, None)
+                if subset is not None:
+                    calculators[subset].add(sequence.seq)
                 yield sequence
 
         except GeneratorExit:
@@ -494,8 +501,8 @@ class VersusAll:
                 aggregators[str(metric)] = DistanceAggregator(metric)
 
             for distance in distances:
-                subset_x = partition[distance.x.id]
-                subset_y = partition[distance.y.id]
+                subset_x = partition.get(distance.x.id, None)
+                subset_y = partition.get(distance.y.id, None)
                 generic = GenericDistance(distance.metric, subset_x, subset_y, distance.d)
                 aggregators[str(generic.metric)].add(generic)
                 yield SubsetPair(subset_x, subset_y)

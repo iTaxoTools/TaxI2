@@ -26,7 +26,7 @@ class Sequence(NamedTuple):
 class Sequences(Container[Sequence]):
     @classmethod
     def fromPath(cls, path: Path, handler: SequenceHandler, *args, **kwargs) -> Sequences:
-        return cls(handler, path, *args, **kwargs)
+        return cls(handler, path, 'r', *args, **kwargs)
 
     def normalize(self) -> Sequences:
         return Sequences(lambda: (seq.normalize() for seq in self))
