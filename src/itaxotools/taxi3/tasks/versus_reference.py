@@ -115,7 +115,6 @@ class VersusReference:
         self.create_parents(self.paths.aligned_pairs)
         with SequencePairHandler.Formatted(self.paths.aligned_pairs, 'w') as file:
             for pair in pairs:
-                print(pair)
                 file.write(pair)
                 yield pair
 

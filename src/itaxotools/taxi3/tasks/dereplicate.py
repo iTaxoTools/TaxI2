@@ -268,7 +268,6 @@ class Dereplicate:
 
     def check_similar_distances(self, distances: iter[Distance]) -> iter[bool]:
         similarity = self.params.thresholds.similarity
-        print('similarity == ', similarity)
         for distance in distances:
             if distance.d is None:
                 yield False
