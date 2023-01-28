@@ -6,6 +6,8 @@ from pathlib import Path
 from re import fullmatch
 from dataclasses import dataclass, asdict
 
+from itaxotools.spart_parser.main import Spart as SpartParserSpart, is_path_xml
+
 from .types import Type
 from .handlers import FileHandler
 from .partitions import PartitionHandler
@@ -21,6 +23,13 @@ class Identifier:
         with path.open() as file:
             line = file.readline()
             return bool(fullmatch(r'([^\t]+\t)+[^\t]+', line))
+
+    def isSpart(path: Path) -> bool:
+        try:
+            SpartParserSpart.fromPath(path)
+        except Exception:
+            return False
+        return True
 
 
 @dataclass
@@ -81,9 +90,35 @@ class Fasta(FileInfo):
         )
 
 
+@dataclass
+class Spart(FileInfo):
+    spartitions: list[str]
+    is_matricial: bool
+    is_xml: bool
+
+    @classmethod
+    def get(cls, path: Path):
+        is_xml = is_path_xml(path)
+
+        if is_xml:
+            spart = SpartParserSpart.fromXML(path)
+        else:
+            spart = SpartParserSpart.fromMatricial(path)
+
+        spartitions = spart.getSpartitions()
+
+        return cls(
+            spartitions = spartitions,
+            is_matricial = not is_xml,
+            is_xml = is_xml,
+            **asdict(FileInfo.get(path))
+        )
+
+
 class FileFormat(Enum):
     Fasta = 'Fasta', '.fas', Identifier.isFasta, FileInfo.Fasta
     Tabfile = 'Tabfile', '.tsv', Identifier.isTabFile, FileInfo.Tabfile
+    Spart = 'Spart', '.spart', Identifier.isSpart, FileInfo.Spart
     Excel = 'Excel', '.xlsx', None, None
     Unknown = 'Unknown', None, None, None
 

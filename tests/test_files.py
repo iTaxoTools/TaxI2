@@ -43,6 +43,8 @@ class InfoTest(NamedTuple):
     "test", [
     IdentifyTest(FileFormat.Fasta, 'simple.fasta'),
     IdentifyTest(FileFormat.Tabfile, 'simple.tsv'),
+    IdentifyTest(FileFormat.Spart, 'simple.spart'),
+    IdentifyTest(FileFormat.Spart, 'simple.xml'),
     IdentifyTest(FileFormat.Unknown, 'empty.txt'),
 ])
 def test_identify_file(test: IdentifyTest) -> None:
@@ -64,6 +66,8 @@ def test_identify_file(test: IdentifyTest) -> None:
         header_species='species',
         header_genus='genus',
         )),
+    InfoTest('simple.spart', dict(format=FileFormat.Spart, spartitions=['spartition_1', 'spartition_2'], is_matricial=True, is_xml=False, size=333)),
+    InfoTest('simple.xml', dict(format=FileFormat.Spart, spartitions=['spartition_1'], is_matricial=False, is_xml=True, size=943)),
     InfoTest('empty.txt', dict(format=FileFormat.Unknown, size=0)),
 ])
 def test_get_file_info(test: InfoTest) -> None:
