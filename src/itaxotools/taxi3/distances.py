@@ -252,6 +252,8 @@ class WithExtras(DistanceHandler.Linear):
         idy = line[0].y.id
         extrasX = line[0].x.extras.values()
         extrasY = line[0].y.extras.values()
+        extrasX = [x if x is not None else self.missing for x in extrasX]
+        extrasY = [y if y is not None else self.missing for y in extrasY]
         scores = [self.distanceToText(distance.d) for distance in line]
         out = (idx, *extrasX, idy, *extrasY, *scores)
         file.write(out)

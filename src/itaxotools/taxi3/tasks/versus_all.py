@@ -240,6 +240,8 @@ class SummaryHandler(DistanceHandler.Linear.WithExtras):
         idy = first.distance.y.id
         extrasX = first.distance.x.extras.values()
         extrasY = first.distance.y.extras.values()
+        extrasX = [x if x is not None else self.missing for x in extrasX]
+        extrasY = [y if y is not None else self.missing for y in extrasY]
         scores = [self.distanceToText(subset_distance.distance.d) for subset_distance in line]
         genusX = first.genera.x if first.genera else '-'
         genusY = first.genera.y if first.genera else '-'
