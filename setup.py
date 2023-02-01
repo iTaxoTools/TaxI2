@@ -76,7 +76,7 @@ setup(
     include_package_data=True,
     entry_points={
         "console_scripts": [
-            "taxi3=itaxotools.taxi3:main",
+            "taxi2=itaxotools.taxi3:main",
         ],
         "pyinstaller40": [
             "hook-dirs = itaxotools.taxi3.__pyinstaller:get_hook_dirs",

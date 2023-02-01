@@ -142,3 +142,6 @@ tx_src
 tests/temp_test_files/
 
 *.bak
+Pipfile
+.DS_Store
+
