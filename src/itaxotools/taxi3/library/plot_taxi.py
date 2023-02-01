@@ -6,6 +6,7 @@ import io
 import matplotlib
 
 matplotlib.use("agg")
+matplotlib.use("pdf")
 matplotlib.rcParams["pdf.fonttype"] = 42
 matplotlib.rcParams["ps.fonttype"] = 42
 import matplotlib.pyplot as plt
