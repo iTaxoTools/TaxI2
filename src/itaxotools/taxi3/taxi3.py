@@ -8,8 +8,8 @@ import tkinter as tk
 import multiprocessing
 
 from .library.gui import TaxiGUI
+from .library.resources import get_resource
 
-resource_path = getattr(sys, "_MEIPASS", sys.path[0])
 
 
 def gui_main() -> None:
@@ -21,7 +21,7 @@ def gui_main() -> None:
 
     root.title("TaxI3")
     if os.name == "nt":
-        root.wm_iconbitmap(os.path.join(resource_path, "data", "TaxI2.ico"))
+        root.wm_iconbitmap(get_resource("TaxI2.ico"))
 
     root.protocol("WM_DELETE_WINDOW", close_window)
     root.rowconfigure(0, weight=1)

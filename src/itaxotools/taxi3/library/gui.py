@@ -109,7 +109,7 @@ class TaxiGUI(ttk.Frame):
     def create_top_frame(self) -> ttk.Frame:
         top_frame = ttk.Frame(self, relief="sunken", padding=4)
 
-        ttk.Label(top_frame, text="TaxI3", font=tkfont.Font(size=20), padding=5).pack(
+        ttk.Label(top_frame, text="TaxI2", font=tkfont.Font(size=20), padding=5).pack(
             side=tk.LEFT
         )
         ttk.Label(top_frame, text="Taxonomic identifications\nfrom DNA barcodes").pack(
@@ -119,16 +119,13 @@ class TaxiGUI(ttk.Frame):
 
         ttk.Radiobutton(
             top_frame,
-            text="Compare sequences\nagainst reference\ndatabase",
+            text="vREF",
             variable=self.programstate.mode,
             value=ProgramState.COMPARE_REFERENCE,
         ).pack(side=tk.LEFT)
         ttk.Radiobutton(
             top_frame,
-            text="All-against-all\n"
-            "sequence comparison\n"
-            "with genetic distance\n"
-            "analysis and clustering",
+            text="vALL",
             variable=self.programstate.mode,
             value=ProgramState.COMPARE_ALL,
         ).pack(side=tk.LEFT)
@@ -160,15 +157,15 @@ class TaxiGUI(ttk.Frame):
         ttk.Separator(top_frame, orient="vertical").pack(side=tk.RIGHT, fill=tk.Y)
 
         for image_key, text, command in (
+            ("open_button", "input", self.open_command),
             (
                 "open_button",
-                "open reference\nsequence database",
+                "reference",
                 self.open_reference_command,
             ),
-            ("open_button", "open input file\n(query sequences)", self.open_command),
             (
                 "open_button",
-                "open ingroup reference\nsequence database",
+                "ingroup",
                 self.open_ingroup_reference_command,
             ),
             ("save_button", "save", self.save_command("selected")),

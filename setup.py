@@ -16,9 +16,9 @@ here = pathlib.Path(__file__).parent.resolve()
 long_description = (here / "README.md").read_text(encoding="utf-8")
 
 setup(
-    name="taxi3",
-    version="0.2.0",
-    description="taxi3 description",
+    name="taxi2",
+    version="2.0.0",
+    description="taxi2 description",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/iTaxoTools/taxi3/",
@@ -56,7 +56,7 @@ setup(
             ),
         )
     ],
-    python_requires=">=3.9, <4",
+    python_requires=">=3.8, <4",
     install_requires=[
         "alfpy",
         "appdirs",
@@ -66,6 +66,7 @@ setup(
         "networkx",
         "openpyxl",
         "pandas",
+        "scipy",
         "seaborn",
     ],
     extras_require={
@@ -78,8 +79,8 @@ setup(
             "taxi3=itaxotools.taxi3:main",
         ],
         "pyinstaller40": [
-            "hook-dirs = itaxotools.__pyinstaller:get_hook_dirs",
-            "tests = itaxotools.__pyinstaller:get_pyinstaller_tests",
+            "hook-dirs = itaxotools.taxi3.__pyinstaller:get_hook_dirs",
+            "tests = itaxotools.taxi3.__pyinstaller:get_pyinstaller_tests",
         ],
     },
 )
