@@ -3,13 +3,13 @@
 from pathlib import Path
 import pytest
 
-from itaxotools.taxi3.library.datatypes import (
+from itaxotools.taxi2.library.datatypes import (
     TabfileReader,
     CompleteData,
     VersusReferenceSummary,
     ValidFilePath,
 )
-from itaxotools.taxi3.library.task import (
+from itaxotools.taxi2.library.task import (
     Alignment,
     VersusReference,
 )

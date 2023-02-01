@@ -6,7 +6,7 @@ from typing import Callable, NamedTuple
 import pytest
 from utility import assert_eq_files
 
-from itaxotools.taxi3.handlers import FileHandler, ReadHandle, WriteHandle, Row
+from itaxotools.taxi2.handlers import FileHandler, ReadHandle, WriteHandle, Row
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 

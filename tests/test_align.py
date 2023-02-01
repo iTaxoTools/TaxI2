@@ -5,9 +5,9 @@ from typing import NamedTuple
 
 import pytest
 
-from itaxotools.taxi3.align import PairwiseAligner, Scores
-from itaxotools.taxi3.pairs import SequencePair
-from itaxotools.taxi3.sequences import Sequence
+from itaxotools.taxi2.align import PairwiseAligner, Scores
+from itaxotools.taxi2.pairs import SequencePair
+from itaxotools.taxi2.sequences import Sequence
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 

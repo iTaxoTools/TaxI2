@@ -19,7 +19,7 @@ def gui_main() -> None:
         root.destroy()
         root.quit()
 
-    root.title("TaxI3")
+    root.title("TaxI2")
     if os.name == "nt":
         root.wm_iconbitmap(get_resource("TaxI2.ico"))
 

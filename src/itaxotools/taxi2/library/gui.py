@@ -109,7 +109,7 @@ class TaxiGUI(ttk.Frame):
     def create_top_frame(self) -> ttk.Frame:
         top_frame = ttk.Frame(self, relief="sunken", padding=4)
 
-        ttk.Label(top_frame, text="TaxI3", font=tkfont.Font(size=20), padding=5).pack(
+        ttk.Label(top_frame, text="TaxI2", font=tkfont.Font(size=20), padding=5).pack(
             side=tk.LEFT
         )
         ttk.Label(top_frame, text="Taxonomic identifications\nfrom DNA barcodes").pack(

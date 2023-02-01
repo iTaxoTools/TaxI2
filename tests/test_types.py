@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from itaxotools.taxi3.types import Type
+from itaxotools.taxi2.types import Type
 
 
 def test_type_inheritance() -> None:

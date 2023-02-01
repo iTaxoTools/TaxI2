@@ -1,5 +1,9 @@
-# TaxI3
+# TaxI2
 Calculates genetic differences between DNA sequences
+
+This version (v2.1.0) includes the legacy application, plus the new backend.
+For the most recent GUI, please visit: https://github.com/iTaxoTools/TaxIGui
+
 
 ## Scores for alignment
 The file `TaxI/scores.json` (found in `%APPDATA%\iTaxoTools` or in `$XDG_CONFIG_HOME$/`)
@@ -29,7 +33,7 @@ distance_calculation<Tab>BACKEND
 
 ## Compiling the Rust module
 
-TaxI3 includes a module for calculating distances between sequences, which is written in Rust. It might need to be compiled before it can be used.
+TaxI2 includes a module for calculating distances between sequences, which is written in Rust. It might need to be compiled before it can be used.
 
 ### Rust installation
 [Instructions on the Rust site](https://www.rust-lang.org/tools/install).

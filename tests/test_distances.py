@@ -7,9 +7,9 @@ from typing import Callable, NamedTuple
 import pytest
 from utility import assert_eq_files
 
-from itaxotools.taxi3.distances import (
+from itaxotools.taxi2.distances import (
     Distance, DistanceHandler, DistanceMetric, Distances)
-from itaxotools.taxi3.sequences import Sequence
+from itaxotools.taxi2.sequences import Sequence
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 

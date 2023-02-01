@@ -5,7 +5,7 @@ from typing import Optional
 
 import pytest
 
-from itaxotools.taxi3.library.datatypes import (
+from itaxotools.taxi2.library.datatypes import (
     SequenceData,
     TabfileReader,
     ValidFilePath,
@@ -19,7 +19,7 @@ from itaxotools.taxi3.library.datatypes import (
     MeanMinMaxFileFormat,
     MeanMinMaxDistances,
 )
-from itaxotools.taxi3.library.task import (
+from itaxotools.taxi2.library.task import (
     CalculateDistances,
     Alignment,
     VersusAllSummarize,

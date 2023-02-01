@@ -3,7 +3,7 @@
 from typing import Any
 import importlib.resources
 
-_resource_path = importlib.resources.files('itaxotools.taxi3') / "resources"
+_resource_path = importlib.resources.files('itaxotools.taxi2') / "resources"
 
 
 def get_resource(path: Any) -> str:

@@ -16,40 +16,33 @@ here = pathlib.Path(__file__).parent.resolve()
 long_description = (here / "README.md").read_text(encoding="utf-8")
 
 setup(
-    name="taxi3",
-    version="0.2.dev1",
-    description="taxi3 description",
+    name="taxi2",
+    version="2.1.0",
+    description="TaxI2 - Calculation and analysis of pairwise sequence distances",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/iTaxoTools/taxi3/",
-    author="Vladimir Kharchev",
-    # Classifiers help users find your project by categorizing it.
-    #
-    # For a list of valid classifiers, see https://pypi.org/classifiers/
-    classifiers=[  # Optional
+    url="https://github.com/iTaxoTools/taxi2/",
+    author="Stefanos Patmanidis, Vladimir Kharchev",
+    classifiers=[
         "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
-        # Specify the Python versions you support here. In particular, ensure
-        # that you indicate you support Python 3. These classifiers are *not*
-        # checked by 'pip install'. See instead 'python_requires' below.
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3 :: Only",
     ],
     package_dir={"": "src"},
     packages=find_namespace_packages(
-        # exclude=('itaxotools.common*',),
         include=("itaxotools*",),
         where="src",
     ),
     rust_extensions=[
         RustExtension(
-            "itaxotools.taxi3.library.calculate_distances",
+            "itaxotools.taxi2.library.calculate_distances",
             binding=Binding.PyO3,
             path=str(
                 here
                 / "src"
                 / "itaxotools"
-                / "taxi3"
+                / "taxi2"
                 / "library"
                 / "calculate_distances"
                 / "Cargo.toml"
@@ -58,12 +51,12 @@ setup(
     ],
     python_requires=">=3.9, <4",
     install_requires=[
-        "itaxotools-common==0.2.dev4",
-        "DNAconvert",
-        "spart_parser",
+        "itaxotools-common==0.2.4",
+        "DNAconvert==0.2.0",
+        "spart_parser==0.1.1",
+        "BioPython>=1.80",
         "alfpy",
         "appdirs",
-        "BioPython",
         "numpy",
         "networkx",
         "openpyxl",
@@ -81,11 +74,10 @@ setup(
             "isort",
         ],
     },
-    # Include all data from MANIFEST.in
     include_package_data=True,
     entry_points={
         "console_scripts": [
-            "taxi3=itaxotools.taxi3:main",
+            "taxi2=itaxotools.taxi2.taxi2:main",
         ],
         "pyinstaller40": [
             "hook-dirs = itaxotools.__pyinstaller:get_hook_dirs",

@@ -3,8 +3,8 @@
 from pathlib import Path
 import pytest
 
-from itaxotools.taxi3.library.task import Decontaminate, Decontaminate2, Alignment
-from itaxotools.taxi3.library.datatypes import (
+from itaxotools.taxi2.library.task import Decontaminate, Decontaminate2, Alignment
+from itaxotools.taxi2.library.datatypes import (
     SequenceData,
     CompleteData,
     ValidFilePath,
