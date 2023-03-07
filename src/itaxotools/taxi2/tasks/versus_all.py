@@ -15,7 +15,7 @@ from ..pairs import SequencePairs, SequencePairHandler
 from ..sequences import Sequences, SequenceHandler
 from ..partitions import Partition, PartitionHandler
 from ..statistics import StatisticsCalculator, StatisticsHandler
-from ..handlers import FileHandler
+from ..handlers import FileHandler, WriteHandle
 from ..plot import HistogramPlotter, ComparisonType
 
 
@@ -86,7 +86,7 @@ class DistanceAggregator:
             self.aggs[(d.idx, d.idy)] = SimpleAggregator()
         self.aggs[(d.idx, d.idy)].add(d.d)
 
-    def __iter__(self):
+    def __iter__(self) -> iter[DistanceStatistics]:
         for (idx, idy), agg in self.aggs.items():
             stats = agg.calculate()
             yield DistanceStatistics(self.metric, idx, idy, stats.min, stats.max, stats.mean)
@@ -139,7 +139,7 @@ class SubsetStatisticsHandler(FileHandler[tuple[DistanceStatistics]]):
 class SubsetPairsStatisticsHandler(SubsetStatisticsHandler):
     def _write_headers(self, file: TextIO, bunch: tuple[DistanceStatistics]):
         metrics = (str(stats.metric) for stats in bunch)
-        combinations = product(metrics, ['min', 'max', 'mean'])
+        combinations = product(metrics, ['mean', 'min', 'max'])
         headers = (f'{metric} {stat}' for metric, stat in combinations)
         out = ('target', 'query', *headers)
         file.write(out)
@@ -151,7 +151,7 @@ class SubsetPairsStatisticsHandler(SubsetStatisticsHandler):
             idx = '?'
         if idy is None:
             idy = '?'
-        stats = ((stats.min, stats.max, stats.mean) for stats in bunch)
+        stats = ((stats.mean, stats.min, stats.max) for stats in bunch)
         stats = (self.distanceToText(stat) for stat in chain(*stats))
         out = (idx, idy, *stats)
         file.write(out)
@@ -160,7 +160,7 @@ class SubsetPairsStatisticsHandler(SubsetStatisticsHandler):
 class SubsetIdentityStatisticsHandler(SubsetStatisticsHandler):
     def _write_headers(self, file: TextIO, bunch: tuple[DistanceStatistics]):
         metrics = (str(stats.metric) for stats in bunch)
-        combinations = product(metrics, ['min', 'max', 'mean'])
+        combinations = product(metrics, ['mean', 'min', 'max'])
         headers = (f'{metric} {stat}' for metric, stat in combinations)
         out = ('target', *headers)
         file.write(out)
@@ -169,9 +169,60 @@ class SubsetIdentityStatisticsHandler(SubsetStatisticsHandler):
         idx = bunch[0].idx
         if idx is None:
             idx = '?'
-        stats = ((stats.min, stats.max, stats.mean) for stats in bunch)
+        stats = ((stats.mean, stats.min, stats.max) for stats in bunch)
         stats = (self.distanceToText(stat) for stat in chain(*stats))
         out = (idx, *stats)
+        file.write(out)
+
+
+class SubsetMatrixStatisticsHandler(SubsetStatisticsHandler):
+    def statsToText(self, stats: DistanceStatistics):
+        mean = self.distanceToText(stats.mean)
+        min = self.distanceToText(stats.min)
+        max = self.distanceToText(stats.max)
+        return f'{mean} ({min}-{max})'
+
+    def _iter_write(self) -> WriteHandle[DistanceStatistics]:
+        self.buffer: list[DistanceStatistics] = []
+        self.wrote_headers = False
+
+        with FileHandler.Tabfile(self.path, 'w') as file:
+            try:
+                line = yield from self._assemble_line()
+                self._write_headers(file, line)
+                self._write_scores(file, line)
+                while True:
+                    line = yield from self._assemble_line()
+                    self._write_scores(file, line)
+            except GeneratorExit:
+                line = self.buffer
+                self._write_headers(file, line)
+                self._write_scores(file, line)
+                return
+
+    def _assemble_line(self) -> Generator[None, DistanceStatistics, list[DistanceStatistics]]:
+        buffer = self.buffer
+        try:
+            while True:
+                distance = yield
+                buffer.append(distance)
+                if buffer[0].idx != buffer[-1].idx:
+                    self.buffer = buffer[-1:]
+                    return buffer[:-1]
+        except GeneratorExit:
+            return
+
+    def _write_headers(self, file: FileHandler.Tabfile, line: list[DistanceStatistics]):
+        if self.wrote_headers:
+            return
+        idys = [distance.idy for distance in line]
+        out = ('', *idys)
+        file.write(out)
+        self.wrote_headers = True
+
+    def _write_scores(self, file: FileHandler.Tabfile, line: list[DistanceStatistics]):
+        scores = [self.statsToText(stats) for stats in line]
+        out = (line[0].idx, *scores)
         file.write(out)
 
 
@@ -489,14 +540,14 @@ class VersusAll:
     def aggregate_distances_species(self, distances: Distances) -> iter[SubsetPair | None]:
         if not self.input.species:
             return (None for _ in distances)
-        return self._aggregate_distances(distances, self.input.species, 'species', self.paths.subsets)
+        return self._aggregate_distances(distances, self.input.species, self.paths.subsets / 'species')
 
     def aggregate_distances_genera(self, distances: Distances) -> iter[SubsetPair | None]:
         if not self.input.genera:
             return (None for _ in distances)
-        return self._aggregate_distances(distances, self.input.genera, 'genera', self.paths.subsets)
+        return self._aggregate_distances(distances, self.input.genera, self.paths.subsets / 'genera')
 
-    def _aggregate_distances(self, distances: Distances, partition: Partition, group_name: str, path: Path) -> iter[SubsetPair]:
+    def _aggregate_distances(self, distances: Distances, partition: Partition, path: Path) -> iter[SubsetPair]:
         try:
             aggregators = dict()
             for metric in self.params.distances.metrics:
@@ -513,25 +564,40 @@ class VersusAll:
             pass
 
         finally:
-            self.create_parents(path)
-            with (
-                SubsetPairsStatisticsHandler(
-                    path / f'{group_name}.pairs.tsv', 'w',
-                    formatter = self.params.format.float,
-                ) as pairs_file,
-                SubsetIdentityStatisticsHandler(
-                    path / f'{group_name}.identity.tsv', 'w',
-                    formatter = self.params.format.float,
-                ) as identity_file,
-            ):
-                aggs = aggregators.values()
-                iterators = (iter(agg) for agg in aggs)
-                bunches = zip(*iterators)
-                for bunch in bunches:
-                    if bunch[0].idx == bunch[0].idy:
-                        identity_file.write(bunch)
-                    else:
-                        pairs_file.write(bunch)
+            self.write_subset_statistics_linear(aggregators, path / 'linear')
+            self.write_subset_statistics_matricial(aggregators, path / 'matricial')
+
+    def write_subset_statistics_linear(self, aggregators: dict[str, DistanceAggregator], path: Path):
+        self.create_parents(path)
+        with (
+            SubsetPairsStatisticsHandler(
+                path / f'pairs.tsv', 'w',
+                formatter = self.params.format.float,
+            ) as pairs_file,
+            SubsetIdentityStatisticsHandler(
+                path / f'identity.tsv', 'w',
+                formatter = self.params.format.float,
+            ) as identity_file,
+        ):
+            aggs = aggregators.values()
+            iterators = (iter(agg) for agg in aggs)
+            bunches = zip(*iterators)
+            for bunch in bunches:
+                if bunch[0].idx == bunch[0].idy:
+                    identity_file.write(bunch)
+                else:
+                    pairs_file.write(bunch)
+
+    def write_subset_statistics_matricial(self, aggregators: dict[str, DistanceAggregator], path: Path):
+        self.create_parents(path)
+        for metric, aggregator in aggregators.items():
+            with SubsetMatrixStatisticsHandler(
+                path / f'{metric}.tsv', 'w',
+                formatter = self.params.format.float,
+            ) as file:
+                for stats in aggregator:
+                    file.write(stats)
+
 
     def plot_histograms(self, distances: iter[SubsetDistance]):
         if not self.params.plot.histograms:
