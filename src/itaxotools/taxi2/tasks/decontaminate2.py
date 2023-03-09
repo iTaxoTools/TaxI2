@@ -218,7 +218,8 @@ class Decontaminate2:
             return
 
         for distance in distances:
-            distance = distance._replace(d = distance.d * 100)
+            if distance.d is not None:
+                distance = distance._replace(d = distance.d * 100)
             yield distance
 
     def write_distances_linear(self, distances: iter[Distance], path: Path) -> iter[Distance]:

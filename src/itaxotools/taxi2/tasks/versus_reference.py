@@ -136,7 +136,8 @@ class VersusReference:
             return
 
         for distance in distances:
-            distance = distance._replace(d = distance.d * 100)
+            if distance.d is not None:
+                distance = distance._replace(d = distance.d * 100)
             yield distance
 
     def adjust_extra_distances(self, distances: Distances):
@@ -146,7 +147,8 @@ class VersusReference:
 
         for distance in distances:
             if distance.metric != self.params.distances.metric:
-                distance = distance._replace(d = distance.d * 100)
+                if distance.d is not None:
+                    distance = distance._replace(d = distance.d * 100)
             yield distance
 
     def write_distances_linear(self, distances: Distances):
