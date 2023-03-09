@@ -10,15 +10,15 @@ Maximum sequence length 	4
 Mean sequence length  	4.0
 Median sequence length  	4.0
 Standard deviation of sequence length	0.0
-Percentage of base A	0.2500
-Percentage of base C	0.2500
-Percentage of base G	0.2500
-Percentage of base T	0.2500
-GC content	0.5000
-Percentage of ambiguity codes	0.0000
-Percentage of missing data 	0.0000
-Percentage of missing data including gaps	0.0000
-Percentage of gaps	0.0000
+Percentage of base A	25.00%
+Percentage of base C	25.00%
+Percentage of base G	25.00%
+Percentage of base T	25.00%
+GC content	50.00%
+Percentage of ambiguity codes	0.00%
+Percentage of missing data 	0.00%
+Percentage of missing data including gaps	0.00%
+Percentage of gaps	0.00%
 N50 statistic	4
 L50 statistic	1
 N90 statistic	4

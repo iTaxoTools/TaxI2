@@ -406,7 +406,7 @@ class VersusAll:
         allStats = StatisticsCalculator()
 
         for sequence in sequences:
-            allStats.add(sequence.seq)
+            allStats.add(sequence.seq.upper())
             yield sequence
 
         self.create_parents(self.paths.stats_all)
@@ -445,7 +445,7 @@ class VersusAll:
             for sequence in sequences:
                 subset = partition.get(sequence.id, None)
                 if subset is not None:
-                    calculators[subset].add(sequence.seq)
+                    calculators[subset].add(sequence.seq.upper())
                 yield sequence
 
         except GeneratorExit:

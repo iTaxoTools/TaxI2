@@ -267,9 +267,13 @@ statistic_tests = [
 write_tests = [
     WriteTest(statistics_single_tiny, 'tiny.single', StatisticsHandler.Single),
     WriteTest(statistics_single_simple, 'simple.single', StatisticsHandler.Single,
+        dict(float_formatter='{:.1f}', percentage_formatter='{:.4f}')),
+    WriteTest(statistics_single_simple, 'percent.single', StatisticsHandler.Single,
         dict(float_formatter='{:.1f}', percentage_formatter='{}')),
     WriteTest(statistics_groups_tiny, 'tiny.groups', StatisticsHandler.Groups),
     WriteTest(statistics_groups_simple, 'simple.groups', StatisticsHandler.Groups,
+        dict(group_name='genus', float_formatter='{:.1f}', percentage_formatter='{:.4f}')),
+    WriteTest(statistics_groups_simple, 'percent.groups', StatisticsHandler.Groups,
         dict(group_name='genus', float_formatter='{:.1f}', percentage_formatter='{}')),
 ]
 
