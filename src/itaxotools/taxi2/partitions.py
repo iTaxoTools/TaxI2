@@ -99,8 +99,8 @@ class Tabular(PartitionHandler):
 
             yield self
             for individual, subset in rows:
-                individual = sanitize(individual)
-                subset = sanitize(subset)
+                # individual = sanitize(individual)
+                # subset = sanitize(subset)
                 yield Classification(individual, subset)
 
 
