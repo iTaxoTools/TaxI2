@@ -4,7 +4,7 @@ from itertools import groupby, product, chain
 from pathlib import Path
 from time import perf_counter
 from statistics import mean, median, stdev
-from typing import NamedTuple, TextIO
+from typing import NamedTuple, TextIO, Generator
 from math import inf
 
 from itaxotools.common.utility import AttrDict
@@ -216,13 +216,17 @@ class SubsetMatrixStatisticsHandler(SubsetStatisticsHandler):
         if self.wrote_headers:
             return
         idys = [distance.idy for distance in line]
+        idys = [idy if idy is not None else '?' for idy in idys]
         out = ('', *idys)
         file.write(out)
         self.wrote_headers = True
 
     def _write_scores(self, file: FileHandler.Tabfile, line: list[DistanceStatistics]):
         scores = [self.statsToText(stats) for stats in line]
-        out = (line[0].idx, *scores)
+        idx = line[0].idx
+        if idx is None:
+            idx = '?'
+        out = (idx, *scores)
         file.write(out)
 
 
