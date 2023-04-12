@@ -176,11 +176,21 @@ class SubsetIdentityStatisticsHandler(SubsetStatisticsHandler):
 
 
 class SubsetMatrixStatisticsHandler(SubsetStatisticsHandler):
+    def _open(
+        self,
+        path: Path,
+        mode: 'r' | 'w' = 'w',
+        template: str = '{mean} ({min}-{max})',
+        *args, **kwargs
+    ):
+        self.template = template
+        super()._open(path, mode, *args, **kwargs)
+
     def statsToText(self, stats: DistanceStatistics):
         mean = self.distanceToText(stats.mean)
         min = self.distanceToText(stats.min)
         max = self.distanceToText(stats.max)
-        return f'{mean} ({min}-{max})'
+        return self.template.format(mean=mean, min=min, max=max)
 
     def _iter_write(self) -> WriteHandle[DistanceStatistics]:
         self.buffer: list[DistanceStatistics] = []
@@ -364,6 +374,7 @@ class VersusAll:
         self.params.format.float: str = '{:.4f}'
         self.params.format.percentage: str = '{:.2f}'
         self.params.format.missing: str = 'NA'
+        self.params.format.stats: str = '{mean} ({min}-{max})'
         self.params.format.percentage_multiply: bool = False
 
         self.params.stats = AttrDict()
@@ -599,6 +610,7 @@ class VersusAll:
             with SubsetMatrixStatisticsHandler(
                 path / f'{metric}.tsv', 'w',
                 formatter = self.params.format.float,
+                template = self.params.format.stats,
             ) as file:
                 for stats in aggregator:
                     file.write(stats)
