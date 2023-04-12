@@ -10,7 +10,7 @@ from math import inf
 from itaxotools.common.utility import AttrDict
 
 from ..align import PairwiseAligner
-from ..distances import Distances, DistanceHandler, DistanceMetric
+from ..distances import Distance, Distances, DistanceHandler, DistanceMetric
 from ..pairs import SequencePairs, SequencePairHandler
 from ..sequences import Sequences, SequenceHandler
 from ..partitions import Partition, PartitionHandler
@@ -42,6 +42,7 @@ class SimpleStatistics(NamedTuple):
     min: float
     max: float
     mean: float
+    count: int
 
 
 class DistanceStatistics(NamedTuple):
@@ -51,6 +52,7 @@ class DistanceStatistics(NamedTuple):
     min: float
     max: float
     mean: float
+    count: int
 
 
 class SimpleAggregator:
@@ -72,8 +74,8 @@ class SimpleAggregator:
 
     def calculate(self):
         if not self.n:
-            return SimpleStatistics(None, None, None)
-        return SimpleStatistics(self.min, self.max, self.sum / self.n)
+            return SimpleStatistics(None, None, None, 0)
+        return SimpleStatistics(self.min, self.max, self.sum / self.n, self.n)
 
 
 class DistanceAggregator:
@@ -89,7 +91,7 @@ class DistanceAggregator:
     def __iter__(self) -> iter[DistanceStatistics]:
         for (idx, idy), agg in self.aggs.items():
             stats = agg.calculate()
-            yield DistanceStatistics(self.metric, idx, idy, stats.min, stats.max, stats.mean)
+            yield DistanceStatistics(self.metric, idx, idy, stats.min, stats.max, stats.mean, stats.count)
 
 
 class SubsetStatisticsHandler(FileHandler[tuple[DistanceStatistics]]):
@@ -187,6 +189,8 @@ class SubsetMatrixStatisticsHandler(SubsetStatisticsHandler):
         super()._open(path, mode, *args, **kwargs)
 
     def statsToText(self, stats: DistanceStatistics):
+        if not stats.count:
+            return self.missing
         mean = self.distanceToText(stats.mean)
         min = self.distanceToText(stats.min)
         max = self.distanceToText(stats.max)
@@ -374,7 +378,7 @@ class VersusAll:
         self.params.format.float: str = '{:.4f}'
         self.params.format.percentage: str = '{:.2f}'
         self.params.format.missing: str = 'NA'
-        self.params.format.stats: str = '{mean} ({min}-{max})'
+        self.params.format.stats_template: str = '{mean} ({min}-{max})'
         self.params.format.percentage_multiply: bool = False
 
         self.params.stats = AttrDict()
@@ -506,7 +510,10 @@ class VersusAll:
     def calculate_distances(self, pairs: SequencePairs):
         for x, y in pairs:
             for metric in self.params.distances.metrics:
-                yield metric.calculate(x, y)
+                if x != y:
+                    yield metric.calculate(x, y)
+                else:
+                    yield Distance(metric, x, y, None)
 
     def adjust_distances(self, distances: Distances):
         if not self.params.format.percentage_multiply:
@@ -610,7 +617,7 @@ class VersusAll:
             with SubsetMatrixStatisticsHandler(
                 path / f'{metric}.tsv', 'w',
                 formatter = self.params.format.float,
-                template = self.params.format.stats,
+                template = self.params.format.stats_template,
             ) as file:
                 for stats in aggregator:
                     file.write(stats)
