@@ -60,7 +60,28 @@ class Fasta(SequenceHandler):
             for data in SimpleFastaParser(handle):
                 yield Sequence(*data)
 
-    def _iter_write(self) -> WriteHandle[Sequence]:
+    def _iter_write(self, write_organism: bool = False) -> ReadHandle[Sequence]:
+        if write_organism:
+            yield from self._iter_write_organism()
+        else:
+            yield from self._iter_write_plain()
+
+    def _iter_write_organism(self) -> WriteHandle[Sequence]:
+        with open(self.path, 'w') as handle:
+            try:
+                while True:
+                    sequence = yield
+                    identifier = sequence.id
+                    if organism := sequence.extras.get('organism', None):
+                        identifier += '|' + organism
+                    handle.write('>' + identifier + '\n')
+                    for i in range(0, len(sequence.seq), 60):
+                        handle.write(sequence.seq[i : i + 60] + '\n')
+                    handle.write('\n')
+            except GeneratorExit:
+                return
+
+    def _iter_write_plain(self) -> WriteHandle[Sequence]:
         with open(self.path, 'w') as handle:
             try:
                 while True:

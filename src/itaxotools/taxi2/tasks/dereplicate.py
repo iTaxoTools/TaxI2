@@ -150,7 +150,7 @@ class Dereplicate:
 
     def get_output_handler(self, path: Path):
         if self.output_format == FileFormat.Fasta:
-            return SequenceHandler.Fasta(path, 'w')
+            return SequenceHandler.Fasta(path, 'w', write_organism=True)
         if self.output_format == FileFormat.Tabfile:
             return SequenceHandler.Tabfile(path, 'w', idHeader='seqid', seqHeader='sequence')
         raise Exception('Unknown file format')

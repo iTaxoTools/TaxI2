@@ -106,6 +106,8 @@ def test_read_sequences(test: ReadTest) -> None:
     "test", [
     WriteTest(sequences_simple, 'simple.tsv', SequenceHandler.Tabfile),
     WriteTest(sequences_headers, 'headers.tsv', SequenceHandler.Tabfile, dict(idHeader='seqid', seqHeader='sequences')),
+    WriteTest(sequences_simple, 'simple.fas', SequenceHandler.Fasta),
+    WriteTest(sequences_organism, 'species.fas', SequenceHandler.Fasta, dict(write_organism=True)),
 ])
 def test_write_sequences(test: WriteTest, tmp_path: Path) -> None:
     output_path = test.get_output_path(tmp_path)

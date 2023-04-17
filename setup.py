@@ -51,7 +51,7 @@ setup(
     ],
     python_requires=">=3.9, <4",
     install_requires=[
-        "itaxotools-common==0.2.4",
+        "itaxotools-common>=0.2.4",
         "DNAconvert==0.2.0",
         "spart_parser==0.1.1",
         "BioPython>=1.80",
