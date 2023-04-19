@@ -66,13 +66,34 @@ class Tabfile(FileInfo):
         headers = FileHandler.Tabfile(path, has_headers=True).headers
         headers = [sanitize(header) for header in headers]
 
+        header_individuals = 'seqid' if 'seqid' in headers else None
+        header_sequences = 'sequence' if 'sequence' in headers else None
+        header_organism = 'organism' if 'organism' in headers else None
+        header_species = 'species' if 'species' in headers else None
+        header_genus = 'genus' if 'genus' in headers else None
+
+        species_is_binomen = False
+        if 'species' in headers:
+            index = headers.index('species')
+            with FileHandler.Tabfile(path, columns=[index], has_headers=True) as file:
+                first = file.read()
+                if first is not None:
+                    parts = first[0].split(' ')
+                    species_is_binomen = bool(len(parts) > 1)
+
+        if species_is_binomen:
+            if 'organism' not in headers and 'genus' not in headers:
+                header_organism = 'species'
+                header_species = None
+                header_genus = None
+
         return cls(
-            headers = list(headers),
-            header_individuals = 'seqid' if 'seqid' in headers else None,
-            header_sequences = 'sequence' if 'sequence' in headers else None,
-            header_organism = 'organism' if 'organism' in headers else None,
-            header_species = 'species' if 'species' in headers else None,
-            header_genus = 'genus' if 'genus' in headers else None,
+            headers = headers,
+            header_individuals = header_individuals,
+            header_sequences = header_sequences,
+            header_organism = header_organism,
+            header_species = header_species,
+            header_genus = header_genus,
             **asdict(FileInfo.get(path))
         )
 
