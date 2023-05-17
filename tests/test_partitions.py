@@ -6,7 +6,8 @@ from typing import Callable, NamedTuple
 import pytest
 from utility import assert_eq_files
 
-from itaxotools.taxi2.partitions import Partition, PartitionHandler
+from itaxotools.taxi2.partitions import (
+    Classification, Partition, PartitionHandler)
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 
@@ -85,9 +86,13 @@ read_tests = [
     ReadTest(spartition_simple, 'simple.xml', PartitionHandler.Spart),
     ReadTest(spartition_matricial, 'simple.spart', PartitionHandler.Spart),
     ReadTest(spartition_simple, 'simple.fas', PartitionHandler.Fasta),
+    ReadTest(spartition_simple, 'simple.dot.fas', PartitionHandler.Fasta,
+        dict(separator='.')),
     ReadTest(spartition_missing, 'missing.fas', PartitionHandler.Fasta),
     ReadTest(spartition_genera, 'genera.fas', PartitionHandler.Fasta,
         dict(filter=PartitionHandler.subset_first_word)),
+    ReadTest(spartition_simple, 'genera.fas', PartitionHandler.Fasta,
+        dict(filter=lambda x: Classification(x.individual, x.subset.split(' ')[1]))),
 ]
 
 

@@ -1,8 +1,8 @@
 from pathlib import Path
 from sys import argv
 
+from itaxotools.taxi3.sequences import SequenceHandler, Sequences
 from itaxotools.taxi3.tasks.decontaminate2 import Decontaminate2
-from itaxotools.taxi3.sequences import Sequences, SequenceHandler
 
 
 def main(data_path: Path, outgroup_path: Path, ingroup_path: Path, output_path: Path):

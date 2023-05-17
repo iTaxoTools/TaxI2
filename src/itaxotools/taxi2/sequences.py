@@ -7,9 +7,9 @@ from typing import NamedTuple
 from Bio import SeqIO
 from Bio.SeqIO.FastaIO import SimpleFastaParser
 
-from .types import Container, Type
-from .handlers import FileHandler, ReadHandle, WriteHandle
 from .encoding import sanitize
+from .handlers import FileHandler, ReadHandle, WriteHandle
+from .types import Container, Type
 
 
 class Sequence(NamedTuple):

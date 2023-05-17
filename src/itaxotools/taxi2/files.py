@@ -1,17 +1,18 @@
 from __future__ import annotations
 
-from typing import Callable
+from dataclasses import asdict, dataclass
 from enum import Enum, auto
 from pathlib import Path
 from re import fullmatch
-from dataclasses import dataclass, asdict
+from typing import Callable
 
-from itaxotools.spart_parser.main import Spart as SpartParserSpart, is_path_xml
+from itaxotools.spart_parser.main import Spart as SpartParserSpart
+from itaxotools.spart_parser.main import is_path_xml
 
-from .types import Type
+from .encoding import sanitize
 from .handlers import FileHandler
 from .partitions import PartitionHandler
-from .encoding import sanitize
+from .types import Type
 
 
 class Identifier:
@@ -101,12 +102,15 @@ class Tabfile(FileInfo):
 @dataclass
 class Fasta(FileInfo):
     has_subsets: bool
+    subset_separator: str
 
     @classmethod
     def get(cls, path: Path):
-        has_subsets = PartitionHandler.Fasta.has_subsets(path,)
+        subset_separator = PartitionHandler.Fasta.guess_subset_separator(path)
+        has_subsets = PartitionHandler.Fasta.has_subsets(path, subset_separator)
         return cls(
             has_subsets = has_subsets,
+            subset_separator = subset_separator,
             **asdict(FileInfo.get(path))
         )
 

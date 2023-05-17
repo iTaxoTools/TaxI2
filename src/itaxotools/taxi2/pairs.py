@@ -3,9 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import NamedTuple, TextIO
 
+from .handlers import FileHandler, ReadHandle, WriteHandle
 from .sequences import Sequence, Sequences
 from .types import Container, Type
-from .handlers import FileHandler, ReadHandle, WriteHandle
 
 
 class SequencePair(NamedTuple):

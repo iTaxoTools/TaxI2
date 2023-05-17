@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from os.path import getsize
 from pathlib import Path
 from typing import Callable, NamedTuple
-from os.path import getsize
 
 import pytest
 from utility import assert_eq_files
@@ -56,7 +56,8 @@ def test_identify_file(test: IdentifyTest) -> None:
 @pytest.mark.parametrize(
     "test", [
     InfoTest('simple.fasta', dict(format=FileFormat.Fasta, has_subsets=False)),
-    InfoTest('species.fasta', dict(format=FileFormat.Fasta, has_subsets=True)),
+    InfoTest('species.fasta', dict(format=FileFormat.Fasta, has_subsets=True, subset_separator='|')),
+    InfoTest('species.dot.fasta', dict(format=FileFormat.Fasta, has_subsets=True, subset_separator='.')),
     InfoTest('simple.fasta', dict(format=FileFormat.Fasta, has_subsets=False)),
     InfoTest('simple.tsv', dict(format=FileFormat.Tabfile, headers=['id', 'seq'])),
     InfoTest('full.tsv', dict(

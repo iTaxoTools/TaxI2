@@ -4,16 +4,16 @@ import re
 from itertools import chain
 from math import isinf, isnan
 from pathlib import Path
-from typing import NamedTuple, Generator
+from typing import Generator, NamedTuple
 
 import alfpy.bbc as bbc
 import alfpy.ncd as ncd
 from alfpy.utils.seqrecords import SeqRecords
 
+from .handlers import FileHandler, ReadHandle, WriteHandle
 from .library import calculate_distances as calc
 from .sequences import Sequence
 from .types import Container, Type
-from .handlers import FileHandler, ReadHandle, WriteHandle
 
 
 class Distance(NamedTuple):

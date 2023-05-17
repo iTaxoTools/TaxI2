@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-import statistics
-import numpy as np
-from collections import Counter
-from itertools import accumulate
-from typing import NamedTuple, Generator
 import itertools
-from math import inf, isinf
+import statistics
+from collections import Counter
 from enum import Enum
+from itertools import accumulate
+from math import inf, isinf
+from typing import Generator, NamedTuple
 
-from .types import Percentage
+import numpy as np
+
 from .handlers import FileHandler, ReadHandle, WriteHandle
+from .types import Percentage
 
 
 class Counts(NamedTuple):

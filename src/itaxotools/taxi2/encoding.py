@@ -1,5 +1,5 @@
-import unicodedata
 import re
+import unicodedata
 
 # Dictionary copied from DNAconvert:
 # repository: https://github.com/iTaxoTools/DNAconvert/

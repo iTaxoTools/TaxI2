@@ -4,8 +4,8 @@ from time import perf_counter
 
 from itaxotools.taxi3.library.config import AlignmentScores, Config
 from itaxotools.taxi3.library.datatypes import (
-    Metric, SequenceData, SpeciesPartition, SubspeciesPartition,
-    TabfileReader, ValidFilePath, VoucherPartition)
+    Metric, SequenceData, SpeciesPartition, SubspeciesPartition, TabfileReader,
+    ValidFilePath, VoucherPartition)
 from itaxotools.taxi3.library.task import (
     Alignment, CalculateDistances, VersusAll)
 

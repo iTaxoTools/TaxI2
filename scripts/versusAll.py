@@ -1,10 +1,10 @@
 from pathlib import Path
 from sys import argv
 
-from itaxotools.taxi3.tasks.versus_all import VersusAll
-from itaxotools.taxi3.sequences import Sequences, SequenceHandler
-from itaxotools.taxi3.partitions import Partition, PartitionHandler
 from itaxotools.taxi3.distances import DistanceMetric
+from itaxotools.taxi3.partitions import Partition, PartitionHandler
+from itaxotools.taxi3.sequences import SequenceHandler, Sequences
+from itaxotools.taxi3.tasks.versus_all import VersusAll
 
 
 def main(input_path: Path, output_path: Path):

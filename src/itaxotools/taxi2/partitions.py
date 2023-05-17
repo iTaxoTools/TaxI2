@@ -1,17 +1,17 @@
 from __future__ import annotations
 
-from pathlib import Path
-from typing import NamedTuple, Callable
-from contextlib import contextmanager
 from abc import abstractmethod
+from contextlib import contextmanager
+from pathlib import Path
+from typing import Callable, NamedTuple
 
 from Bio.SeqIO.FastaIO import SimpleFastaParser
 from itaxotools.spart_parser import Spart as SpartParserSpart
 
+from .encoding import sanitize
+from .handlers import FileHandler, ReadHandle, WriteHandle
 from .sequences import Sequence, Sequences
 from .types import Container, Type
-from .handlers import FileHandler, ReadHandle, WriteHandle
-from .encoding import sanitize
 
 
 class Classification(NamedTuple):
@@ -127,21 +127,30 @@ class Spart(PartitionHandler):
 
 
 class Fasta(PartitionHandler):
-
-    def _iter_read_inner(self) -> ReadHandle[Classification]:
+    def _iter_read_inner(self, separator='|') -> ReadHandle[Classification]:
         with open(self.path, 'r') as handle:
             yield self
             for title, _ in SimpleFastaParser(handle):
                 try:
-                    individual, subset = title.split('|', 1)
+                    individual, subset = title.split(separator, 1)
                 except ValueError as e:
                     print(f'Could not extract partition info from fasta line: {title}')
                     continue
                 yield Classification(individual, subset)
 
     @classmethod
-    def has_subsets(self, path: Path) -> bool:
+    def has_subsets(self, path: Path, separator: str = '|') -> bool:
         with open(path, 'r') as handle:
             for title, _ in SimpleFastaParser(handle):
-                data = title.split('|', 1)
+                data = title.split(separator, 1)
                 return len(data) == 2
+
+    @classmethod
+    def guess_subset_separator(self, path: Path) -> bool | None:
+        separators = '|.'
+        with open(path, 'r') as handle:
+            for title, _ in SimpleFastaParser(handle):
+                for separator in separators:
+                    if separator in title:
+                        return separator
+            return None

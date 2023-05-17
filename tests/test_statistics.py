@@ -1,14 +1,15 @@
 from __future__ import annotations
 
+from math import sqrt
 from pathlib import Path
 from sys import stderr
 from typing import Callable, NamedTuple
-from math import sqrt
 
 import pytest
 from utility import assert_eq_files
 
-from itaxotools.taxi2.statistics import Counts, Statistic, Statistics, StatisticsCalculator, StatisticsHandler
+from itaxotools.taxi2.statistics import (
+    Counts, Statistic, Statistics, StatisticsCalculator, StatisticsHandler)
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 

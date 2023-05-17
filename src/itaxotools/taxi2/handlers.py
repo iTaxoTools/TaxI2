@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
-from pathlib import Path
-from typing import NamedTuple, Generator, Generic, Iterator, TypeVar, Type
-from itertools import chain
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
+from itertools import chain
+from pathlib import Path
+from typing import Generator, Generic, Iterator, NamedTuple, Type, TypeVar
+
 from openpyxl import load_workbook
 
 from .types import Type

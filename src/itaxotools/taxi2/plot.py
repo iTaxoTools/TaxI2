@@ -1,13 +1,12 @@
-from typing import NamedTuple
-from pathlib import Path
 from enum import Enum
+from pathlib import Path
+from typing import NamedTuple
 
-import pandas as pd
-import seaborn as sns
-import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
-
+import numpy as np
+import pandas as pd
+import seaborn as sns
 
 matplotlib.use('agg')
 matplotlib.use('svg')
