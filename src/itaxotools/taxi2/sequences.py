@@ -37,6 +37,15 @@ class SequenceHandler(FileHandler[Sequence]):
 
 
 class Fasta(SequenceHandler):
+    def _open(
+        self, path: Path,
+        mode: 'r' | 'w' = 'r',
+        organism_separator='|',
+        *args, **kwargs
+    ):
+        self.organism_separator = organism_separator
+        super()._open(path, mode, *args, **kwargs)
+
     def _iter_read(self, parse_organism: bool = False) -> ReadHandle[Sequence]:
         if parse_organism:
             yield from self._iter_read_organism()
@@ -46,9 +55,10 @@ class Fasta(SequenceHandler):
     def _iter_read_organism(self) -> ReadHandle[Sequence]:
         with open(self.path, 'r') as handle:
             yield self
+            separator = self.organism_separator
             for title, sequence in SimpleFastaParser(handle):
                 try:
-                    id, organism = title.split('|', 1)
+                    id, organism = title.split(separator, 1)
                 except ValueError:
                     id = title
                     organism = None
@@ -67,13 +77,14 @@ class Fasta(SequenceHandler):
             yield from self._iter_write_plain()
 
     def _iter_write_organism(self) -> WriteHandle[Sequence]:
+        separator = self.organism_separator
         with open(self.path, 'w') as handle:
             try:
                 while True:
                     sequence = yield
                     identifier = sequence.id
                     if organism := sequence.extras.get('organism', None):
-                        identifier += '|' + organism
+                        identifier += separator + organism
                     handle.write('>' + identifier + '\n')
                     for i in range(0, len(sequence.seq), 60):
                         handle.write(sequence.seq[i : i + 60] + '\n')

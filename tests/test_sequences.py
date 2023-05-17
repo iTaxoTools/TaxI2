@@ -96,6 +96,7 @@ def sequences_empty() -> Sequences:
     ReadTest(sequences_headers, 'headers.tsv', SequenceHandler.Tabfile, dict(idHeader='seqid', seqHeader='sequences')),
     ReadTest(sequences_headers, 'headers.xlsx', SequenceHandler.Excel, dict(idHeader='seqid', seqHeader='sequences')),
     ReadTest(sequences_organism, 'species.fas', SequenceHandler.Fasta, dict(parse_organism=True)),
+    ReadTest(sequences_organism, 'species.dot.fas', SequenceHandler.Fasta, dict(parse_organism=True, organism_separator='.')),
     ReadTest(sequences_empty, 'empty.tsv', SequenceHandler.Tabfile, dict(idHeader='seqid', seqHeader='sequences')),
 ])
 def test_read_sequences(test: ReadTest) -> None:
@@ -108,6 +109,7 @@ def test_read_sequences(test: ReadTest) -> None:
     WriteTest(sequences_headers, 'headers.tsv', SequenceHandler.Tabfile, dict(idHeader='seqid', seqHeader='sequences')),
     WriteTest(sequences_simple, 'simple.fas', SequenceHandler.Fasta),
     WriteTest(sequences_organism, 'species.fas', SequenceHandler.Fasta, dict(write_organism=True)),
+    WriteTest(sequences_organism, 'species.dot.fas', SequenceHandler.Fasta, dict(write_organism=True, organism_separator='.')),
 ])
 def test_write_sequences(test: WriteTest, tmp_path: Path) -> None:
     output_path = test.get_output_path(tmp_path)
