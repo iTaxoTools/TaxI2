@@ -7,7 +7,8 @@ from typing import Callable, NamedTuple
 import pytest
 from utility import assert_eq_files
 
-from itaxotools.taxi2.files import FileFormat, FileInfo
+from itaxotools.taxi2.files import get_info, identify_format
+from itaxotools.taxi2.file_types import FileFormat, FileInfo
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 
@@ -21,7 +22,10 @@ class IdentifyTest(NamedTuple):
         return TEST_DATA_DIR / self.input
 
     def validate(self) -> None:
-        result = FileFormat.identify(self.input_path)
+        result = identify_format(self.input_path)
+        print(result, type(result))
+        print(self.format, type(self.format))
+        print(type(result) == type(self.format))
         assert result == self.format
 
 
@@ -34,7 +38,7 @@ class InfoTest(NamedTuple):
         return TEST_DATA_DIR / self.input
 
     def validate(self) -> None:
-        result = FileInfo.from_path(self.input_path)
+        result = get_info(self.input_path)
         assert result.path == self.input_path
         assert result.size == getsize(str(self.input_path))
         for info in self.infos:
