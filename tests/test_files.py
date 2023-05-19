@@ -60,6 +60,7 @@ def test_identify_file(test: IdentifyTest) -> None:
 @pytest.mark.parametrize(
     "test", [
     InfoTest('simple.fasta', dict(format=FileFormat.Fasta, has_subsets=False)),
+    InfoTest('spaces.fasta', dict(format=FileFormat.Fasta, has_subsets=False)),
     InfoTest('species.fasta', dict(format=FileFormat.Fasta, has_subsets=True, subset_separator='|')),
     InfoTest('species.dot.fasta', dict(format=FileFormat.Fasta, has_subsets=True, subset_separator='.')),
     InfoTest('simple.fasta', dict(format=FileFormat.Fasta, has_subsets=False)),

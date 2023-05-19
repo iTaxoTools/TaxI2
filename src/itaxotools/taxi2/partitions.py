@@ -140,6 +140,8 @@ class Fasta(PartitionHandler):
 
     @classmethod
     def has_subsets(self, path: Path, separator: str = '|') -> bool:
+        if not separator:
+            return False
         with open(path, 'r') as handle:
             for title, _ in SimpleFastaParser(handle):
                 data = title.split(separator, 1)
