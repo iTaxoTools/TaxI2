@@ -11,7 +11,8 @@ from itaxotools.common.utility import AttrDict
 
 from ..align import PairwiseAligner
 from ..distances import DistanceHandler, DistanceMetric, Distances
-from ..files import FileFormat
+from ..files import identify_format
+from ..file_types import FileFormat
 from ..handlers import FileHandler, ReadHandle, WriteHandle
 from ..pairs import SequencePair, SequencePairHandler, SequencePairs
 from ..partitions import Partition, PartitionHandler
@@ -146,7 +147,7 @@ class Dereplicate:
         self.params.format.percentage_multiply: bool = False
 
     def set_output_format_from_path(self, path: Path):
-        self.output_format = FileFormat.identify(path)
+        self.output_format = identify_format(path)
 
     def get_output_handler(self, path: Path):
         if self.output_format == FileFormat.Fasta:
