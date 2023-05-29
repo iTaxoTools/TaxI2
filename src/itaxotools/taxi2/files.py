@@ -4,6 +4,7 @@ from pathlib import Path
 from re import fullmatch
 from typing import Callable
 
+from itaxotools.common.utility import DecoratorDict
 from itaxotools.spart_parser.main import Spart as SpartParserSpart
 from itaxotools.spart_parser.main import is_path_xml
 
@@ -14,32 +15,15 @@ from .file_types import FileFormat, FileInfo
 
 
 FormatIdentifier = Callable[[Path], bool]
-FormatIdentifierDecorator = Callable[[FormatIdentifier], FormatIdentifier]
-
 InfoGetter = Callable[[Path, FileFormat], bool]
-InfoGetterDecorator = Callable[[InfoGetter], InfoGetter]
 
-format_identifiers: Dict[FileFormat, CallableTest] = {}
-info_getters: Dict[FileFormat, CallableTest] = {}
-
-
-def identifier(format: FileFormat) -> FormatIdentifierDecorator:
-    def decorator(func: FormatIdentifier) -> FormatIdentifier:
-        format_identifiers[format] = func
-        return func
-    return decorator
-
-
-def info_getter(format: FileFormat) -> InfoGetterDecorator:
-    def decorator(func: InfoGetter) -> InfoGetter:
-        info_getters[format] = func
-        return func
-    return decorator
+identifier = DecoratorDict[FileFormat, FormatIdentifier]()
+info_getter = DecoratorDict[FileFormat, InfoGetter]()
 
 
 def identify_format(path: Path):
-    for format in format_identifiers:
-        if format_identifiers[format](path):
+    for format in identifier:
+        if identifier[format](path):
             return format
     return FileFormat.Unknown
 
@@ -47,9 +31,9 @@ def identify_format(path: Path):
 def get_info(path: Path, format: FileFormat = None):
     if format is None:
         format = identify_format(path)
-    if format not in info_getters:
+    if format not in info_getter:
         format = FileFormat.Unknown
-    return info_getters[format](path, format)
+    return info_getter[format](path, format)
 
 
 @identifier(FileFormat.Fasta)
