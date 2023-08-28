@@ -25,6 +25,7 @@ class Tree(NamedTuple):
         newick = cls._format_newick_string(newick, False, False, False)
         names = set()
 
+        # recursively collapse leaves into branches
         pattern = re.compile(r'\(([\w\.\-]+?),([\w\.\-]+?)\)')
         while True:
             hit = pattern.search(newick)
@@ -34,7 +35,12 @@ class Tree(NamedTuple):
             names.add(hit.group(2))
             newick = newick.replace(hit.group(0), hit.group(1))
 
-        pattern_unrooted = re.compile(r'^\(([\w\.\-]+?),([\w\.\-]+?),([\w\.\-]+?)\)$')
+        # remove remaining parentheses around root
+        while newick.startswith('(') and newick.endswith(')'):
+            newick = newick[1:-1]
+
+        # final unrooted tree may contain at most three nodes
+        pattern_unrooted = re.compile(r'^([\w\.\-]+?),([\w\.\-]+?),([\w\.\-]+?)$')
         hit = pattern_unrooted.search(newick)
         if hit is not None:
             names.add(hit.group(1))
@@ -45,8 +51,10 @@ class Tree(NamedTuple):
 
         pattern_single = re.compile(r'^[\w\.\-]+?$')
 
+        # check if the collapsed tree is valid
         if re.fullmatch(pattern_single, newick) or re.fullmatch(pattern_unrooted, newick):
             return True, names
+
         return False, names
 
     @staticmethod
