@@ -65,6 +65,8 @@ class Tree(NamedTuple):
         comments: bool,
     ) -> str:
 
+        newick = newick.strip()
+
         if semicolon and not newick.endswith(';'):
             newick += ';'
         if not semicolon and newick.endswith(';'):

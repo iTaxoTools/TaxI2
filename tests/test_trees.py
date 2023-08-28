@@ -138,6 +138,10 @@ def test_newick_extra_parentheses_with_distances():
     Tree.from_newick_string('(((A,B),C):1)')
 
 
+def test_newick_strip():
+    Tree.from_newick_string('\n(A,B);\r\n')
+
+
 def test_newick_empty():
     with pytest.raises(ValueError):
         Tree.from_newick_string('')
