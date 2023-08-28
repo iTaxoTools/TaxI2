@@ -85,6 +85,8 @@ def test_identify_file(test: IdentifyTest) -> None:
         )),
     InfoTest('simple.spart', dict(format=FileFormat.Spart, spartitions=['spartition_1', 'spartition_2'], is_matricial=True, is_xml=False)),
     InfoTest('simple.xml', dict(format=FileFormat.Spart, spartitions=['spartition_1'], is_matricial=False, is_xml=True)),
+    InfoTest('simple.tree', dict(format=FileFormat.Newick, count=1, names={'A', 'B', 'C', 'D'})),
+    InfoTest('complex.tree', dict(format=FileFormat.Newick, count=2, names={'A', 'B', 'C', 'D', 'E'})),
     InfoTest('empty.txt', dict(format=FileFormat.Unknown)),
 ])
 def test_get_file_info(test: InfoTest) -> None:

@@ -11,6 +11,7 @@ from itaxotools.spart_parser.main import is_path_xml
 from .encoding import sanitize
 from .handlers import FileHandler
 from .partitions import PartitionHandler
+from .trees import Trees
 from .file_types import FileFormat, FileInfo
 
 
@@ -54,6 +55,17 @@ def is_spart(path: Path) -> bool:
     try:
         SpartParserSpart.fromPath(path)
     except Exception:
+        return False
+    return True
+
+
+@identifier(FileFormat.Newick)
+def is_newick(path: Path) -> bool:
+    try:
+        trees = Trees.fromPath(path)
+    except Exception:
+        return False
+    if not len(trees):
         return False
     return True
 
@@ -129,6 +141,22 @@ def get_spart_info(path: Path, format: FileFormat) -> bool:
         is_matricial = not is_xml,
         is_xml = is_xml,
     )
+
+
+@info_getter(FileFormat.Newick)
+def get_newick_info(path: Path, format: FileFormat) -> bool:
+    trees = Trees.fromPath(path)
+    return FileInfo.Newick(
+        path = path,
+        format = format,
+        size = path.stat().st_size,
+        count = len(trees),
+        names = set(
+            name
+            for tree in trees
+            for name in tree.get_node_names()),
+    )
+
 
 @info_getter(FileFormat.Unknown)
 def get_general_info(path: Path, format: FileFormat) -> bool:

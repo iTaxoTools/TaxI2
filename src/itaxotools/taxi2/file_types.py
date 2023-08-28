@@ -12,6 +12,7 @@ class FileFormat(Enum):
     Tabfile = 'Tabfile', '.tsv'
     Spart = 'Spart', '.spart'
     Excel = 'Excel', '.xlsx'
+    Newick = 'Newick', '.tree'
     Unknown = 'Unknown', None
 
     def __init__(self, label, extension):
@@ -60,3 +61,9 @@ class Spart(FileInfo):
     spartitions: list[str]
     is_matricial: bool
     is_xml: bool
+
+
+@dataclass
+class Newick(FileInfo):
+    count: int
+    names: set[str]
