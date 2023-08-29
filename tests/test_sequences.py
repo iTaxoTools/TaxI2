@@ -114,3 +114,9 @@ def test_read_sequences(test: ReadTest) -> None:
 def test_write_sequences(test: WriteTest, tmp_path: Path) -> None:
     output_path = test.get_output_path(tmp_path)
     test.validate(output_path)
+
+
+def test_sequence_sanitized_id_with_extras():
+    sequence = Sequence('samplé1', 'ACGT', {'allele': 'a'})
+    id = sequence.get_sanitized_id_with_extras()
+    assert id == 'sample1_a'

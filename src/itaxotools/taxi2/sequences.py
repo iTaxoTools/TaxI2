@@ -22,6 +22,10 @@ class Sequence(NamedTuple):
     def normalize(self):
         return Sequence(self.id, self.seq.translate(self._tr_normalize).upper(), self.extras)
 
+    def get_sanitized_id_with_extras(self):
+        key = '_'.join([self.id] + list(self.extras.values()))
+        return sanitize(key)
+
 
 class Sequences(Container[Sequence]):
     @classmethod
