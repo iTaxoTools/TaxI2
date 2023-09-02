@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from pathlib import Path
-from typing import NamedTuple
+from typing import NamedTuple, Literal
 
 from Bio import SeqIO
 from Bio.SeqIO.FastaIO import SimpleFastaParser
@@ -43,11 +43,13 @@ class SequenceHandler(FileHandler[Sequence]):
 class Fasta(SequenceHandler):
     def _open(
         self, path: Path,
-        mode: 'r' | 'w' = 'r',
+        mode: Literal['r', 'w'] = 'r',
         organism_separator='|',
+        organism_tag='organism',
         *args, **kwargs
     ):
         self.organism_separator = organism_separator
+        self.organism_tag = organism_tag
         super()._open(path, mode, *args, **kwargs)
 
     def _iter_read(self, parse_organism: bool = False) -> ReadHandle[Sequence]:
@@ -66,7 +68,7 @@ class Fasta(SequenceHandler):
                 except ValueError:
                     id = title
                     organism = None
-                yield Sequence(id, sequence, extras=dict(organism=organism))
+                yield Sequence(id, sequence, extras={self.organism_tag: organism})
 
     def _iter_read_plain(self) -> ReadHandle[Sequence]:
         with open(self.path, 'r') as handle:
@@ -87,7 +89,7 @@ class Fasta(SequenceHandler):
                 while True:
                     sequence = yield
                     identifier = sequence.id
-                    if organism := sequence.extras.get('organism', None):
+                    if organism := sequence.extras.get(self.organism_tag, None):
                         identifier += separator + organism
                     handle.write('>' + identifier + '\n')
                     for i in range(0, len(sequence.seq), 60):

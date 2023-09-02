@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from itertools import chain
 from pathlib import Path
-from typing import Generator, Generic, Iterator, NamedTuple, Type, TypeVar
+from typing import Generator, Generic, Iterator, NamedTuple, Type, TypeVar, Literal
 
 from openpyxl import load_workbook
 
@@ -59,7 +59,7 @@ class FileHandler(ABC, Type, Generic[Item], metaclass=_FileHandlerMeta):
         assert self.readable()
         return next(self.it)
 
-    def _open(self, path: Path, mode: 'r' | 'w' = 'r', *args, **kwargs):
+    def _open(self, path: Path, mode: Literal['r', 'w'] = 'r', *args, **kwargs):
         self.path = path
         self.mode = mode
         if mode == 'r':
