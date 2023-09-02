@@ -76,7 +76,12 @@ class Fasta(SequenceHandler):
             for data in SimpleFastaParser(handle):
                 yield Sequence(*data)
 
-    def _iter_write(self, write_organism: bool = False) -> ReadHandle[Sequence]:
+    def _iter_write(
+        self, write_organism: bool = False,
+        concatenate_extras: list[str] = [],
+    ) -> ReadHandle[Sequence]:
+
+        self.concatenate_extras = concatenate_extras
         if write_organism:
             yield from self._iter_write_organism()
         else:
@@ -88,7 +93,7 @@ class Fasta(SequenceHandler):
             try:
                 while True:
                     sequence = yield
-                    identifier = sequence.id
+                    identifier = self._get_sequence_identifier(sequence)
                     if organism := sequence.extras.get(self.organism_tag, None):
                         identifier += separator + organism
                     handle.write('>' + identifier + '\n')
@@ -103,12 +108,17 @@ class Fasta(SequenceHandler):
             try:
                 while True:
                     sequence = yield
-                    handle.write('>' + sequence.id + '\n')
+                    identifier = self._get_sequence_identifier(sequence)
+                    handle.write('>' + identifier + '\n')
                     for i in range(0, len(sequence.seq), 60):
                         handle.write(sequence.seq[i : i + 60] + '\n')
                     handle.write('\n')
             except GeneratorExit:
                 return
+
+    def _get_sequence_identifier(self, sequence: Sequence) -> str:
+        extras = (sequence.extras[tag] for tag in self.concatenate_extras)
+        return '_'.join((sequence.id, *extras))
 
 
 class Genbank(SequenceHandler):

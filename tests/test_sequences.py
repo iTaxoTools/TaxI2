@@ -82,6 +82,17 @@ def sequences_headers() -> Sequences:
     ])
 
 
+def sequences_alleles() -> Sequences:
+    return Sequences([
+        Sequence('id1', 'ATC', {'allele': 'a', 'species': 'X'}),
+        Sequence('id1', 'ATC', {'allele': 'b', 'species': 'X'}),
+        Sequence('id2', 'ATG', {'allele': 'a', 'species': 'Y'}),
+        Sequence('id2', 'ATG', {'allele': 'b', 'species': 'Y'}),
+        Sequence('id3', 'ATA', {'allele': 'a', 'species': 'Z'}),
+        Sequence('id3', 'ATA', {'allele': 'b', 'species': 'Z'}),
+    ])
+
+
 def sequences_empty() -> Sequences:
     return Sequences([])
 
@@ -112,6 +123,9 @@ def test_read_sequences(test: ReadTest) -> None:
     WriteTest(sequences_organism, 'species.fas', SequenceHandler.Fasta, dict(write_organism=True)),
     WriteTest(sequences_organism, 'species.dot.fas', SequenceHandler.Fasta, dict(write_organism=True, organism_separator='.')),
     WriteTest(sequences_headers, 'species.fas', SequenceHandler.Fasta, dict(write_organism=True, organism_tag='voucher', organism_separator='|')),
+    WriteTest(sequences_alleles, 'alleles.concat.fas', SequenceHandler.Fasta, dict(write_organism=False, concatenate_extras=['species', 'allele'])),
+    WriteTest(sequences_alleles, 'alleles.plain.fas', SequenceHandler.Fasta, dict(write_organism=False, concatenate_extras=['allele'])),
+    WriteTest(sequences_alleles, 'alleles.species.fas', SequenceHandler.Fasta, dict(write_organism=True, organism_separator='|', organism_tag='species', concatenate_extras=['allele'])),
 ])
 def test_write_sequences(test: WriteTest, tmp_path: Path) -> None:
     output_path = test.get_output_path(tmp_path)
