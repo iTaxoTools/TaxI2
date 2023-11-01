@@ -4,7 +4,7 @@ import re
 from itertools import chain
 from math import isinf, isnan
 from pathlib import Path
-from typing import Generator, NamedTuple
+from typing import Generator, NamedTuple, Literal
 
 import alfpy.bbc as bbc
 import alfpy.ncd as ncd
@@ -33,7 +33,7 @@ class DistanceHandler(FileHandler[Distance]):
     def _open(
         self,
         path: Path,
-        mode: 'r' | 'w' = 'r',
+        mode: Literal['r', 'w'] = 'r',
         missing: str = 'NA',
         formatter: str = '{:f}',
         *args, **kwargs

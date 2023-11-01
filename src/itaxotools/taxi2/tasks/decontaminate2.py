@@ -5,12 +5,12 @@ from math import inf
 from pathlib import Path
 from statistics import mean, median, stdev
 from time import perf_counter
-from typing import Callable, NamedTuple, TextIO
+from typing import Callable, NamedTuple, TextIO, Iterator, Callable, Literal
 
 from itaxotools.common.utility import AttrDict
 
-from ..align import PairwiseAligner
-from ..distances import DistanceHandler, DistanceMetric, Distances
+from ..align import PairwiseAligner, Scores
+from ..distances import DistanceHandler, DistanceMetric, Distances, Distance
 from ..files import identify_format
 from ..file_types import FileFormat
 from ..handlers import FileHandler, ReadHandle, WriteHandle
@@ -64,7 +64,7 @@ class SummaryHandle(FileHandler[SummaryLine]):
     def _open(
         self,
         path: Path,
-        mode: 'r' | 'w' = 'w',
+        mode: Literal['r', 'w'] = 'w',
         missing: str = 'NA',
         formatter: str = '{:f}',
         *args, **kwargs
@@ -178,7 +178,7 @@ class Decontaminate2:
             return sequences
         return sequences.normalize()
 
-    def align_pairs(self, pairs: iter[SequencePair]) -> iter[SequencePair]:
+    def align_pairs(self, pairs: iter[SequencePair]) -> Iterator[SequencePair]:
         if not self.params.pairs.align:
             yield from pairs
             return
@@ -186,7 +186,7 @@ class Decontaminate2:
         aligner = PairwiseAligner.Biopython(self.params.pairs.scores)
         yield from aligner.align_pairs(pairs)
 
-    def write_outgroup_pairs(self, pairs: iter[SequencePair]) -> iter[SequencePair]:
+    def write_outgroup_pairs(self, pairs: iter[SequencePair]) -> Iterator[SequencePair]:
         if not self.params.pairs.write:
             yield from pairs
             return
@@ -197,7 +197,7 @@ class Decontaminate2:
                 file.write(pair)
                 yield pair
 
-    def write_ingroup_pairs(self, pairs: iter[SequencePair]) -> iter[SequencePair]:
+    def write_ingroup_pairs(self, pairs: iter[SequencePair]) -> Iterator[SequencePair]:
         if not self.params.pairs.write:
             yield from pairs
             return
@@ -208,12 +208,12 @@ class Decontaminate2:
                 file.write(pair)
                 yield pair
 
-    def calculate_distances(self, pairs: iter[SequencePair]) -> iter[Distance]:
+    def calculate_distances(self, pairs: iter[SequencePair]) -> Iterator[Distance]:
         metric = self.params.distances.metric
         for x, y in pairs:
             yield metric.calculate(x, y)
 
-    def adjust_distances(self, distances: iter[Distance]) -> iter[Distance]:
+    def adjust_distances(self, distances: iter[Distance]) -> Iterator[Distance]:
         if not self.params.format.percentage_multiply:
             yield from distances
             return
@@ -223,7 +223,7 @@ class Decontaminate2:
                 distance = distance._replace(d = distance.d * 100)
             yield distance
 
-    def write_distances_linear(self, distances: iter[Distance], path: Path) -> iter[Distance]:
+    def write_distances_linear(self, distances: iter[Distance], path: Path) -> Iterator[Distance]:
         if not self.params.distances.write_linear:
             yield from distances
             return
@@ -238,13 +238,13 @@ class Decontaminate2:
                 file.write(distance)
                 yield distance
 
-    def write_outgroup_distances_linear(self, distances: iter[Distance]) -> iter[Distance]:
+    def write_outgroup_distances_linear(self, distances: iter[Distance]) -> Iterator[Distance]:
         return self.write_distances_linear(distances, self.paths.outgroup_linear)
 
-    def write_ingroup_distances_linear(self, distances: iter[Distance]) -> iter[Distance]:
+    def write_ingroup_distances_linear(self, distances: iter[Distance]) -> Iterator[Distance]:
         return self.write_distances_linear(distances, self.paths.ingroup_linear)
 
-    def write_distances_matrix(self, distances: iter[Distance], path: Path) -> iter[Distance]:
+    def write_distances_matrix(self, distances: iter[Distance], path: Path) -> Iterator[Distance]:
         if not self.params.distances.write_matricial:
             yield from distances
             return
@@ -259,17 +259,17 @@ class Decontaminate2:
                 file.write(distance)
                 yield distance
 
-    def write_outgroup_distances_matrix(self, distances: iter[Distance]) -> iter[Distance]:
+    def write_outgroup_distances_matrix(self, distances: iter[Distance]) -> Iterator[Distance]:
         return self.write_distances_matrix(distances, self.paths.outgroup_matrix)
 
-    def write_ingroup_distances_matrix(self, distances: iter[Distance]) -> iter[Distance]:
+    def write_ingroup_distances_matrix(self, distances: iter[Distance]) -> Iterator[Distance]:
         return self.write_distances_matrix(distances, self.paths.ingroup_matrix)
 
-    def group_distances_left(self, distances: iter[Distance]) -> iter[iter[Distance]]:
+    def group_distances_left(self, distances: iter[Distance]) -> Iterator[iter[Distance]]:
         for _, group in groupby(distances, lambda distance: distance.x.id):
             yield group
 
-    def get_minimum_distances(self, groups: iter[iter[Distance]]) -> iter[Distance]:
+    def get_minimum_distances(self, groups: iter[iter[Distance]]) -> Iterator[Distance]:
         def get_distance_value(distance: Distance):
             return distance.d if distance.d is not None else inf
         for distances in groups:
@@ -281,7 +281,7 @@ class Decontaminate2:
         sequences: iter[Sequence],
         out_minimums: iter[Distance],
         in_minimums: iter[Distance],
-    ) -> iter[tuple[Verdict, SummaryLine]]:
+    ) -> Iterator[tuple[Verdict, SummaryLine]]:
 
         def check_if_contaminant(outgroup_distance, ingroup_distance) -> bool:
             if outgroup_distance is None:
@@ -323,21 +323,21 @@ class Decontaminate2:
         data = self._find_contaminants(sequences, out_minimums, in_minimums)
         return split(data, lambda x: x[0], lambda x: x[1])
 
-    def write_file_decontaminated(self, verdicts: iter[Verdict]) -> iter[Verdict]:
+    def write_file_decontaminated(self, verdicts: iter[Verdict]) -> Iterator[Verdict]:
         with self.get_output_handler(self.paths.decontaminated) as file:
             for verdict in verdicts:
                 if not verdict.contaminant:
                     file.write(verdict.sequence)
                 yield verdict
 
-    def write_file_contaminants(self, verdicts: iter[Verdict]) -> iter[Verdict]:
+    def write_file_contaminants(self, verdicts: iter[Verdict]) -> Iterator[Verdict]:
         with self.get_output_handler(self.paths.contaminants) as file:
             for verdict in verdicts:
                 if verdict.contaminant:
                     file.write(verdict.sequence)
                 yield verdict
 
-    def write_summary(self, lines: iter[SummaryLine]) -> iter[SummaryLine]:
+    def write_summary(self, lines: iter[SummaryLine]) -> Iterator[SummaryLine]:
         with SummaryHandle(
             self.paths.summary, 'w',
             missing = self.params.format.missing,

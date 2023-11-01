@@ -5,12 +5,12 @@ from math import inf
 from pathlib import Path
 from statistics import mean, median, stdev
 from time import perf_counter
-from typing import Generator, NamedTuple, TextIO
+from typing import Generator, NamedTuple, TextIO, Iterator, Callable, Literal
 
 from itaxotools.common.utility import AttrDict
 
-from ..align import PairwiseAligner
-from ..distances import Distance, DistanceHandler, DistanceMetric, Distances
+from ..align import PairwiseAligner, Scores
+from ..distances import Distance, DistanceHandler, DistanceMetric, Distances, Distance
 from ..handlers import FileHandler, WriteHandle
 from ..pairs import SequencePairHandler, SequencePairs
 from ..partitions import Partition, PartitionHandler
@@ -88,7 +88,7 @@ class DistanceAggregator:
             self.aggs[(d.idx, d.idy)] = SimpleAggregator()
         self.aggs[(d.idx, d.idy)].add(d.d)
 
-    def __iter__(self) -> iter[DistanceStatistics]:
+    def __iter__(self) -> Iterator[DistanceStatistics]:
         for (idx, idy), agg in self.aggs.items():
             stats = agg.calculate()
             yield DistanceStatistics(self.metric, idx, idy, stats.min, stats.max, stats.mean, stats.count)
@@ -98,7 +98,7 @@ class SubsetStatisticsHandler(FileHandler[tuple[DistanceStatistics]]):
     def _open(
         self,
         path: Path,
-        mode: 'r' | 'w' = 'w',
+        mode: Literal['r', 'w'] = 'w',
         missing: str = 'NA',
         formatter: str = '{:f}',
         *args, **kwargs
@@ -181,7 +181,7 @@ class SubsetMatrixStatisticsHandler(SubsetStatisticsHandler):
     def _open(
         self,
         path: Path,
-        mode: 'r' | 'w' = 'w',
+        mode: Literal['r', 'w'] = 'w',
         template: str = '{mean} ({min}-{max})',
         *args, **kwargs
     ):
@@ -560,17 +560,17 @@ class VersusAll:
                     file.write(distance)
                 yield distance
 
-    def aggregate_distances_species(self, distances: Distances) -> iter[SubsetPair | None]:
+    def aggregate_distances_species(self, distances: Distances) -> Iterator[SubsetPair | None]:
         if not self.input.species:
             return (None for _ in distances)
         return self._aggregate_distances(distances, self.input.species, self.paths.subsets / 'species')
 
-    def aggregate_distances_genera(self, distances: Distances) -> iter[SubsetPair | None]:
+    def aggregate_distances_genera(self, distances: Distances) -> Iterator[SubsetPair | None]:
         if not self.input.genera:
             return (None for _ in distances)
         return self._aggregate_distances(distances, self.input.genera, self.paths.subsets / 'genera')
 
-    def _aggregate_distances(self, distances: Distances, partition: Partition, path: Path) -> iter[SubsetPair]:
+    def _aggregate_distances(self, distances: Distances, partition: Partition, path: Path) -> Iterator[SubsetPair]:
         try:
             aggregators = dict()
             for metric in self.params.distances.metrics:

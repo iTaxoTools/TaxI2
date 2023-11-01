@@ -5,12 +5,12 @@ from math import inf
 from pathlib import Path
 from statistics import mean, median, stdev
 from time import perf_counter
-from typing import NamedTuple, TextIO
+from typing import NamedTuple, TextIO, Iterator, Callable
 
 from itaxotools.common.utility import AttrDict
 
 from ..align import PairwiseAligner
-from ..distances import DistanceHandler, DistanceMetric, Distances
+from ..distances import DistanceHandler, DistanceMetric, Distances, Distance
 from ..handlers import FileHandler
 from ..pairs import SequencePairHandler, SequencePairs
 from ..partitions import Partition, PartitionHandler

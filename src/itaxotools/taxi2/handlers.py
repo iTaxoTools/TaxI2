@@ -141,7 +141,7 @@ class Tabular(FileHandler):
         rows: iter[Row],
         columns: iter[int | str],
         get_all_columns: bool
-    ) -> iter[Row]:
+    ) -> Iterator[Row]:
         if isinstance(columns[0], str):
             try:
                 columns = tuple(self.header_row.index(x) for x in columns)
@@ -198,7 +198,7 @@ class Tabular(FileHandler):
             return handler.read()
 
     @abstractmethod
-    def _iter_read_rows(self) -> iter[Row]:
+    def _iter_read_rows(self) -> Iterator[Row]:
         while False:
             yield Row()
 

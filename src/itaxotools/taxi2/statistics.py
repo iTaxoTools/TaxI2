@@ -6,7 +6,8 @@ from collections import Counter
 from enum import Enum
 from itertools import accumulate
 from math import inf, isinf
-from typing import Generator, NamedTuple
+from typing import Generator, NamedTuple, Literal
+from pathlib import Path
 
 import numpy as np
 
@@ -86,10 +87,10 @@ class Statistic(Enum):
         return self.label
 
 
-class Statistics(dict[Statistic, ...]):
+class Statistics(dict[Statistic, object]):
     """Keep Enum order, convert values to the proper type"""
 
-    def __init__(self, stats: dict[Statistic, ...]):
+    def __init__(self, stats: dict[Statistic, object]):
         super().__init__({
             s: s.type(stats[s]) for s in Statistic
             if s in stats
@@ -230,7 +231,7 @@ class StatisticsHandler(FileHandler[Statistics]):
     def _open(
         self,
         path: Path,
-        mode: 'w' | 'w' = 'w',
+        mode: Literal['r', 'w'] = 'w',
         float_formatter: str = '{:f}',
         percentage_formatter: str = '{:f}',
         percentage_multiply: bool = False,
@@ -269,7 +270,7 @@ class Groups(StatisticsHandler):
     def _open(
         self,
         path: Path,
-        mode: 'w' | 'w' = 'w',
+        mode: Literal['r', 'w'] = 'w',
         group_name: str = 'group',
         *args, **kwargs
     ):

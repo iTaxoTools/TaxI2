@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, Generic, Iterable, NamedTuple, TypeVar
+from typing import Callable, Generic, Iterable, NamedTuple, TypeVar, Iterator
 
 from itaxotools.common.types import Type, TypeMeta  # noqa
 
@@ -29,7 +29,7 @@ class Container(Generic[Item]):
             if args or kwargs:
                 raise TypeError('Cannot pass arguments to iterable source')
 
-    def __iter__(self) -> iter[Item]:
+    def __iter__(self) -> Iterator[Item]:
         if self.callable:
             return self.callable(*self.args, **self.kwargs)
         return iter(self.iterable)

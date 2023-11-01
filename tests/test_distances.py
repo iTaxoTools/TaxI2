@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from pathlib import Path
 from sys import stderr
-from typing import Callable, NamedTuple
+from typing import Callable, NamedTuple, Iterator
 
 import pytest
 from utility import assert_eq_files
 
 from itaxotools.taxi2.distances import (
     Distance, DistanceHandler, DistanceMetric, Distances)
-from itaxotools.taxi2.sequences import Sequence
+from itaxotools.taxi2.sequences import Sequences, Sequence
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 
@@ -95,7 +95,7 @@ class MetricFileTest(NamedTuple):
     file: str
     precision: float
 
-    def get_metric_tests(self) -> iter[MetricTest]:
+    def get_metric_tests(self) -> Iterator[MetricTest]:
         path = TEST_DATA_DIR / self.file
         with DistanceHandler.Linear(path, 'r') as file:
             for d in file:

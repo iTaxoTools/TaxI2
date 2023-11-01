@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Callable, NamedTuple
+from typing import Callable, NamedTuple, Literal
 
 from Bio.SeqIO.FastaIO import SimpleFastaParser
 from itaxotools.spart_parser import Spart as SpartParserSpart
@@ -22,7 +22,7 @@ class Classification(NamedTuple):
 class Partition(dict[str, str]):
     """Keys are individuals, values are subsets"""
     @classmethod
-    def fromPath(cls, path: Path, handler: PartitionFile, *args, **kwargs) -> Partition:
+    def fromPath(cls, path: Path, handler: PartitionHandler, *args, **kwargs) -> Partition:
         return handler.as_dict(path, *args, **kwargs)
 
 
@@ -37,7 +37,7 @@ class PartitionHandler(FileHandler[Classification]):
     def _open(
         self,
         path: Path,
-        mode: 'r' | 'w' = 'r',
+        mode: Literal['r', 'w'] = 'r',
         filter: Callable[[Classification], Classification] = None,
         *args, **kwargs
     ):

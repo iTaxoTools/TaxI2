@@ -5,12 +5,12 @@ from math import inf
 from pathlib import Path
 from statistics import mean, median, stdev
 from time import perf_counter
-from typing import Callable, NamedTuple, TextIO
+from typing import Callable, NamedTuple, TextIO, Iterator, Callable, Literal
 
 from itaxotools.common.utility import AttrDict
 
-from ..align import PairwiseAligner
-from ..distances import DistanceHandler, DistanceMetric, Distances
+from ..align import PairwiseAligner, Scores
+from ..distances import DistanceHandler, DistanceMetric, Distances, Distance
 from ..files import identify_format
 from ..file_types import FileFormat
 from ..handlers import FileHandler, ReadHandle, WriteHandle
@@ -71,7 +71,7 @@ class SummaryHandle(FileHandler[SummaryLine]):
     def _open(
         self,
         path: Path,
-        mode: 'r' | 'w' = 'w',
+        mode: Literal['r', 'w'] = 'w',
         missing: str = 'NA',
         formatter: str = '{:f}',
         *args, **kwargs
@@ -178,17 +178,17 @@ class Dereplicate:
             path = path.parent
         path.mkdir(parents=True, exist_ok=True)
 
-    def drop_short_sequences(self, sequences: iter[Sequence]) -> iter[Sequence]:
+    def drop_short_sequences(self, sequences: iter[Sequence]) -> Iterator[Sequence]:
         for sequence in sequences:
             if len(sequence.seq) >= self.params.thresholds.length:
                 yield sequence
 
-    def drop_identical_pairs(self, pairs: iter[SequencePair]) -> iter[SequencePair]:
+    def drop_identical_pairs(self, pairs: iter[SequencePair]) -> Iterator[SequencePair]:
         for pair in pairs:
             if pair.x.id != pair.y.id:
                 yield pair
 
-    def drop_excluded_pairs(self, pairs: iter[SequencePair]) -> iter[SequencePair]:
+    def drop_excluded_pairs(self, pairs: iter[SequencePair]) -> Iterator[SequencePair]:
         for pair in pairs:
             if all((
                 pair.x.id not in self.excluded,
@@ -196,7 +196,7 @@ class Dereplicate:
             )):
                 yield pair
 
-    def normalize_pairs(self, pairs: iter[SequencePair]) -> iter[SequencePair]:
+    def normalize_pairs(self, pairs: iter[SequencePair]) -> Iterator[SequencePair]:
         if not self.params.pairs.align:
             yield from pairs
             return
@@ -204,7 +204,7 @@ class Dereplicate:
         for pair in pairs:
             yield SequencePair(pair.x.normalize(), pair.y.normalize())
 
-    def align_pairs(self, pairs: iter[SequencePair]) -> iter[SequencePair]:
+    def align_pairs(self, pairs: iter[SequencePair]) -> Iterator[SequencePair]:
         if not self.params.pairs.align:
             yield from pairs
             return
@@ -212,7 +212,7 @@ class Dereplicate:
         aligner = PairwiseAligner.Biopython(self.params.pairs.scores)
         yield from aligner.align_pairs(pairs)
 
-    def write_pairs(self, pairs: iter[SequencePair]) -> iter[SequencePair]:
+    def write_pairs(self, pairs: iter[SequencePair]) -> Iterator[SequencePair]:
         if not self.params.pairs.write:
             yield from pairs
             return
@@ -223,12 +223,12 @@ class Dereplicate:
                 file.write(pair)
                 yield pair
 
-    def calculate_distances(self, pairs: iter[SequencePair]) -> iter[Distance]:
+    def calculate_distances(self, pairs: iter[SequencePair]) -> Iterator[Distance]:
         metric = self.params.distances.metric
         for x, y in pairs:
             yield metric.calculate(x, y)
 
-    def adjust_distances(self, distances: iter[Distance]) -> iter[Distance]:
+    def adjust_distances(self, distances: iter[Distance]) -> Iterator[Distance]:
         if not self.params.format.percentage_multiply:
             yield from distances
             return
@@ -238,7 +238,7 @@ class Dereplicate:
                 distance = distance._replace(d = distance.d * 100)
             yield distance
 
-    def write_distances_linear(self, distances: iter[Distance]) -> iter[Distance]:
+    def write_distances_linear(self, distances: iter[Distance]) -> Iterator[Distance]:
         if not self.params.distances.write_linear:
             yield from distances
             return
@@ -253,7 +253,7 @@ class Dereplicate:
                 file.write(distance)
                 yield distance
 
-    def write_distances_matrix(self, distances: iter[Distance]) -> iter[Distance]:
+    def write_distances_matrix(self, distances: iter[Distance]) -> Iterator[Distance]:
         if not self.params.distances.write_matricial:
             yield from distances
             return
@@ -268,7 +268,7 @@ class Dereplicate:
                 file.write(distance)
                 yield distance
 
-    def check_similar_distances(self, distances: iter[Distance]) -> iter[bool]:
+    def check_similar_distances(self, distances: iter[Distance]) -> Iterator[bool]:
         similarity = self.params.thresholds.similarity
         for distance in distances:
             if distance.d is None:
@@ -281,7 +281,7 @@ class Dereplicate:
         pairs: iter[SequencePair],
         distances: iter[Distance],
         are_similar: iter[bool]
-    ) -> iter[AllInfo]:
+    ) -> Iterator[AllInfo]:
         all = zip(pairs, distances, are_similar)
         return (
             AllInfo(
@@ -296,11 +296,11 @@ class Dereplicate:
             for pair, distance, is_similar in all
         )
 
-    def group_all_left(self, infos: iter[AllInfo]) -> iter[iter[AllInfo]]:
+    def group_all_left(self, infos: iter[AllInfo]) -> Iterator[iter[AllInfo]]:
         for _, group in groupby(infos, lambda info: info.id_x):
             yield group
 
-    def find_replicates(self, groups: iter[iter[AllInfo]]) -> iter[SimilarPairs | Sequence]:
+    def find_replicates(self, groups: iter[iter[AllInfo]]) -> Iterator[SummaryLine]:
         """From each group of replicate sequences, we only keep the longest"""
 
         for infos in groups:
@@ -348,7 +348,7 @@ class Dereplicate:
                     max_length = len_y
                     max_distance = distance
 
-    def write_summary(self, lines: iter[SummaryLine]) -> iter[SummaryLine]:
+    def write_summary(self, lines: iter[SummaryLine]) -> Iterator[SummaryLine]:
         with SummaryHandle(
             self.paths.summary, 'w',
             missing = self.params.format.missing,
@@ -359,14 +359,14 @@ class Dereplicate:
                     file.write(line)
                 yield line
 
-    def write_file_dereplicated(self, sequences: iter[Sequence]) -> iter[Sequence]:
+    def write_file_dereplicated(self, sequences: iter[Sequence]) -> Iterator[Sequence]:
         with self.get_output_handler(self.paths.dereplicated) as file:
             for sequence in sequences:
                 if sequence.id not in self.excluded:
                     file.write(sequence)
                 yield sequence
 
-    def write_file_excluded(self, sequences: iter[Sequence]) -> iter[Sequence]:
+    def write_file_excluded(self, sequences: iter[Sequence]) -> Iterator[Sequence]:
         with self.get_output_handler(self.paths.excluded) as file:
             for sequence in sequences:
                 if sequence.id in self.excluded:
