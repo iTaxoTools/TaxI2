@@ -17,7 +17,7 @@ long_description = (here / "README.md").read_text(encoding="utf-8")
 
 setup(
     name="taxi2",
-    version="2.1.1",
+    version="2.1.2",
     description="TaxI2 - Calculation and analysis of pairwise sequence distances",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -52,7 +52,7 @@ setup(
     ],
     python_requires=">=3.9, <4",
     install_requires=[
-        "itaxotools-common==0.3.0",
+        "itaxotools-common==0.3.1",
         "DNAconvert==0.2.0",
         "spart_parser==0.1.1",
         "BioPython>=1.80",
