@@ -51,51 +51,53 @@ class WriteTest(NamedTuple):
 
     def validate(self, tmp_path: Path) -> None:
         output_path = tmp_path / self.output
-        print('!!', output_path)
-        with self.handler(output_path, 'w', **self.kwargs) as file:
+        print("!!", output_path)
+        with self.handler(output_path, "w", **self.kwargs) as file:
             for pair in self.fixed:
                 file.write(pair)
-        assert_eq_files(output_path, self.fixed_path, ignore=r'\n')
+        assert_eq_files(output_path, self.fixed_path, ignore=r"\n")
 
 
 def pairs_simple() -> SequencePairs:
-    return SequencePairs([
-        SequencePair(
-            Sequence('id1', 'ATC-'),
-            Sequence('id2', 'ATG-'),
-        ),
-        SequencePair(
-            Sequence('id1', 'ATC-'),
-            Sequence('id3', '-TAA'),
-        ),
-        SequencePair(
-            Sequence('id2', 'ATG-'),
-            Sequence('id3', '-TAA'),
-        ),
-    ])
+    return SequencePairs(
+        [
+            SequencePair(
+                Sequence("id1", "ATC-"),
+                Sequence("id2", "ATG-"),
+            ),
+            SequencePair(
+                Sequence("id1", "ATC-"),
+                Sequence("id3", "-TAA"),
+            ),
+            SequencePair(
+                Sequence("id2", "ATG-"),
+                Sequence("id3", "-TAA"),
+            ),
+        ]
+    )
 
 
 read_tests = [
-    ReadTest(pairs_simple, 'simple.tsv', SequencePairHandler.Tabfile),
-    ReadTest(pairs_simple, 'simple.formatted', SequencePairHandler.Formatted),
+    ReadTest(pairs_simple, "simple.tsv", SequencePairHandler.Tabfile),
+    ReadTest(pairs_simple, "simple.formatted", SequencePairHandler.Formatted),
 ]
 
 
 write_tests = [
-    WriteTest(pairs_simple, 'simple.tsv', SequencePairHandler.Tabfile),
-    WriteTest(pairs_simple, 'simple.formatted', SequencePairHandler.Formatted),
+    WriteTest(pairs_simple, "simple.tsv", SequencePairHandler.Tabfile),
+    WriteTest(pairs_simple, "simple.formatted", SequencePairHandler.Formatted),
 ]
 
 
 def test_pairs_from_product() -> None:
     xs = [
-        Sequence('id1', 'ATC'),
-        Sequence('id2', 'ATG'),
+        Sequence("id1", "ATC"),
+        Sequence("id2", "ATG"),
     ]
     ys = [
-        Sequence('id3', 'TAA'),
-        Sequence('id4', 'TAC'),
-        Sequence('id5', 'TAG'),
+        Sequence("id3", "TAA"),
+        Sequence("id4", "TAC"),
+        Sequence("id5", "TAG"),
     ]
     ts = [
         SequencePair(xs[0], ys[0]),

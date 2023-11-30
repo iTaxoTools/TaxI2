@@ -52,45 +52,53 @@ class WriteTest(NamedTuple):
         return tmp_path / self.output
 
     def validate(self, output_path: Path) -> None:
-        with self.handler(output_path, 'w', **self.kwargs) as file:
+        with self.handler(output_path, "w", **self.kwargs) as file:
             for sequence in self.fixed:
                 file.write(sequence)
         assert_eq_files(output_path, self.fixed_path)
 
 
 def sequences_simple() -> Sequences:
-    return Sequences([
-        Sequence('id1', 'ATC'),
-        Sequence('id2', 'ATG'),
-        Sequence('id3', 'ATA'),
-    ])
+    return Sequences(
+        [
+            Sequence("id1", "ATC"),
+            Sequence("id2", "ATG"),
+            Sequence("id3", "ATA"),
+        ]
+    )
 
 
 def sequences_organism() -> Sequences:
-    return Sequences([
-        Sequence('id1', 'ATC', {'organism': 'X'}),
-        Sequence('id2', 'ATG', {'organism': 'Y'}),
-        Sequence('id3', 'ATA', {'organism': 'Z'}),
-    ])
+    return Sequences(
+        [
+            Sequence("id1", "ATC", {"organism": "X"}),
+            Sequence("id2", "ATG", {"organism": "Y"}),
+            Sequence("id3", "ATA", {"organism": "Z"}),
+        ]
+    )
 
 
 def sequences_headers() -> Sequences:
-    return Sequences([
-        Sequence('id1', 'ATC', {'voucher': 'X'}),
-        Sequence('id2', 'ATG', {'voucher': 'Y'}),
-        Sequence('id3', 'ATA', {'voucher': 'Z'}),
-    ])
+    return Sequences(
+        [
+            Sequence("id1", "ATC", {"voucher": "X"}),
+            Sequence("id2", "ATG", {"voucher": "Y"}),
+            Sequence("id3", "ATA", {"voucher": "Z"}),
+        ]
+    )
 
 
 def sequences_alleles() -> Sequences:
-    return Sequences([
-        Sequence('id1', 'ATC', {'allele': 'a', 'species': 'X'}),
-        Sequence('id1', 'ATC', {'allele': 'b', 'species': 'X'}),
-        Sequence('id2', 'ATG', {'allele': 'a', 'species': 'Y'}),
-        Sequence('id2', 'ATG', {'allele': 'b', 'species': 'Y'}),
-        Sequence('id3', 'ATA', {'allele': 'a', 'species': 'Z'}),
-        Sequence('id3', 'ATA', {'allele': 'b', 'species': 'Z'}),
-    ])
+    return Sequences(
+        [
+            Sequence("id1", "ATC", {"allele": "a", "species": "X"}),
+            Sequence("id1", "ATC", {"allele": "b", "species": "X"}),
+            Sequence("id2", "ATG", {"allele": "a", "species": "Y"}),
+            Sequence("id2", "ATG", {"allele": "b", "species": "Y"}),
+            Sequence("id3", "ATA", {"allele": "a", "species": "Z"}),
+            Sequence("id3", "ATA", {"allele": "b", "species": "Z"}),
+        ]
+    )
 
 
 def sequences_empty() -> Sequences:
@@ -98,41 +106,115 @@ def sequences_empty() -> Sequences:
 
 
 @pytest.mark.parametrize(
-    "test", [
-    ReadTest(sequences_simple, 'simple.fas', SequenceHandler.Fasta),
-    ReadTest(sequences_simple, 'simple.multi.fas', SequenceHandler.Fasta),
-    ReadTest(sequences_simple, 'simple.gbk', SequenceHandler.Genbank),
-    ReadTest(sequences_simple, 'simple.tsv', SequenceHandler.Tabfile),
-    ReadTest(sequences_simple, 'simple.xlsx', SequenceHandler.Excel),
-    ReadTest(sequences_headers, 'headers.tsv', SequenceHandler.Tabfile, dict(idHeader='seqid', seqHeader='sequences')),
-    ReadTest(sequences_headers, 'headers.xlsx', SequenceHandler.Excel, dict(idHeader='seqid', seqHeader='sequences')),
-    ReadTest(sequences_headers, 'species.fas', SequenceHandler.Fasta, dict(parse_organism=True, organism_tag='voucher', organism_separator='|')),
-    ReadTest(sequences_organism, 'species.fas', SequenceHandler.Fasta, dict(parse_organism=True)),
-    ReadTest(sequences_organism, 'species.dot.fas', SequenceHandler.Fasta, dict(parse_organism=True, organism_separator='.')),
-    ReadTest(sequences_empty, 'empty.tsv', SequenceHandler.Tabfile, dict(idHeader='seqid', seqHeader='sequences')),
-])
+    "test",
+    [
+        ReadTest(sequences_simple, "simple.fas", SequenceHandler.Fasta),
+        ReadTest(sequences_simple, "simple.multi.fas", SequenceHandler.Fasta),
+        ReadTest(sequences_simple, "simple.gbk", SequenceHandler.Genbank),
+        ReadTest(sequences_simple, "simple.tsv", SequenceHandler.Tabfile),
+        ReadTest(sequences_simple, "simple.xlsx", SequenceHandler.Excel),
+        ReadTest(
+            sequences_headers,
+            "headers.tsv",
+            SequenceHandler.Tabfile,
+            dict(idHeader="seqid", seqHeader="sequences"),
+        ),
+        ReadTest(
+            sequences_headers,
+            "headers.xlsx",
+            SequenceHandler.Excel,
+            dict(idHeader="seqid", seqHeader="sequences"),
+        ),
+        ReadTest(
+            sequences_headers,
+            "species.fas",
+            SequenceHandler.Fasta,
+            dict(parse_organism=True, organism_tag="voucher", organism_separator="|"),
+        ),
+        ReadTest(
+            sequences_organism,
+            "species.fas",
+            SequenceHandler.Fasta,
+            dict(parse_organism=True),
+        ),
+        ReadTest(
+            sequences_organism,
+            "species.dot.fas",
+            SequenceHandler.Fasta,
+            dict(parse_organism=True, organism_separator="."),
+        ),
+        ReadTest(
+            sequences_empty,
+            "empty.tsv",
+            SequenceHandler.Tabfile,
+            dict(idHeader="seqid", seqHeader="sequences"),
+        ),
+    ],
+)
 def test_read_sequences(test: ReadTest) -> None:
     test.validate()
 
 
 @pytest.mark.parametrize(
-    "test", [
-    WriteTest(sequences_simple, 'simple.tsv', SequenceHandler.Tabfile),
-    WriteTest(sequences_headers, 'headers.tsv', SequenceHandler.Tabfile, dict(idHeader='seqid', seqHeader='sequences')),
-    WriteTest(sequences_simple, 'simple.fas', SequenceHandler.Fasta),
-    WriteTest(sequences_organism, 'species.fas', SequenceHandler.Fasta, dict(write_organism=True)),
-    WriteTest(sequences_organism, 'species.dot.fas', SequenceHandler.Fasta, dict(write_organism=True, organism_separator='.')),
-    WriteTest(sequences_headers, 'species.fas', SequenceHandler.Fasta, dict(write_organism=True, organism_tag='voucher', organism_separator='|')),
-    WriteTest(sequences_alleles, 'alleles.concat.fas', SequenceHandler.Fasta, dict(write_organism=False, concatenate_extras=['species', 'allele'])),
-    WriteTest(sequences_alleles, 'alleles.plain.fas', SequenceHandler.Fasta, dict(write_organism=False, concatenate_extras=['allele'])),
-    WriteTest(sequences_alleles, 'alleles.species.fas', SequenceHandler.Fasta, dict(write_organism=True, organism_separator='|', organism_tag='species', concatenate_extras=['allele'])),
-])
+    "test",
+    [
+        WriteTest(sequences_simple, "simple.tsv", SequenceHandler.Tabfile),
+        WriteTest(
+            sequences_headers,
+            "headers.tsv",
+            SequenceHandler.Tabfile,
+            dict(idHeader="seqid", seqHeader="sequences"),
+        ),
+        WriteTest(sequences_simple, "simple.fas", SequenceHandler.Fasta),
+        WriteTest(
+            sequences_organism,
+            "species.fas",
+            SequenceHandler.Fasta,
+            dict(write_organism=True),
+        ),
+        WriteTest(
+            sequences_organism,
+            "species.dot.fas",
+            SequenceHandler.Fasta,
+            dict(write_organism=True, organism_separator="."),
+        ),
+        WriteTest(
+            sequences_headers,
+            "species.fas",
+            SequenceHandler.Fasta,
+            dict(write_organism=True, organism_tag="voucher", organism_separator="|"),
+        ),
+        WriteTest(
+            sequences_alleles,
+            "alleles.concat.fas",
+            SequenceHandler.Fasta,
+            dict(write_organism=False, concatenate_extras=["species", "allele"]),
+        ),
+        WriteTest(
+            sequences_alleles,
+            "alleles.plain.fas",
+            SequenceHandler.Fasta,
+            dict(write_organism=False, concatenate_extras=["allele"]),
+        ),
+        WriteTest(
+            sequences_alleles,
+            "alleles.species.fas",
+            SequenceHandler.Fasta,
+            dict(
+                write_organism=True,
+                organism_separator="|",
+                organism_tag="species",
+                concatenate_extras=["allele"],
+            ),
+        ),
+    ],
+)
 def test_write_sequences(test: WriteTest, tmp_path: Path) -> None:
     output_path = test.get_output_path(tmp_path)
     test.validate(output_path)
 
 
 def test_sequence_sanitized_id_with_extras():
-    sequence = Sequence('samplé1', 'ACGT', {'allele': 'a'})
+    sequence = Sequence("samplé1", "ACGT", {"allele": "a"})
     id = sequence.get_sanitized_id_with_extras()
-    assert id == 'sample1_a'
+    assert id == "sample1_a"

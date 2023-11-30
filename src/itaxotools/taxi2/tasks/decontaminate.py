@@ -23,16 +23,13 @@ def multiply(iterator: iter, n: int):
 
 def split(source: iter, *funcs: list[Callable]):
     source = multiply(source, len(funcs))
-    return [
-        map(func, source)
-        for func in funcs
-    ]
+    return [map(func, source) for func in funcs]
 
 
 def console_report(caption, index, total):
-    if caption == 'Finalizing...':
+    if caption == "Finalizing...":
         print(f"\rCalculating... {total}/{total} = {100:.2f}%", end="")
-        print('\nFinalizing...')
+        print("\nFinalizing...")
     else:
         print(f"\rCalculating... {index}/{total} = {100*index/total:.2f}%", end="")
 
@@ -58,10 +55,11 @@ class SummaryHandle(FileHandler[SummaryLine]):
     def _open(
         self,
         path: Path,
-        mode: Literal['r', 'w'] = 'w',
-        missing: str = 'NA',
-        formatter: str = '{:f}',
-        *args, **kwargs
+        mode: Literal["r", "w"] = "w",
+        missing: str = "NA",
+        formatter: str = "{:f}",
+        *args,
+        **kwargs,
     ):
         self.missing = missing
         self.formatter = formatter
@@ -80,13 +78,13 @@ class SummaryHandle(FileHandler[SummaryLine]):
             line.query_id,
             line.outgroup_id,
             self.distance_to_text(line.outgroup_distance),
-            'Yes' if line.contaminant else 'No',
+            "Yes" if line.contaminant else "No",
         )
 
     def _iter_write(self, *args, **kwargs) -> WriteHandle[SummaryLine]:
         try:
             headers = SummaryLine._fields
-            with FileHandler.Tabfile(self.path, 'w', columns=headers) as file:
+            with FileHandler.Tabfile(self.path, "w", columns=headers) as file:
                 while True:
                     line = yield
                     file.write(self.format_line(line))
@@ -95,9 +93,7 @@ class SummaryHandle(FileHandler[SummaryLine]):
 
 
 class Decontaminate:
-
     def __init__(self):
-
         self.work_dir: Path = None
         self.paths = AttrDict()
 
@@ -124,8 +120,8 @@ class Decontaminate:
         self.params.distances.write_matricial: bool = True
 
         self.params.format = AttrDict()
-        self.params.format.float: str = '{:.4f}'
-        self.params.format.missing: str = 'NA'
+        self.params.format.float: str = "{:.4f}"
+        self.params.format.missing: str = "NA"
         self.params.format.percentage_multiply: bool = False
 
     def set_output_format_from_path(self, path: Path):
@@ -133,14 +129,18 @@ class Decontaminate:
 
     def get_output_handler(self, path: Path):
         if self.output_format == FileFormat.Fasta:
-            return SequenceHandler.Fasta(path, 'w', write_organism=True)
+            return SequenceHandler.Fasta(path, "w", write_organism=True)
         if self.output_format == FileFormat.Tabfile:
-            return SequenceHandler.Tabfile(path, 'w', idHeader='seqid', seqHeader='sequence')
-        raise Exception('Unknown file format')
+            return SequenceHandler.Tabfile(
+                path, "w", idHeader="seqid", seqHeader="sequence"
+            )
+        raise Exception("Unknown file format")
 
     def check_params(self):
         self.output_format = self.output_format or FileFormat.Tabfile
-        self.params.distances.metric = self.params.distances.metric or DistanceMetric.Uncorrected()
+        self.params.distances.metric = (
+            self.params.distances.metric or DistanceMetric.Uncorrected()
+        )
 
     def generate_paths(self):
         assert self.work_dir
@@ -148,12 +148,16 @@ class Decontaminate:
         metric = str(self.params.distances.metric)
         extension = self.output_format.extension
 
-        self.paths.summary = self.work_dir / 'summary.tsv'
-        self.paths.decontaminated = self.work_dir / f'decontaminated{extension}'
-        self.paths.contaminants = self.work_dir / f'contaminants{extension}'
-        self.paths.aligned_pairs = self.work_dir / 'aligned_pairs.txt'
-        self.paths.distances_linear = self.work_dir / 'distances' / f'{metric}.linear.tsv'
-        self.paths.distances_matrix = self.work_dir / 'distances' / f'{metric}.matricial.tsv'
+        self.paths.summary = self.work_dir / "summary.tsv"
+        self.paths.decontaminated = self.work_dir / f"decontaminated{extension}"
+        self.paths.contaminants = self.work_dir / f"contaminants{extension}"
+        self.paths.aligned_pairs = self.work_dir / "aligned_pairs.txt"
+        self.paths.distances_linear = (
+            self.work_dir / "distances" / f"{metric}.linear.tsv"
+        )
+        self.paths.distances_matrix = (
+            self.work_dir / "distances" / f"{metric}.matricial.tsv"
+        )
 
     def create_parents(self, path: Path):
         if path.suffix:
@@ -179,7 +183,7 @@ class Decontaminate:
             return
 
         self.create_parents(self.paths.aligned_pairs)
-        with SequencePairHandler.Formatted(self.paths.aligned_pairs, 'w') as file:
+        with SequencePairHandler.Formatted(self.paths.aligned_pairs, "w") as file:
             for pair in pairs:
                 file.write(pair)
                 yield pair
@@ -196,54 +200,67 @@ class Decontaminate:
 
         for distance in distances:
             if distance.d is not None:
-                distance = distance._replace(d = distance.d * 100)
+                distance = distance._replace(d=distance.d * 100)
             yield distance
 
-    def write_distances_linear(self, distances: iter[Distance], path: Path) -> Iterator[Distance]:
+    def write_distances_linear(
+        self, distances: iter[Distance], path: Path
+    ) -> Iterator[Distance]:
         if not self.params.distances.write_linear:
             yield from distances
             return
 
         self.create_parents(path)
         with DistanceHandler.Linear.WithExtras(
-            path, 'w',
-            missing = self.params.format.missing,
-            formatter = self.params.format.float,
+            path,
+            "w",
+            missing=self.params.format.missing,
+            formatter=self.params.format.float,
         ) as file:
             for distance in distances:
                 file.write(distance)
                 yield distance
 
-    def write_outgroup_distances_linear(self, distances: iter[Distance]) -> Iterator[Distance]:
+    def write_outgroup_distances_linear(
+        self, distances: iter[Distance]
+    ) -> Iterator[Distance]:
         return self.write_distances_linear(distances, self.paths.distances_linear)
 
-    def write_distances_matrix(self, distances: iter[Distance], path: Path) -> Iterator[Distance]:
+    def write_distances_matrix(
+        self, distances: iter[Distance], path: Path
+    ) -> Iterator[Distance]:
         if not self.params.distances.write_matricial:
             yield from distances
             return
 
         self.create_parents(path)
         with DistanceHandler.Matrix(
-            path, 'w',
-            missing = self.params.format.missing,
-            formatter = self.params.format.float,
+            path,
+            "w",
+            missing=self.params.format.missing,
+            formatter=self.params.format.float,
         ) as file:
             for distance in distances:
                 file.write(distance)
                 yield distance
 
-    def write_outgroup_distances_matrix(self, distances: iter[Distance]) -> Iterator[Distance]:
+    def write_outgroup_distances_matrix(
+        self, distances: iter[Distance]
+    ) -> Iterator[Distance]:
         return self.write_distances_matrix(distances, self.paths.distances_matrix)
 
-    def group_distances_left(self, distances: iter[Distance]) -> Iterator[iter[Distance]]:
+    def group_distances_left(
+        self, distances: iter[Distance]
+    ) -> Iterator[iter[Distance]]:
         for _, group in groupby(distances, lambda distance: distance.x.id):
             yield group
 
     def get_minimum_distances(self, groups: iter[iter[Distance]]) -> Iterator[Distance]:
         def get_distance_value(distance: Distance):
             return distance.d if distance.d is not None else inf
+
         for distances in groups:
-            minimum_distance = min(distances, key = get_distance_value)
+            minimum_distance = min(distances, key=get_distance_value)
             yield minimum_distance
 
     def _find_contaminants(
@@ -251,8 +268,8 @@ class Decontaminate:
         sequences: iter[Sequence],
         out_minimums: iter[Distance],
     ) -> Iterator[tuple[Verdict, SummaryLine]]:
-
         threshold = self.params.thresholds.similarity
+
         def check_if_contaminant(distance) -> bool:
             if distance is None:
                 return False
@@ -264,10 +281,10 @@ class Decontaminate:
             is_contaminant = check_if_contaminant(distance)
             verdict = Verdict(sequence, is_contaminant)
             line = SummaryLine(
-                query_id = sequence.id,
-                outgroup_id = outgroup_minimum.y.id,
-                outgroup_distance = distance,
-                contaminant = is_contaminant,
+                query_id=sequence.id,
+                outgroup_id=outgroup_minimum.y.id,
+                outgroup_distance=distance,
+                contaminant=is_contaminant,
             )
             yield (verdict, line)
 
@@ -276,7 +293,6 @@ class Decontaminate:
         sequences: iter[Sequence],
         out_minimums: iter[Distance],
     ) -> tuple[iter[Verdict], iter[SummaryLine]]:
-
         data = self._find_contaminants(sequences, out_minimums)
         return split(data, lambda x: x[0], lambda x: x[1])
 
@@ -296,9 +312,10 @@ class Decontaminate:
 
     def write_summary(self, lines: iter[SummaryLine]) -> Iterator[SummaryLine]:
         with SummaryHandle(
-            self.paths.summary, 'w',
-            missing = self.params.format.missing,
-            formatter = self.params.format.float,
+            self.paths.summary,
+            "w",
+            missing=self.params.format.missing,
+            formatter=self.params.format.float,
         ) as file:
             for line in lines:
                 if line is not None:
@@ -311,10 +328,10 @@ class Decontaminate:
         for index, verdict in enumerate(verdicts, 1):
             new_time = perf_counter()
             if new_time - last_time >= self.progress_interval:
-                self.progress_handler('verdict.x.id', index, total)
+                self.progress_handler("verdict.x.id", index, total)
                 last_time = new_time
             yield verdict
-        self.progress_handler('Finalizing...', total, total)
+        self.progress_handler("Finalizing...", total, total)
 
     def start(self) -> None:
         ts = perf_counter()

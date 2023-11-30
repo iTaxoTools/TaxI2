@@ -7,7 +7,7 @@ from typing import Generator, Generic, Iterator, Literal, Type, TypeVar
 
 from openpyxl import load_workbook
 
-Item = TypeVar('Item')
+Item = TypeVar("Item")
 
 ReadHandle: Type[Item] = Iterator[Item]
 WriteHandle: Type[Item] = Generator[None, Item, None]
@@ -40,7 +40,7 @@ class FileHandler(ABC, Type, Generic[Item], metaclass=_FileHandlerMeta):
         self._open(*args, **kwargs)
         priming = next(self.it)
         if self.readable() and priming is not self:
-            raise Exception('Read handler was not properly primed!')
+            raise Exception("Read handler was not properly primed!")
 
     def __enter__(self):
         return self
@@ -56,12 +56,12 @@ class FileHandler(ABC, Type, Generic[Item], metaclass=_FileHandlerMeta):
         assert self.readable()
         return next(self.it)
 
-    def _open(self, path: Path, mode: Literal['r', 'w'] = 'r', *args, **kwargs):
+    def _open(self, path: Path, mode: Literal["r", "w"] = "r", *args, **kwargs):
         self.path = path
         self.mode = mode
-        if mode == 'r':
+        if mode == "r":
             self.it = self._iter_read(*args, **kwargs)
-        elif mode == 'w':
+        elif mode == "w":
             self.it = self._iter_write(*args, **kwargs)
         else:
             raise ValueError('Mode must be "r" or "w"')
@@ -95,10 +95,10 @@ class FileHandler(ABC, Type, Generic[Item], metaclass=_FileHandlerMeta):
         self.it.send(item)
 
     def readable(self) -> bool:
-        return self.mode == 'r'
+        return self.mode == "r"
 
     def writable(self) -> bool:
-        return self.mode == 'w'
+        return self.mode == "w"
 
 
 class Tabular(FileHandler):
@@ -108,11 +108,10 @@ class Tabular(FileHandler):
         has_headers: bool = False,
         get_all_columns: bool = False,
     ) -> ReadHandle[Row]:
-
         if columns is not None:
             columns = tuple(columns)
             if not len(columns):
-                raise ValueError('Columns argument must contain at least one item')
+                raise ValueError("Columns argument must contain at least one item")
             if isinstance(columns[0], str):
                 has_headers = True
         self.has_headers = has_headers
@@ -134,17 +133,16 @@ class Tabular(FileHandler):
             yield from self._iter_columns(rows, columns, get_all_columns)
 
     def _iter_columns(
-        self,
-        rows: iter[Row],
-        columns: iter[int | str],
-        get_all_columns: bool
+        self, rows: iter[Row], columns: iter[int | str], get_all_columns: bool
     ) -> Iterator[Row]:
         if isinstance(columns[0], str):
             try:
                 columns = tuple(self.header_row.index(x) for x in columns)
             except Exception as e:
                 missing = set(columns) - set(self.header_row)
-                raise ValueError(f'Column header(s) not found in file: {missing}') from e
+                raise ValueError(
+                    f"Column header(s) not found in file: {missing}"
+                ) from e
         if get_all_columns:
             if self.has_headers:
                 first_row = self.header_row
@@ -163,14 +161,13 @@ class Tabular(FileHandler):
         self,
         columns: iter[str] = None,
     ) -> WriteHandle[Row]:
-
         rows = self._iter_write_rows()
         next(rows)
 
         if columns is not None:
             columns = tuple(columns)
             if not len(columns):
-                raise ValueError('Columns argument must contain at least one item')
+                raise ValueError("Columns argument must contain at least one item")
             rows.send(columns)
 
         try:
@@ -210,20 +207,20 @@ class Tabular(FileHandler):
 
 class Tabfile(Tabular, FileHandler):
     def _iter_read_rows(self) -> ReadHandle[Row]:
-        with open(self.path, 'r', encoding='utf-8', errors='surrogateescape') as file:
+        with open(self.path, "r", encoding="utf-8", errors="surrogateescape") as file:
             for line in file:
                 line = line[:-1]
                 if not line:
                     break
-                yield tuple(line.split('\t'))
+                yield tuple(line.split("\t"))
 
     def _iter_write_rows(self) -> WriteHandle[Row]:
-        with open(self.path, 'w') as file:
+        with open(self.path, "w") as file:
             try:
                 while True:
                     row = yield
-                    text = '\t'.join(row)
-                    file.write(text + '\n')
+                    text = "\t".join(row)
+                    file.write(text + "\n")
             except GeneratorExit:
                 return
 
@@ -239,7 +236,7 @@ class Excel(Tabular, FileHandler):
                     del row[-1]
                 if not row:
                     break
-                yield tuple(x if x else '' for x in row)
+                yield tuple(x if x else "" for x in row)
         finally:
             wb.close()
 

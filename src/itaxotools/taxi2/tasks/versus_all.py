@@ -23,9 +23,9 @@ def multiply(iterator: iter, n: int):
 
 
 def console_report(caption, index, total):
-    if caption == 'Finalizing...':
+    if caption == "Finalizing...":
         print(f"\rCalculating... {total}/{total} = {100:.2f}%", end="")
-        print('\nFinalizing...')
+        print("\nFinalizing...")
     else:
         print(f"\rCalculating... {index}/{total} = {100*index/total:.2f}%", end="")
 
@@ -90,17 +90,20 @@ class DistanceAggregator:
     def __iter__(self) -> Iterator[DistanceStatistics]:
         for (idx, idy), agg in self.aggs.items():
             stats = agg.calculate()
-            yield DistanceStatistics(self.metric, idx, idy, stats.min, stats.max, stats.mean, stats.count)
+            yield DistanceStatistics(
+                self.metric, idx, idy, stats.min, stats.max, stats.mean, stats.count
+            )
 
 
 class SubsetStatisticsHandler(FileHandler[tuple[DistanceStatistics]]):
     def _open(
         self,
         path: Path,
-        mode: Literal['r', 'w'] = 'w',
-        missing: str = 'NA',
-        formatter: str = '{:f}',
-        *args, **kwargs
+        mode: Literal["r", "w"] = "w",
+        missing: str = "NA",
+        formatter: str = "{:f}",
+        *args,
+        **kwargs,
     ):
         self.missing = missing
         self.formatter = formatter
@@ -113,7 +116,7 @@ class SubsetStatisticsHandler(FileHandler[tuple[DistanceStatistics]]):
 
     def _iter_write(self, *args, **kwargs) -> WriteHandle[tuple[DistanceStatistics]]:
         buffer = None
-        with FileHandler.Tabfile(self.path, 'w') as file:
+        with FileHandler.Tabfile(self.path, "w") as file:
             try:
                 bunch = yield
                 self._write_headers(file, bunch)
@@ -140,18 +143,18 @@ class SubsetStatisticsHandler(FileHandler[tuple[DistanceStatistics]]):
 class SubsetPairsStatisticsHandler(SubsetStatisticsHandler):
     def _write_headers(self, file: TextIO, bunch: tuple[DistanceStatistics]):
         metrics = (str(stats.metric) for stats in bunch)
-        combinations = product(metrics, ['mean', 'min', 'max'])
-        headers = (f'{metric} {stat}' for metric, stat in combinations)
-        out = ('target', 'query', *headers)
+        combinations = product(metrics, ["mean", "min", "max"])
+        headers = (f"{metric} {stat}" for metric, stat in combinations)
+        out = ("target", "query", *headers)
         file.write(out)
 
     def _write_stats(self, file: TextIO, bunch: tuple[DistanceStatistics]):
         idx = bunch[0].idx
         idy = bunch[0].idy
         if idx is None:
-            idx = '?'
+            idx = "?"
         if idy is None:
-            idy = '?'
+            idy = "?"
         stats = ((stats.mean, stats.min, stats.max) for stats in bunch)
         stats = (self.distanceToText(stat) for stat in chain(*stats))
         out = (idx, idy, *stats)
@@ -161,15 +164,15 @@ class SubsetPairsStatisticsHandler(SubsetStatisticsHandler):
 class SubsetIdentityStatisticsHandler(SubsetStatisticsHandler):
     def _write_headers(self, file: TextIO, bunch: tuple[DistanceStatistics]):
         metrics = (str(stats.metric) for stats in bunch)
-        combinations = product(metrics, ['mean', 'min', 'max'])
-        headers = (f'{metric} {stat}' for metric, stat in combinations)
-        out = ('target', *headers)
+        combinations = product(metrics, ["mean", "min", "max"])
+        headers = (f"{metric} {stat}" for metric, stat in combinations)
+        out = ("target", *headers)
         file.write(out)
 
     def _write_stats(self, file: TextIO, bunch: tuple[DistanceStatistics]):
         idx = bunch[0].idx
         if idx is None:
-            idx = '?'
+            idx = "?"
         stats = ((stats.mean, stats.min, stats.max) for stats in bunch)
         stats = (self.distanceToText(stat) for stat in chain(*stats))
         out = (idx, *stats)
@@ -180,9 +183,10 @@ class SubsetMatrixStatisticsHandler(SubsetStatisticsHandler):
     def _open(
         self,
         path: Path,
-        mode: Literal['r', 'w'] = 'w',
-        template: str = '{mean} ({min}-{max})',
-        *args, **kwargs
+        mode: Literal["r", "w"] = "w",
+        template: str = "{mean} ({min}-{max})",
+        *args,
+        **kwargs,
     ):
         self.template = template
         super()._open(path, mode, *args, **kwargs)
@@ -199,7 +203,7 @@ class SubsetMatrixStatisticsHandler(SubsetStatisticsHandler):
         self.buffer: list[DistanceStatistics] = []
         self.wrote_headers = False
 
-        with FileHandler.Tabfile(self.path, 'w') as file:
+        with FileHandler.Tabfile(self.path, "w") as file:
             try:
                 line = yield from self._assemble_line()
                 self._write_headers(file, line)
@@ -213,7 +217,9 @@ class SubsetMatrixStatisticsHandler(SubsetStatisticsHandler):
                 self._write_scores(file, line)
                 return
 
-    def _assemble_line(self) -> Generator[None, DistanceStatistics, list[DistanceStatistics]]:
+    def _assemble_line(
+        self
+    ) -> Generator[None, DistanceStatistics, list[DistanceStatistics]]:
         buffer = self.buffer
         try:
             while True:
@@ -229,8 +235,8 @@ class SubsetMatrixStatisticsHandler(SubsetStatisticsHandler):
         if self.wrote_headers:
             return
         idys = [distance.idy for distance in line]
-        idys = [idy if idy is not None else '?' for idy in idys]
-        out = ('', *idys)
+        idys = [idy if idy is not None else "?" for idy in idys]
+        out = ("", *idys)
         file.write(out)
         self.wrote_headers = True
 
@@ -238,7 +244,7 @@ class SubsetMatrixStatisticsHandler(SubsetStatisticsHandler):
         scores = [self.statsToText(stats) for stats in line]
         idx = line[0].idx
         if idx is None:
-            idx = '?'
+            idx = "?"
         out = (idx, *scores)
         file.write(out)
 
@@ -271,7 +277,7 @@ class SubsetDistance(NamedTuple):
 
 class SummaryHandler(DistanceHandler.Linear.WithExtras):
     def _open(self, path, mode, *args, **kwargs):
-        super()._open(path, mode, tagX=' (query 1)', tagY=' (query 2)', *args, **kwargs)
+        super()._open(path, mode, tagX=" (query 1)", tagY=" (query 2)", *args, **kwargs)
 
     def _assemble_line(self) -> Generator[None, SubsetDistance, list[SubsetDistance]]:
         buffer = self.buffer
@@ -279,10 +285,12 @@ class SummaryHandler(DistanceHandler.Linear.WithExtras):
             while True:
                 distance = yield
                 buffer.append(distance)
-                if any((
-                    buffer[0].distance.x.id != buffer[-1].distance.x.id,
-                    buffer[0].distance.y.id != buffer[-1].distance.y.id,
-                )):
+                if any(
+                    (
+                        buffer[0].distance.x.id != buffer[-1].distance.x.id,
+                        buffer[0].distance.y.id != buffer[-1].distance.y.id,
+                    )
+                ):
                     self.buffer = buffer[-1:]
                     return buffer[:-1]
         except GeneratorExit:
@@ -296,9 +304,18 @@ class SummaryHandler(DistanceHandler.Linear.WithExtras):
         extrasX = [key + self.tagX for key in line[0].distance.x.extras.keys()]
         extrasY = [key + self.tagY for key in line[0].distance.y.extras.keys()]
         metrics = [str(subset_distance.distance.metric) for subset_distance in line]
-        infoX = ('genus' + self.tagX, 'species' + self.tagX)
-        infoY = ('genus' + self.tagY, 'species' + self.tagY)
-        out = (idxHeader, idyHeader, *metrics, *extrasX, *extrasY, *infoX, *infoY, 'comparison_type')
+        infoX = ("genus" + self.tagX, "species" + self.tagX)
+        infoY = ("genus" + self.tagY, "species" + self.tagY)
+        out = (
+            idxHeader,
+            idyHeader,
+            *metrics,
+            *extrasX,
+            *extrasY,
+            *infoX,
+            *infoY,
+            "comparison_type",
+        )
         file.write(out)
         self.wrote_headers = True
 
@@ -310,19 +327,33 @@ class SummaryHandler(DistanceHandler.Linear.WithExtras):
         extrasY = first.distance.y.extras.values()
         extrasX = [x if x is not None else self.missing for x in extrasX]
         extrasY = [y if y is not None else self.missing for y in extrasY]
-        scores = [self.distanceToText(subset_distance.distance.d) for subset_distance in line]
-        genusX = first.genera.x if first.genera else '-'
-        genusY = first.genera.y if first.genera else '-'
-        speciesX = first.species.x if first.species else '-'
-        speciesY = first.species.y if first.species else '-'
+        scores = [
+            self.distanceToText(subset_distance.distance.d) for subset_distance in line
+        ]
+        genusX = first.genera.x if first.genera else "-"
+        genusY = first.genera.y if first.genera else "-"
+        speciesX = first.species.x if first.species else "-"
+        speciesY = first.species.y if first.species else "-"
         comparison_type = first.get_comparison_type()
-        out = (idx, idy, *scores, *extrasX, *extrasY, genusX or '-', speciesX or '-', genusY or '-', speciesY or '-', comparison_type.label)
+        out = (
+            idx,
+            idy,
+            *scores,
+            *extrasX,
+            *extrasY,
+            genusX or "-",
+            speciesX or "-",
+            genusY or "-",
+            speciesY or "-",
+            comparison_type.label,
+        )
         file.write(out)
 
 
 class Results(NamedTuple):
     output_directory: Path
     seconds_taken: float
+
 
 #     stats_all: Path | None
 #     stats_species: Path | None
@@ -341,9 +372,7 @@ class Results(NamedTuple):
 
 
 class VersusAll:
-
     def __init__(self):
-
         self.work_dir: Path = None
         self.paths = AttrDict()
 
@@ -374,10 +403,10 @@ class VersusAll:
         self.params.plot.palette: list[tuple] = None
 
         self.params.format = AttrDict()
-        self.params.format.float: str = '{:.4f}'
-        self.params.format.percentage: str = '{:.2f}'
-        self.params.format.missing: str = 'NA'
-        self.params.format.stats_template: str = '{mean} ({min}-{max})'
+        self.params.format.float: str = "{:.4f}"
+        self.params.format.percentage: str = "{:.2f}"
+        self.params.format.missing: str = "NA"
+        self.params.format.stats_template: str = "{mean} ({min}-{max})"
         self.params.format.percentage_multiply: bool = False
 
         self.params.stats = AttrDict()
@@ -388,15 +417,15 @@ class VersusAll:
     def generate_paths(self):
         assert self.work_dir
 
-        self.paths.summary = self.work_dir / 'summary.tsv'
-        self.paths.stats_all = self.work_dir / 'stats' / 'all.tsv'
-        self.paths.stats_species = self.work_dir / 'stats' / 'species.tsv'
-        self.paths.stats_genera = self.work_dir / 'stats' / 'genera.tsv'
-        self.paths.aligned_pairs = self.work_dir / 'align' / 'aligned_pairs.txt'
-        self.paths.distances_linear = self.work_dir / 'distances' / 'linear.tsv'
-        self.paths.distances_matricial = self.work_dir / 'distances' / 'matricial'
-        self.paths.subsets = self.work_dir / 'subsets'
-        self.paths.plots = self.work_dir / 'plots'
+        self.paths.summary = self.work_dir / "summary.tsv"
+        self.paths.stats_all = self.work_dir / "stats" / "all.tsv"
+        self.paths.stats_species = self.work_dir / "stats" / "species.tsv"
+        self.paths.stats_genera = self.work_dir / "stats" / "genera.tsv"
+        self.paths.aligned_pairs = self.work_dir / "align" / "aligned_pairs.txt"
+        self.paths.distances_linear = self.work_dir / "distances" / "linear.tsv"
+        self.paths.distances_matricial = self.work_dir / "distances" / "matricial"
+        self.paths.subsets = self.work_dir / "subsets"
+        self.paths.plots = self.work_dir / "plots"
 
         for path in [
             self.paths.summary,
@@ -410,11 +439,11 @@ class VersusAll:
 
     def check_metrics(self):
         self.params.distances.metrics = self.params.distances.metrics or [
-                DistanceMetric.Uncorrected(),
-                DistanceMetric.UncorrectedWithGaps(),
-                DistanceMetric.JukesCantor(),
-                DistanceMetric.Kimura2P(),
-            ]
+            DistanceMetric.Uncorrected(),
+            DistanceMetric.UncorrectedWithGaps(),
+            DistanceMetric.JukesCantor(),
+            DistanceMetric.Kimura2P(),
+        ]
 
     def calculate_statistics_all(self, sequences: Sequences):
         if not self.params.stats.all:
@@ -429,10 +458,11 @@ class VersusAll:
 
         self.create_parents(self.paths.stats_all)
         with StatisticsHandler.Single(
-            self.paths.stats_all, 'w',
-            float_formatter = self.params.format.float,
-            percentage_formatter = self.params.format.percentage,
-            percentage_multiply = self.params.format.percentage_multiply,
+            self.paths.stats_all,
+            "w",
+            float_formatter=self.params.format.float,
+            percentage_formatter=self.params.format.percentage,
+            percentage_multiply=self.params.format.percentage_multiply,
         ) as file:
             stats = allStats.calculate()
             file.write(stats)
@@ -443,7 +473,9 @@ class VersusAll:
         if not self.params.stats.species:
             return sequences
 
-        return self._calculate_statistics_partition(sequences, self.input.species, 'species', self.paths.stats_species)
+        return self._calculate_statistics_partition(
+            sequences, self.input.species, "species", self.paths.stats_species
+        )
 
     def calculate_statistics_genera(self, sequences: Sequences):
         if not self.input.genera:
@@ -451,9 +483,13 @@ class VersusAll:
         if not self.params.stats.genera:
             return sequences
 
-        return self._calculate_statistics_partition(sequences, self.input.genera, 'genera', self.paths.stats_genera)
+        return self._calculate_statistics_partition(
+            sequences, self.input.genera, "genera", self.paths.stats_genera
+        )
 
-    def _calculate_statistics_partition(self, sequences: Sequences, partition: Partition, group_name: str, path: Path):
+    def _calculate_statistics_partition(
+        self, sequences: Sequences, partition: Partition, group_name: str, path: Path
+    ):
         try:
             calculators = dict()
             for subset in partition.values():
@@ -472,11 +508,12 @@ class VersusAll:
         finally:
             self.create_parents(path)
             with StatisticsHandler.Groups(
-                path, 'w',
-                group_name = group_name,
-                float_formatter = self.params.format.float,
-                percentage_formatter = self.params.format.percentage,
-                percentage_multiply = self.params.format.percentage_multiply,
+                path,
+                "w",
+                group_name=group_name,
+                float_formatter=self.params.format.float,
+                percentage_formatter=self.params.format.percentage,
+                percentage_multiply=self.params.format.percentage_multiply,
             ) as file:
                 for calc in calculators.values():
                     stats = calc.calculate()
@@ -501,7 +538,7 @@ class VersusAll:
             return
 
         self.create_parents(self.paths.aligned_pairs)
-        with SequencePairHandler.Formatted(self.paths.aligned_pairs, 'w') as file:
+        with SequencePairHandler.Formatted(self.paths.aligned_pairs, "w") as file:
             for pair in pairs:
                 file.write(pair)
                 yield pair
@@ -521,7 +558,7 @@ class VersusAll:
 
         for distance in distances:
             if distance.d is not None:
-                distance = distance._replace(d = distance.d * 100)
+                distance = distance._replace(d=distance.d * 100)
             yield distance
 
     def write_distances_linear(self, distances: Distances):
@@ -531,9 +568,10 @@ class VersusAll:
 
         self.create_parents(self.paths.distances_linear)
         with DistanceHandler.Linear.WithExtras(
-            self.paths.distances_linear, 'w',
-            missing = self.params.format.missing,
-            formatter = self.params.format.float,
+            self.paths.distances_linear,
+            "w",
+            missing=self.params.format.missing,
+            formatter=self.params.format.float,
         ) as file:
             for distance in distances:
                 file.write(distance)
@@ -545,31 +583,46 @@ class VersusAll:
 
         self.create_parents(self.paths.distances_matricial)
         for metric in self.params.distances.metrics:
-            distances = self._write_distances_matrix(distances, metric, self.paths.distances_matricial / f'{str(metric)}.tsv')
+            distances = self._write_distances_matrix(
+                distances, metric, self.paths.distances_matricial / f"{str(metric)}.tsv"
+            )
         return distances
 
-    def _write_distances_matrix(self, distances: Distances, metric: DistanceMetric, path: Path):
+    def _write_distances_matrix(
+        self, distances: Distances, metric: DistanceMetric, path: Path
+    ):
         with DistanceHandler.Matrix(
-            path, 'w',
-            missing = self.params.format.missing,
-            formatter = self.params.format.float,
+            path,
+            "w",
+            missing=self.params.format.missing,
+            formatter=self.params.format.float,
         ) as file:
             for distance in distances:
                 if distance.metric.type == metric.type:
                     file.write(distance)
                 yield distance
 
-    def aggregate_distances_species(self, distances: Distances) -> Iterator[SubsetPair | None]:
+    def aggregate_distances_species(
+        self, distances: Distances
+    ) -> Iterator[SubsetPair | None]:
         if not self.input.species:
             return (None for _ in distances)
-        return self._aggregate_distances(distances, self.input.species, self.paths.subsets / 'species')
+        return self._aggregate_distances(
+            distances, self.input.species, self.paths.subsets / "species"
+        )
 
-    def aggregate_distances_genera(self, distances: Distances) -> Iterator[SubsetPair | None]:
+    def aggregate_distances_genera(
+        self, distances: Distances
+    ) -> Iterator[SubsetPair | None]:
         if not self.input.genera:
             return (None for _ in distances)
-        return self._aggregate_distances(distances, self.input.genera, self.paths.subsets / 'genera')
+        return self._aggregate_distances(
+            distances, self.input.genera, self.paths.subsets / "genera"
+        )
 
-    def _aggregate_distances(self, distances: Distances, partition: Partition, path: Path) -> Iterator[SubsetPair]:
+    def _aggregate_distances(
+        self, distances: Distances, partition: Partition, path: Path
+    ) -> Iterator[SubsetPair]:
         try:
             aggregators = dict()
             for metric in self.params.distances.metrics:
@@ -578,7 +631,9 @@ class VersusAll:
             for distance in distances:
                 subset_x = partition.get(distance.x.id, None)
                 subset_y = partition.get(distance.y.id, None)
-                generic = GenericDistance(distance.metric, subset_x, subset_y, distance.d)
+                generic = GenericDistance(
+                    distance.metric, subset_x, subset_y, distance.d
+                )
                 aggregators[str(generic.metric)].add(generic)
                 yield SubsetPair(subset_x, subset_y)
 
@@ -586,19 +641,23 @@ class VersusAll:
             pass
 
         finally:
-            self.write_subset_statistics_linear(aggregators, path / 'linear')
-            self.write_subset_statistics_matricial(aggregators, path / 'matricial')
+            self.write_subset_statistics_linear(aggregators, path / "linear")
+            self.write_subset_statistics_matricial(aggregators, path / "matricial")
 
-    def write_subset_statistics_linear(self, aggregators: dict[str, DistanceAggregator], path: Path):
+    def write_subset_statistics_linear(
+        self, aggregators: dict[str, DistanceAggregator], path: Path
+    ):
         self.create_parents(path)
         with (
             SubsetPairsStatisticsHandler(
-                path / 'pairs.tsv', 'w',
-                formatter = self.params.format.float,
+                path / "pairs.tsv",
+                "w",
+                formatter=self.params.format.float,
             ) as pairs_file,
             SubsetIdentityStatisticsHandler(
-                path / 'identity.tsv', 'w',
-                formatter = self.params.format.float,
+                path / "identity.tsv",
+                "w",
+                formatter=self.params.format.float,
             ) as identity_file,
         ):
             aggs = aggregators.values()
@@ -610,39 +669,46 @@ class VersusAll:
                 else:
                     pairs_file.write(bunch)
 
-    def write_subset_statistics_matricial(self, aggregators: dict[str, DistanceAggregator], path: Path):
+    def write_subset_statistics_matricial(
+        self, aggregators: dict[str, DistanceAggregator], path: Path
+    ):
         self.create_parents(path)
         for metric, aggregator in aggregators.items():
             with SubsetMatrixStatisticsHandler(
-                path / f'{metric}.tsv', 'w',
-                formatter = self.params.format.float,
-                template = self.params.format.stats_template,
+                path / f"{metric}.tsv",
+                "w",
+                formatter=self.params.format.float,
+                template=self.params.format.stats_template,
             ) as file:
                 for stats in aggregator:
                     file.write(stats)
-
 
     def plot_histograms(self, distances: iter[SubsetDistance]):
         if not self.params.plot.histograms:
             yield from distances
 
         plotter = HistogramPlotter(
-            formats = self.params.plot.formats,
-            palette = self.params.plot.palette,
-            binwidth = self.params.plot.binwidth,
-            binfactor = 100.0 if self.params.format.percentage_multiply else 1.0,
+            formats=self.params.plot.formats,
+            palette=self.params.plot.palette,
+            binwidth=self.params.plot.binwidth,
+            binfactor=100.0 if self.params.format.percentage_multiply else 1.0,
         )
         for subset_distance in distances:
-            plotter.add(str(subset_distance.distance.metric), subset_distance.distance.d, subset_distance.get_comparison_type())
+            plotter.add(
+                str(subset_distance.distance.metric),
+                subset_distance.distance.d,
+                subset_distance.get_comparison_type(),
+            )
             yield subset_distance
         self.create_parents(self.paths.plots)
         plotter.plot(self.paths.plots)
 
     def write_summary(self, distances: iter[SubsetDistance]):
         with SummaryHandler(
-            self.paths.summary, 'w',
-            missing = self.params.format.missing,
-            formatter = self.params.format.float,
+            self.paths.summary,
+            "w",
+            missing=self.params.format.missing,
+            formatter=self.params.format.float,
         ) as file:
             for distance in distances:
                 # if 'organism' in distance.x.extras:
@@ -658,10 +724,10 @@ class VersusAll:
         for index, distance in enumerate(distances, 1):
             new_time = perf_counter()
             if new_time - last_time >= self.progress_interval:
-                self.progress_handler('distance.x.id', index, total)
+                self.progress_handler("distance.x.id", index, total)
                 last_time = new_time
             yield distance
-        self.progress_handler('Finalizing...', total, total)
+        self.progress_handler("Finalizing...", total, total)
 
     def start(self) -> None:
         ts = perf_counter()
@@ -689,7 +755,10 @@ class VersusAll:
         distances = multiply(distances, 3)
         genera_pair = self.aggregate_distances_genera(distances)
         species_pair = self.aggregate_distances_species(distances)
-        subset_distances = (SubsetDistance(d, g, s) for d, g, s in zip(distances, genera_pair, species_pair))
+        subset_distances = (
+            SubsetDistance(d, g, s)
+            for d, g, s in zip(distances, genera_pair, species_pair)
+        )
 
         subset_distances = self.plot_histograms(subset_distances)
         subset_distances = self.write_summary(subset_distances)

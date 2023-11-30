@@ -16,12 +16,12 @@ class Scores(dict[str, int]):
     """Can access keys like attributes"""
 
     defaults = dict(
-        match_score = 1,
-        mismatch_score = -1,
-        internal_open_gap_score = -8,
-        internal_extend_gap_score = -1,
-        end_open_gap_score = -1,
-        end_extend_gap_score = -1,
+        match_score=1,
+        mismatch_score=-1,
+        internal_open_gap_score=-8,
+        internal_extend_gap_score=-1,
+        end_open_gap_score=-1,
+        end_extend_gap_score=-1,
     )
 
     def __init__(self, **kwargs):
@@ -29,8 +29,8 @@ class Scores(dict[str, int]):
         self.__dict__ = self
 
     def __repr__(self):
-        attrs = ', '.join(f'{k}={v}' for k, v in self.items())
-        return f'<{type(self).__name__}: {attrs}>'
+        attrs = ", ".join(f"{k}={v}" for k, v in self.items())
+        return f"<{type(self).__name__}: {attrs}>"
 
 
 class PairwiseAligner(Type):
@@ -50,10 +50,12 @@ class PairwiseAligner(Type):
 
 
 class Rust(PairwiseAligner):
-
     def __init__(self, scores: Scores = None):
         super().__init__(scores)
-        warn('PairwiseAligner.Rust does not always find the best alignment!', RuntimeWarning)
+        warn(
+            "PairwiseAligner.Rust does not always find the best alignment!",
+            RuntimeWarning,
+        )
         self.aligner = calc.make_aligner(**self.scores)
 
     def align(self, pair: SequencePair) -> SequencePair:

@@ -18,9 +18,9 @@ def multiply(iterator: iter, n: int):
 
 
 def console_report(caption, index, total):
-    if caption == 'Finalizing...':
+    if caption == "Finalizing...":
         print(f"\rCalculating... {total}/{total} = {100:.2f}%", end="")
-        print('\nFinalizing...')
+        print("\nFinalizing...")
     else:
         print(f"\rCalculating... {index}/{total} = {100*index/total:.2f}%", end="")
 
@@ -31,9 +31,7 @@ class Results(NamedTuple):
 
 
 class VersusReference:
-
     def __init__(self):
-
         self.work_dir: Path = None
         self.paths = AttrDict()
 
@@ -58,9 +56,9 @@ class VersusReference:
         self.params.distances.write_matricial: bool = True
 
         self.params.format = AttrDict()
-        self.params.format.float: str = '{:.4f}'
-        self.params.format.percentage: str = '{:.2f}'
-        self.params.format.missing: str = 'NA'
+        self.params.format.float: str = "{:.4f}"
+        self.params.format.percentage: str = "{:.2f}"
+        self.params.format.missing: str = "NA"
         self.params.format.percentage_multiply: bool = False
 
     def generate_paths(self):
@@ -68,10 +66,14 @@ class VersusReference:
         self.create_parents(self.work_dir)
         metric = str(self.params.distances.metric)
 
-        self.paths.closest = self.work_dir / 'closest.tsv'
-        self.paths.aligned_pairs = self.work_dir / 'aligned_pairs.txt'
-        self.paths.distances_linear = self.work_dir / 'distances' / f'{metric}.linear.tsv'
-        self.paths.distances_matricial = self.work_dir / 'distances' / f'{metric}.matricial.tsv'
+        self.paths.closest = self.work_dir / "closest.tsv"
+        self.paths.aligned_pairs = self.work_dir / "aligned_pairs.txt"
+        self.paths.distances_linear = (
+            self.work_dir / "distances" / f"{metric}.linear.tsv"
+        )
+        self.paths.distances_matricial = (
+            self.work_dir / "distances" / f"{metric}.matricial.tsv"
+        )
 
     def create_parents(self, path: Path):
         if path.suffix:
@@ -79,12 +81,14 @@ class VersusReference:
         path.mkdir(parents=True, exist_ok=True)
 
     def check_metrics(self):
-        self.params.distances.metric = self.params.distances.metric or DistanceMetric.Uncorrected()
+        self.params.distances.metric = (
+            self.params.distances.metric or DistanceMetric.Uncorrected()
+        )
         self.params.distances.extra_metrics = self.params.distances.extra_metrics or [
-                DistanceMetric.UncorrectedWithGaps(),
-                DistanceMetric.JukesCantor(),
-                DistanceMetric.Kimura2P(),
-            ]
+            DistanceMetric.UncorrectedWithGaps(),
+            DistanceMetric.JukesCantor(),
+            DistanceMetric.Kimura2P(),
+        ]
         if self.params.distances.metric in self.params.distances.extra_metrics:
             self.params.distances.extra_metrics.remove(self.params.distances.metric)
 
@@ -107,7 +111,7 @@ class VersusReference:
             return
 
         self.create_parents(self.paths.aligned_pairs)
-        with SequencePairHandler.Formatted(self.paths.aligned_pairs, 'w') as file:
+        with SequencePairHandler.Formatted(self.paths.aligned_pairs, "w") as file:
             for pair in pairs:
                 file.write(pair)
                 yield pair
@@ -131,7 +135,7 @@ class VersusReference:
 
         for distance in distances:
             if distance.d is not None:
-                distance = distance._replace(d = distance.d * 100)
+                distance = distance._replace(d=distance.d * 100)
             yield distance
 
     def adjust_extra_distances(self, distances: Distances):
@@ -142,7 +146,7 @@ class VersusReference:
         for distance in distances:
             if distance.metric != self.params.distances.metric:
                 if distance.d is not None:
-                    distance = distance._replace(d = distance.d * 100)
+                    distance = distance._replace(d=distance.d * 100)
             yield distance
 
     def write_distances_linear(self, distances: Distances):
@@ -152,9 +156,10 @@ class VersusReference:
 
         self.create_parents(self.paths.distances_linear)
         with DistanceHandler.Linear.WithExtras(
-            self.paths.distances_linear, 'w',
-            missing = self.params.format.missing,
-            formatter = self.params.format.float,
+            self.paths.distances_linear,
+            "w",
+            missing=self.params.format.missing,
+            formatter=self.params.format.float,
         ) as file:
             for distance in distances:
                 file.write(distance)
@@ -167,9 +172,10 @@ class VersusReference:
 
         self.create_parents(self.paths.distances_matricial)
         with DistanceHandler.Matrix(
-            self.paths.distances_matricial, 'w',
-            missing = self.params.format.missing,
-            formatter = self.params.format.float,
+            self.paths.distances_matricial,
+            "w",
+            missing=self.params.format.missing,
+            formatter=self.params.format.float,
         ) as file:
             for distance in distances:
                 file.write(distance)
@@ -178,15 +184,16 @@ class VersusReference:
     def get_minimum_distances(self, distances: Distances):
         for _, group in groupby(distances, lambda distance: distance.x.id):
             group = (distance for distance in group if distance.d is not None)
-            minimum_distance = min(group, key = lambda distance: distance.d)
+            minimum_distance = min(group, key=lambda distance: distance.d)
             yield minimum_distance
 
     def write_closest_distances(self, distances: iter[Distance]):
         self.create_parents(self.paths.closest)
         with DistanceHandler.Linear.WithExtras(
-            self.paths.closest, 'w',
-            missing = self.params.format.missing,
-            formatter = self.params.format.float,
+            self.paths.closest,
+            "w",
+            missing=self.params.format.missing,
+            formatter=self.params.format.float,
         ) as file:
             for distance in distances:
                 file.write(distance)
@@ -198,10 +205,10 @@ class VersusReference:
         for index, distance in enumerate(distances, 1):
             new_time = perf_counter()
             if new_time - last_time >= self.progress_interval:
-                self.progress_handler('distance.x.id', index, total)
+                self.progress_handler("distance.x.id", index, total)
                 last_time = new_time
             yield distance
-        self.progress_handler('Finalizing...', total, total)
+        self.progress_handler("Finalizing...", total, total)
 
     def start(self) -> None:
         ts = perf_counter()

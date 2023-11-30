@@ -9,6 +9,7 @@ from .handlers import FileHandler, ReadHandle, WriteHandle
 
 class Tree(NamedTuple):
     """Uses Newick strings as a base"""
+
     newick: str
 
     @classmethod
@@ -25,7 +26,7 @@ class Tree(NamedTuple):
         names = set()
 
         # recursively collapse leaves into branches
-        pattern = re.compile(r'\(([\w\.\-]+?),([\w\.\-]+?)\)')
+        pattern = re.compile(r"\(([\w\.\-]+?),([\w\.\-]+?)\)")
         while True:
             hit = pattern.search(newick)
             if hit is None:
@@ -35,11 +36,11 @@ class Tree(NamedTuple):
             newick = newick.replace(hit.group(0), hit.group(1))
 
         # remove remaining parentheses around root
-        while newick.startswith('(') and newick.endswith(')'):
+        while newick.startswith("(") and newick.endswith(")"):
             newick = newick[1:-1]
 
         # final unrooted tree may contain at most three nodes
-        pattern_unrooted = re.compile(r'^([\w\.\-]+?),([\w\.\-]+?),([\w\.\-]+?)$')
+        pattern_unrooted = re.compile(r"^([\w\.\-]+?),([\w\.\-]+?),([\w\.\-]+?)$")
         hit = pattern_unrooted.search(newick)
         if hit is not None:
             names.add(hit.group(1))
@@ -48,10 +49,12 @@ class Tree(NamedTuple):
 
         names = list(sorted(names))
 
-        pattern_single = re.compile(r'^[\w\.\-]+?$')
+        pattern_single = re.compile(r"^[\w\.\-]+?$")
 
         # check if the collapsed tree is valid
-        if re.fullmatch(pattern_single, newick) or re.fullmatch(pattern_unrooted, newick):
+        if re.fullmatch(pattern_single, newick) or re.fullmatch(
+            pattern_unrooted, newick
+        ):
             return True, names
 
         return False, names
@@ -63,19 +66,18 @@ class Tree(NamedTuple):
         semicolon: bool,
         comments: bool,
     ) -> str:
-
         newick = newick.strip()
 
-        if semicolon and not newick.endswith(';'):
-            newick += ';'
-        if not semicolon and newick.endswith(';'):
+        if semicolon and not newick.endswith(";"):
+            newick += ";"
+        if not semicolon and newick.endswith(";"):
             newick = newick[:-1]
 
         if not comments:
-            newick = re.sub(r'\[[^\]]*\]', '', newick)
+            newick = re.sub(r"\[[^\]]*\]", "", newick)
 
         if not lengths:
-            newick = re.sub(r':-?\d*\.?\d+(-?[Ee]\d+)?', '', newick)
+            newick = re.sub(r":-?\d*\.?\d+(-?[Ee]\d+)?", "", newick)
 
         return newick
 
@@ -102,12 +104,8 @@ class Trees(list[Tree]):
 
 class NewickTreeHandler(FileHandler[Tree]):
     """Strict parser for Newick files, one tree per line"""
-    def _open(
-        self,
-        path: Path,
-        mode: Literal['r', 'w'] = 'r',
-        *args, **kwargs
-    ):
+
+    def _open(self, path: Path, mode: Literal["r", "w"] = "r", *args, **kwargs):
         self.filter = filter
         super()._open(path, mode, *args, **kwargs)
 

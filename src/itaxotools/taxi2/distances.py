@@ -24,7 +24,9 @@ class Distance(NamedTuple):
 
 class Distances(Container[Distance]):
     @classmethod
-    def fromPath(cls, path: Path, handler: DistanceHandler, *args, **kwargs) -> Distances:
+    def fromPath(
+        cls, path: Path, handler: DistanceHandler, *args, **kwargs
+    ) -> Distances:
         return cls(handler, path, *args, **kwargs)
 
 
@@ -32,10 +34,11 @@ class DistanceHandler(FileHandler[Distance]):
     def _open(
         self,
         path: Path,
-        mode: Literal['r', 'w'] = 'r',
-        missing: str = 'NA',
-        formatter: str = '{:f}',
-        *args, **kwargs
+        mode: Literal["r", "w"] = "r",
+        missing: str = "NA",
+        formatter: str = "{:f}",
+        *args,
+        **kwargs,
     ):
         self.missing = missing
         self.formatter = formatter
@@ -54,20 +57,22 @@ class DistanceHandler(FileHandler[Distance]):
 
 class Linear(DistanceHandler):
     def _iter_read(self) -> ReadHandle[Distance]:
-        with FileHandler.Tabfile(self.path, 'r', has_headers=True) as file:
+        with FileHandler.Tabfile(self.path, "r", has_headers=True) as file:
             metrics = [DistanceMetric.fromLabel(label) for label in file.headers[2:]]
             yield self
             for row in file:
                 idx, idy, distances = row[0], row[1], row[2:]
                 distances = (self.distanceFromText(d) for d in distances)
                 for distance, metric in zip(distances, metrics):
-                    yield Distance(metric, Sequence(idx, None), Sequence(idy, None), distance)
+                    yield Distance(
+                        metric, Sequence(idx, None), Sequence(idy, None), distance
+                    )
 
     def _iter_write(self) -> WriteHandle[Distance]:
         self.buffer: list[Distance] = []
         self.wrote_headers = False
 
-        with FileHandler.Tabfile(self.path, 'w') as file:
+        with FileHandler.Tabfile(self.path, "w") as file:
             try:
                 line = yield from self._assemble_line()
                 self._write_headers(file, line)
@@ -87,10 +92,12 @@ class Linear(DistanceHandler):
             while True:
                 distance = yield
                 buffer.append(distance)
-                if any((
-                    buffer[0].x.id != buffer[-1].x.id,
-                    buffer[0].y.id != buffer[-1].y.id,
-                )):
+                if any(
+                    (
+                        buffer[0].x.id != buffer[-1].x.id,
+                        buffer[0].y.id != buffer[-1].y.id,
+                    )
+                ):
                     self.buffer = buffer[-1:]
                     return buffer[:-1]
         except GeneratorExit:
@@ -100,7 +107,7 @@ class Linear(DistanceHandler):
         if self.wrote_headers:
             return
         metrics = [str(distance.metric) for distance in line]
-        out = ('idx', 'idy', *metrics)
+        out = ("idx", "idy", *metrics)
         file.write(out)
         self.wrote_headers = True
 
@@ -114,7 +121,7 @@ class Matrix(DistanceHandler):
     def _iter_read(self, metric: DistanceMetric = None) -> ReadHandle[Distance]:
         metric = metric or DistanceMetric.Unknown()
 
-        with FileHandler.Tabfile(self.path, 'r', has_headers=True) as file:
+        with FileHandler.Tabfile(self.path, "r", has_headers=True) as file:
             idys = file.headers[1:]
             yield self
             for row in file:
@@ -128,7 +135,7 @@ class Matrix(DistanceHandler):
         self.buffer: list[Distance] = []
         self.wrote_headers = False
 
-        with FileHandler.Tabfile(self.path, 'w') as file:
+        with FileHandler.Tabfile(self.path, "w") as file:
             try:
                 line = yield from self._assemble_line()
                 self._write_headers(file, line)
@@ -158,7 +165,7 @@ class Matrix(DistanceHandler):
         if self.wrote_headers:
             return
         idys = [distance.y.id for distance in line]
-        out = ('', *idys)
+        out = ("", *idys)
         file.write(out)
         self.wrote_headers = True
 
@@ -173,13 +180,12 @@ class WithExtras(DistanceHandler.Linear):
         self,
         idxHeader: str = None,
         idyHeader: str = None,
-        tagX: str = ' (query)',
-        tagY: str = ' (reference)',
+        tagX: str = " (query)",
+        tagY: str = " (reference)",
         idxColumn: int = 0,
         idyColumn: int = 1,
     ) -> ReadHandle[Distance]:
-
-        with FileHandler.Tabfile(self.path, 'r', has_headers=True) as file:
+        with FileHandler.Tabfile(self.path, "r", has_headers=True) as file:
             headers = file.headers
 
             if idxHeader and idyHeader:
@@ -190,10 +196,10 @@ class WithExtras(DistanceHandler.Linear):
 
             try:
                 metricIndexStart = next(
-                    i for i, x in enumerate(headers)
-                    if DistanceMetric.fromLabel(x))
+                    i for i, x in enumerate(headers) if DistanceMetric.fromLabel(x)
+                )
             except StopIteration:
-                raise Exception('No metrics found in the header line!')
+                raise Exception("No metrics found in the header line!")
 
             sliceX = slice(idxColumn + 1, idyColumn)
             sliceY = slice(idyColumn + 1, metricIndexStart)
@@ -214,17 +220,20 @@ class WithExtras(DistanceHandler.Linear):
                 extrasY = {k: v for k, v in zip(extrasHeaderY, extraDataY)}
                 distances = (self.distanceFromText(d) for d in row[metricIndexStart:])
                 for distance, metric in zip(distances, metrics):
-                    yield Distance(metric, Sequence(idx, None, extrasX), Sequence(idy, None, extrasY), distance)
-
+                    yield Distance(
+                        metric,
+                        Sequence(idx, None, extrasX),
+                        Sequence(idy, None, extrasY),
+                        distance,
+                    )
 
     def _iter_write(
         self,
-        idxHeader: str = 'seqid',
-        idyHeader: str = 'seqid',
-        tagX: str = ' (query)',
-        tagY: str = ' (reference)',
+        idxHeader: str = "seqid",
+        idyHeader: str = "seqid",
+        tagX: str = " (query)",
+        tagY: str = " (reference)",
     ) -> WriteHandle[Distance]:
-
         self.idxHeader = idxHeader
         self.idyHeader = idyHeader
         self.tagX = tagX
@@ -258,6 +267,7 @@ class WithExtras(DistanceHandler.Linear):
 
 class DistanceMetric(Type):
     """Metrics for calculating distances"""
+
     label: str
 
     def __str__(self):
@@ -276,9 +286,9 @@ class DistanceMetric(Type):
     @classmethod
     def fromLabel(cls, label: str):
         label_arg = None
-        res = re.search(r'(\w+)\((\d+)\)', label)
+        res = re.search(r"(\w+)\((\d+)\)", label)
         if res:
-            label = res.group(1) + '({})'
+            label = res.group(1) + "({})"
             label_arg = res.group(2)
         for child in cls:
             if label == child.label:
@@ -289,11 +299,11 @@ class DistanceMetric(Type):
 
 
 class Unknown(DistanceMetric):
-    label = '?'
+    label = "?"
 
 
 class Uncorrected(DistanceMetric):
-    label = 'p'
+    label = "p"
 
     def _calculate(self, x: str, y: str) -> float:
         distance = calc.seq_distances_p(x, y)
@@ -301,7 +311,7 @@ class Uncorrected(DistanceMetric):
 
 
 class UncorrectedWithGaps(DistanceMetric):
-    label = 'p-gaps'
+    label = "p-gaps"
 
     def _calculate(self, x: str, y: str) -> float:
         distance = calc.seq_distances_p_gaps(x, y)
@@ -309,7 +319,7 @@ class UncorrectedWithGaps(DistanceMetric):
 
 
 class JukesCantor(DistanceMetric):
-    label = 'jc'
+    label = "jc"
 
     def _calculate(self, x: str, y: str) -> float:
         distance = calc.seq_distances_jukes_cantor(x, y)
@@ -317,7 +327,7 @@ class JukesCantor(DistanceMetric):
 
 
 class Kimura2P(DistanceMetric):
-    label = 'k2p'
+    label = "k2p"
 
     def _calculate(self, x: str, y: str) -> float:
         distance = calc.seq_distances_kimura2p(x, y)
@@ -325,7 +335,7 @@ class Kimura2P(DistanceMetric):
 
 
 class NCD(DistanceMetric):
-    label = 'ncd'
+    label = "ncd"
 
     def _calculate(self, x: str, y: str) -> float:
         records = SeqRecords((0, 1), (x, y))
@@ -335,7 +345,7 @@ class NCD(DistanceMetric):
 
 
 class BBC(DistanceMetric):
-    label = 'bbc({})'
+    label = "bbc({})"
 
     def __init__(self, k=10):
         self.k = k

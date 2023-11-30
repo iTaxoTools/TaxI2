@@ -24,7 +24,7 @@ class AcceptanceTest(NamedTuple):
 
 
 acceptance_tests = [
-    AcceptanceTest('simple.query.tsv', 'simple.reference.tsv', 'simple.output.tsv')
+    AcceptanceTest("simple.query.tsv", "simple.reference.tsv", "simple.output.tsv")
 ]
 
 

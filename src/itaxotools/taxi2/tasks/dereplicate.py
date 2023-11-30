@@ -22,16 +22,13 @@ def multiply(iterator: iter, n: int):
 
 def split(source: iter, *funcs: list[Callable]):
     source = multiply(source, len(funcs))
-    return [
-        map(func, source)
-        for func in funcs
-    ]
+    return [map(func, source) for func in funcs]
 
 
 def console_report(caption, index, total):
-    if caption == 'Finalizing...':
+    if caption == "Finalizing...":
         print(f"\rCalculating... {total}/{total} = {100:.2f}%", end="")
-        print('\nFinalizing...')
+        print("\nFinalizing...")
     else:
         print(f"\rCalculating... {index}/{total} = {100*index/total:.2f}%", end="")
 
@@ -66,10 +63,11 @@ class SummaryHandle(FileHandler[SummaryLine]):
     def _open(
         self,
         path: Path,
-        mode: Literal['r', 'w'] = 'w',
-        missing: str = 'NA',
-        formatter: str = '{:f}',
-        *args, **kwargs
+        mode: Literal["r", "w"] = "w",
+        missing: str = "NA",
+        formatter: str = "{:f}",
+        *args,
+        **kwargs,
     ):
         self.missing = missing
         self.formatter = formatter
@@ -98,7 +96,7 @@ class SummaryHandle(FileHandler[SummaryLine]):
     def _iter_write(self, *args, **kwargs) -> WriteHandle[SummaryLine]:
         try:
             headers = SummaryLine._fields
-            with FileHandler.Tabfile(self.path, 'w', columns=headers) as file:
+            with FileHandler.Tabfile(self.path, "w", columns=headers) as file:
                 while True:
                     line = yield
                     file.write(self.format_line(line))
@@ -107,9 +105,7 @@ class SummaryHandle(FileHandler[SummaryLine]):
 
 
 class Dereplicate:
-
     def __init__(self):
-
         self.work_dir: Path = None
         self.paths = AttrDict()
 
@@ -137,8 +133,8 @@ class Dereplicate:
         self.params.distances.write_matricial: bool = True
 
         self.params.format = AttrDict()
-        self.params.format.float: str = '{:.4f}'
-        self.params.format.missing: str = 'NA'
+        self.params.format.float: str = "{:.4f}"
+        self.params.format.missing: str = "NA"
         self.params.format.percentage_multiply: bool = False
 
     def set_output_format_from_path(self, path: Path):
@@ -146,14 +142,18 @@ class Dereplicate:
 
     def get_output_handler(self, path: Path):
         if self.output_format == FileFormat.Fasta:
-            return SequenceHandler.Fasta(path, 'w', write_organism=True)
+            return SequenceHandler.Fasta(path, "w", write_organism=True)
         if self.output_format == FileFormat.Tabfile:
-            return SequenceHandler.Tabfile(path, 'w', idHeader='seqid', seqHeader='sequence')
-        raise Exception('Unknown file format')
+            return SequenceHandler.Tabfile(
+                path, "w", idHeader="seqid", seqHeader="sequence"
+            )
+        raise Exception("Unknown file format")
 
     def check_params(self):
         self.output_format = self.output_format or FileFormat.Tabfile
-        self.params.distances.metric = self.params.distances.metric or DistanceMetric.Uncorrected()
+        self.params.distances.metric = (
+            self.params.distances.metric or DistanceMetric.Uncorrected()
+        )
 
     def generate_paths(self):
         assert self.work_dir
@@ -161,12 +161,16 @@ class Dereplicate:
         metric = str(self.params.distances.metric)
         extension = self.output_format.extension
 
-        self.paths.summary = self.work_dir / 'summary.tsv'
-        self.paths.dereplicated = self.work_dir / f'dereplicated{extension}'
-        self.paths.excluded = self.work_dir / f'excluded{extension}'
-        self.paths.aligned_pairs = self.work_dir / 'aligned_pairs.txt'
-        self.paths.distances_linear = self.work_dir / 'distances' / f'{metric}.linear.tsv'
-        self.paths.distances_matricial = self.work_dir / 'distances' / f'{metric}.matricial.tsv'
+        self.paths.summary = self.work_dir / "summary.tsv"
+        self.paths.dereplicated = self.work_dir / f"dereplicated{extension}"
+        self.paths.excluded = self.work_dir / f"excluded{extension}"
+        self.paths.aligned_pairs = self.work_dir / "aligned_pairs.txt"
+        self.paths.distances_linear = (
+            self.work_dir / "distances" / f"{metric}.linear.tsv"
+        )
+        self.paths.distances_matricial = (
+            self.work_dir / "distances" / f"{metric}.matricial.tsv"
+        )
 
     def create_parents(self, path: Path):
         if path.suffix:
@@ -185,10 +189,12 @@ class Dereplicate:
 
     def drop_excluded_pairs(self, pairs: iter[SequencePair]) -> Iterator[SequencePair]:
         for pair in pairs:
-            if all((
-                pair.x.id not in self.excluded,
-                pair.y.id not in self.excluded,
-            )):
+            if all(
+                (
+                    pair.x.id not in self.excluded,
+                    pair.y.id not in self.excluded,
+                )
+            ):
                 yield pair
 
     def normalize_pairs(self, pairs: iter[SequencePair]) -> Iterator[SequencePair]:
@@ -213,7 +219,7 @@ class Dereplicate:
             return
 
         self.create_parents(self.paths.aligned_pairs)
-        with SequencePairHandler.Formatted(self.paths.aligned_pairs, 'w') as file:
+        with SequencePairHandler.Formatted(self.paths.aligned_pairs, "w") as file:
             for pair in pairs:
                 file.write(pair)
                 yield pair
@@ -230,7 +236,7 @@ class Dereplicate:
 
         for distance in distances:
             if distance.d is not None:
-                distance = distance._replace(d = distance.d * 100)
+                distance = distance._replace(d=distance.d * 100)
             yield distance
 
     def write_distances_linear(self, distances: iter[Distance]) -> Iterator[Distance]:
@@ -240,9 +246,10 @@ class Dereplicate:
 
         self.create_parents(self.paths.distances_linear)
         with DistanceHandler.Linear.WithExtras(
-            self.paths.distances_linear, 'w',
-            missing = self.params.format.missing,
-            formatter = self.params.format.float,
+            self.paths.distances_linear,
+            "w",
+            missing=self.params.format.missing,
+            formatter=self.params.format.float,
         ) as file:
             for distance in distances:
                 file.write(distance)
@@ -255,9 +262,10 @@ class Dereplicate:
 
         self.create_parents(self.paths.distances_matricial)
         with DistanceHandler.Matrix(
-            self.paths.distances_matricial, 'w',
-            missing = self.params.format.missing,
-            formatter = self.params.format.float,
+            self.paths.distances_matricial,
+            "w",
+            missing=self.params.format.missing,
+            formatter=self.params.format.float,
         ) as file:
             for distance in distances:
                 file.write(distance)
@@ -275,18 +283,18 @@ class Dereplicate:
         self,
         pairs: iter[SequencePair],
         distances: iter[Distance],
-        are_similar: iter[bool]
+        are_similar: iter[bool],
     ) -> Iterator[AllInfo]:
         all = zip(pairs, distances, are_similar)
         return (
             AllInfo(
-                query = pair.x,
-                id_x = pair.x.id,
-                id_y = pair.y.id,
-                len_x = len(pair.x.seq),
-                len_y = len(pair.y.seq),
-                distance = distance.d,
-                similar = is_similar,
+                query=pair.x,
+                id_x=pair.x.id,
+                id_y=pair.y.id,
+                len_x=len(pair.x.seq),
+                len_y=len(pair.y.seq),
+                distance=distance.d,
+                similar=is_similar,
             )
             for pair, distance, is_similar in all
         )
@@ -327,14 +335,14 @@ class Dereplicate:
 
                 self.excluded.add(excluded_id)
                 yield SummaryLine(
-                    query_id = query_id,
-                    query_length = query_length,
-                    included_id = included_id,
-                    included_length = included_length,
-                    included_distance = included_distance,
-                    excluded_id = excluded_id,
-                    excluded_length = excluded_length,
-                    excluded_distance = excluded_distance,
+                    query_id=query_id,
+                    query_length=query_length,
+                    included_id=included_id,
+                    included_length=included_length,
+                    included_distance=included_distance,
+                    excluded_id=excluded_id,
+                    excluded_length=excluded_length,
+                    excluded_distance=excluded_distance,
                 )
 
                 if len_y > max_length:
@@ -344,9 +352,10 @@ class Dereplicate:
 
     def write_summary(self, lines: iter[SummaryLine]) -> Iterator[SummaryLine]:
         with SummaryHandle(
-            self.paths.summary, 'w',
-            missing = self.params.format.missing,
-            formatter = self.params.format.float,
+            self.paths.summary,
+            "w",
+            missing=self.params.format.missing,
+            formatter=self.params.format.float,
         ) as file:
             for line in lines:
                 if line is not None:
@@ -374,10 +383,12 @@ class Dereplicate:
         for index, distance in enumerate(distances, 1):
             new_time = perf_counter()
             if new_time - last_time >= self.progress_interval:
-                self.progress_handler('distance.x.id', index, total - len(self.excluded) * section)
+                self.progress_handler(
+                    "distance.x.id", index, total - len(self.excluded) * section
+                )
                 last_time = new_time
             yield distance
-        self.progress_handler('Finalizing...', total, total)
+        self.progress_handler("Finalizing...", total, total)
 
     def start(self) -> None:
         ts = perf_counter()

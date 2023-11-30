@@ -8,19 +8,19 @@ from .types import Type
 
 
 class FileFormat(Enum):
-    Fasta = 'Fasta', '.fas'
-    Tabfile = 'Tabfile', '.tsv'
-    Spart = 'Spart', '.spart'
-    Excel = 'Excel', '.xlsx'
-    Newick = 'Newick', '.tree'
-    Unknown = 'Unknown', None
+    Fasta = "Fasta", ".fas"
+    Tabfile = "Tabfile", ".tsv"
+    Spart = "Spart", ".spart"
+    Excel = "Excel", ".xlsx"
+    Newick = "Newick", ".tree"
+    Unknown = "Unknown", None
 
     def __init__(self, label, extension):
         self.label = label
         self.extension = extension
 
     def __repr__(self):
-        return f'<{type(self).__name__}.{self._name_}>'
+        return f"<{type(self).__name__}.{self._name_}>"
 
 
 @dataclass

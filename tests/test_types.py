@@ -6,7 +6,6 @@ from itaxotools.taxi2.types import Type
 
 
 def test_type_inheritance() -> None:
-
     class Parent(Type):
         pass
 
