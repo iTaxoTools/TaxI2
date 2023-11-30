@@ -1,22 +1,16 @@
 from __future__ import annotations
 
-from itertools import chain, groupby, product
-from math import inf
+from itertools import groupby
 from pathlib import Path
-from statistics import mean, median, stdev
 from time import perf_counter
-from typing import NamedTuple, TextIO, Iterator, Callable
+from typing import Callable, NamedTuple
 
 from itaxotools.common.utility import AttrDict
 
-from ..align import PairwiseAligner
-from ..distances import DistanceHandler, DistanceMetric, Distances, Distance
-from ..handlers import FileHandler
+from ..align import PairwiseAligner, Scores
+from ..distances import Distance, DistanceHandler, DistanceMetric, Distances
 from ..pairs import SequencePairHandler, SequencePairs
-from ..partitions import Partition, PartitionHandler
-from ..plot import HistogramPlotter
-from ..sequences import SequenceHandler, Sequences
-from ..statistics import StatisticsCalculator, StatisticsHandler
+from ..sequences import Sequences
 
 
 def multiply(iterator: iter, n: int):

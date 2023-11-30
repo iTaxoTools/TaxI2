@@ -5,7 +5,7 @@ from typing import NamedTuple, TextIO
 
 from .handlers import FileHandler, ReadHandle, WriteHandle
 from .sequences import Sequence, Sequences
-from .types import Container, Type
+from .types import Container
 
 
 class SequencePair(NamedTuple):

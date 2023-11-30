@@ -1,14 +1,11 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Callable, NamedTuple
+from typing import NamedTuple
 
 import pytest
-from utility import assert_eq_files
 
-from itaxotools.taxi2.pairs import (
-    SequencePair, SequencePairHandler, SequencePairs)
-from itaxotools.taxi2.sequences import Sequence, Sequences
+from itaxotools.taxi2.pairs import SequencePairs
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 
@@ -34,8 +31,8 @@ acceptance_tests = [
 @pytest.mark.xfail
 @pytest.mark.parametrize("test", acceptance_tests)
 def test_new_versus_reference(test: AcceptanceTest, tmp_path: Path) -> None:
-    query_path = TEST_DATA_DIR / test.query
-    reference_path = TEST_DATA_DIR / test.reference
-    fixed_path = TEST_DATA_DIR / test.output
-    output_path = tmp_path / test.output
+    # query_path = TEST_DATA_DIR / test.query
+    # reference_path = TEST_DATA_DIR / test.reference
+    # fixed_path = TEST_DATA_DIR / test.output
+    # output_path = tmp_path / test.output
     raise NotImplementedError()

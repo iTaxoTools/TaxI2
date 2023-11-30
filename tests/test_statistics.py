@@ -2,14 +2,18 @@ from __future__ import annotations
 
 from math import sqrt
 from pathlib import Path
-from sys import stderr
 from typing import Callable, NamedTuple
 
 import pytest
 from utility import assert_eq_files
 
 from itaxotools.taxi2.statistics import (
-    Counts, Statistic, Statistics, StatisticsCalculator, StatisticsHandler)
+    Counts,
+    Statistic,
+    Statistics,
+    StatisticsCalculator,
+    StatisticsHandler,
+)
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 
@@ -255,12 +259,12 @@ statistic_tests = [
     StatisticTest(Statistic.L90, 2, ['ATCG', 'ATCG----']),
 
     # 9 contigs with lengths from 2 to 10
-    StatisticTest(Statistic.N50, 8, list(map(lambda l: 'A' * l, range(2, 11)))),
-    StatisticTest(Statistic.L50, 3, list(map(lambda l: 'A' * l, range(2, 11)))),
-    StatisticTest(Statistic.N50, 8, list(map(lambda l: 'A' * l, range(2, 11))) + ['-']),
-    StatisticTest(Statistic.L50, 3, list(map(lambda l: 'A' * l, range(2, 11))) + ['-']),
-    StatisticTest(Statistic.N90, 4, list(map(lambda l: 'A' * l, range(2, 11)))),
-    StatisticTest(Statistic.L90, 7, list(map(lambda l: 'A' * l, range(2, 11)))),
+    StatisticTest(Statistic.N50, 8, list(map(lambda n: 'A' * n, range(2, 11)))),
+    StatisticTest(Statistic.L50, 3, list(map(lambda n: 'A' * n, range(2, 11)))),
+    StatisticTest(Statistic.N50, 8, list(map(lambda n: 'A' * n, range(2, 11))) + ['-']),
+    StatisticTest(Statistic.L50, 3, list(map(lambda n: 'A' * n, range(2, 11))) + ['-']),
+    StatisticTest(Statistic.N90, 4, list(map(lambda n: 'A' * n, range(2, 11)))),
+    StatisticTest(Statistic.L90, 7, list(map(lambda n: 'A' * n, range(2, 11)))),
 
 ]
 
@@ -291,14 +295,14 @@ def test_statistics(test: StatisticTest) -> None:
 
 def test_calculator_bad_add():
     calc = StatisticsCalculator()
-    stats = calc.calculate()
+    calc.calculate()
     with pytest.raises(StopIteration):
         calc.add('ACTG')
 
 
 def test_calculator_bad_calc():
     calc = StatisticsCalculator()
-    stats = calc.calculate()
+    calc.calculate()
     with pytest.raises(StopIteration):
         calc.calculate()
 

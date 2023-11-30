@@ -1,8 +1,8 @@
 from pathlib import Path
 from sys import argv
 
-from itaxotools.taxi3.sequences import SequenceHandler, Sequences
-from itaxotools.taxi3.tasks.versus_reference import VersusReference
+from itaxotools.taxi2.sequences import SequenceHandler, Sequences
+from itaxotools.taxi2.tasks.versus_reference import VersusReference
 
 
 def main(data_path: Path, reference_path: Path, output_path: Path):

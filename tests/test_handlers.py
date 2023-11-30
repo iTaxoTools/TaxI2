@@ -21,7 +21,7 @@ class Items(NamedTuple):
 class ReadTest(NamedTuple):
     fixture: Callable[[], Items]
     input: str
-    protocol: Tabular
+    protocol: FileHandler.Tabular
     kwargs: dict = {}
 
     @property
@@ -77,7 +77,7 @@ class ReadTest(NamedTuple):
 class HeaderTest(NamedTuple):
     fixture: Callable[[], Items]
     input: str
-    protocol: Tabular
+    protocol: FileHandler.Tabular
 
     @property
     def input_path(self) -> Path:
@@ -95,7 +95,7 @@ class HeaderTest(NamedTuple):
 class WriteTest(NamedTuple):
     fixture: Callable[[], Items]
     output: str
-    protocol: Tabular
+    protocol: FileHandler.Tabular
     kwargs: dict = {}
 
     @property
@@ -271,7 +271,7 @@ def test_read_bad_handler() -> None:
             raise NotImplementedError()
 
     with pytest.raises(Exception):
-        file = TestHandler(Path(), 'r')
+        TestHandler(Path(), 'r')
 
 
 @pytest.mark.parametrize(

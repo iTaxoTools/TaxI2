@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
 from pathlib import Path
-from typing import NamedTuple, Literal
+from typing import Literal, NamedTuple
 
 from Bio import SeqIO
 from Bio.SeqIO.FastaIO import SimpleFastaParser
 
 from .encoding import sanitize
 from .handlers import FileHandler, ReadHandle, WriteHandle
-from .types import Container, Type
+from .types import Container
 
 
 class Sequence(NamedTuple):

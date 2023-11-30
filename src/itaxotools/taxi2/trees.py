@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import re
-
 from pathlib import Path
-from typing import NamedTuple, Literal
+from typing import Literal, NamedTuple
 
 from .handlers import FileHandler, ReadHandle, WriteHandle
 

@@ -2,13 +2,12 @@ from __future__ import annotations
 
 from os.path import getsize
 from pathlib import Path
-from typing import Callable, NamedTuple
+from typing import NamedTuple
 
 import pytest
-from utility import assert_eq_files
 
+from itaxotools.taxi2.file_types import FileFormat
 from itaxotools.taxi2.files import get_info, identify_format
-from itaxotools.taxi2.file_types import FileFormat, FileInfo
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 
@@ -23,9 +22,6 @@ class IdentifyTest(NamedTuple):
 
     def validate(self) -> None:
         result = identify_format(self.input_path)
-        print(result, type(result))
-        print(self.format, type(self.format))
-        print(type(result) == type(self.format))
         assert result == self.format
 
 

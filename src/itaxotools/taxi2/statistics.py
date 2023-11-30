@@ -1,15 +1,12 @@
 from __future__ import annotations
 
-import itertools
 import statistics
 from collections import Counter
 from enum import Enum
 from itertools import accumulate
 from math import inf, isinf
-from typing import Generator, NamedTuple, Literal
 from pathlib import Path
-
-import numpy as np
+from typing import Generator, Literal, NamedTuple
 
 from .handlers import FileHandler, ReadHandle, WriteHandle
 from .types import Percentage
@@ -42,8 +39,8 @@ class Counts(NamedTuple):
 
 
 class NL(NamedTuple):
-    n: int
-    l: int
+    N: int
+    L: int
 
 
 class Statistic(Enum):

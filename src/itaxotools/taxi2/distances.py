@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 import re
-from itertools import chain
 from math import isinf, isnan
 from pathlib import Path
-from typing import Generator, NamedTuple, Literal
+from typing import Generator, Literal, NamedTuple
 
 import alfpy.bbc as bbc
 import alfpy.ncd as ncd
 from alfpy.utils.seqrecords import SeqRecords
 
-from .handlers import FileHandler, ReadHandle, WriteHandle
 from . import calculate_distances as calc
+from .handlers import FileHandler, ReadHandle, WriteHandle
 from .sequences import Sequence
 from .types import Container, Type
 
@@ -207,7 +206,6 @@ class WithExtras(DistanceHandler.Linear):
             yield self
 
             for row in file:
-                lineData = row
                 idx = row[idxColumn]
                 idy = row[idyColumn]
                 extraDataX = row[sliceX]

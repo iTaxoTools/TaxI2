@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from typing import Callable, Generic, Iterable, NamedTuple, TypeVar, Iterator
+from typing import Callable, Generic, Iterable, Iterator, NamedTuple, TypeVar
 
 from itaxotools.common.types import Type, TypeMeta  # noqa
-
 
 Item = TypeVar('Item', bound=NamedTuple)
 

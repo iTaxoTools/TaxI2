@@ -2,14 +2,18 @@ from __future__ import annotations
 
 from pathlib import Path
 from sys import stderr
-from typing import Callable, NamedTuple, Iterator
+from typing import Callable, Iterator, NamedTuple
 
 import pytest
 from utility import assert_eq_files
 
 from itaxotools.taxi2.distances import (
-    Distance, DistanceHandler, DistanceMetric, Distances)
-from itaxotools.taxi2.sequences import Sequences, Sequence
+    Distance,
+    DistanceHandler,
+    DistanceMetric,
+    Distances,
+)
+from itaxotools.taxi2.sequences import Sequence, Sequences
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 

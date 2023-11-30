@@ -4,10 +4,9 @@ from pathlib import Path
 from typing import Callable, NamedTuple
 
 import pytest
-from utility import assert_eq_files
 
-from itaxotools.taxi2.partitions import (
-    Classification, Partition, PartitionHandler)
+from itaxotools.taxi2.pairs import SequencePairs
+from itaxotools.taxi2.partitions import Classification, Partition, PartitionHandler
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 

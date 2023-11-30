@@ -1,24 +1,19 @@
 from __future__ import annotations
 
-from itertools import chain, groupby, product
-from math import inf
+from itertools import chain, groupby
 from pathlib import Path
-from statistics import mean, median, stdev
 from time import perf_counter
-from typing import Callable, NamedTuple, TextIO, Iterator, Callable, Literal
+from typing import Callable, Iterator, Literal, NamedTuple
 
 from itaxotools.common.utility import AttrDict
 
 from ..align import PairwiseAligner, Scores
-from ..distances import DistanceHandler, DistanceMetric, Distances, Distance
-from ..files import identify_format
+from ..distances import Distance, DistanceHandler, DistanceMetric
 from ..file_types import FileFormat
+from ..files import identify_format
 from ..handlers import FileHandler, ReadHandle, WriteHandle
 from ..pairs import SequencePair, SequencePairHandler, SequencePairs
-from ..partitions import Partition, PartitionHandler
-from ..plot import HistogramPlotter
 from ..sequences import Sequence, SequenceHandler, Sequences
-from ..statistics import StatisticsCalculator, StatisticsHandler
 
 
 def multiply(iterator: iter, n: int):
@@ -305,7 +300,6 @@ class Dereplicate:
 
         for infos in groups:
             first = next(infos)
-            query = first.query
             query_id = first.id_x
             query_length = first.len_x
             max_id = first.id_x

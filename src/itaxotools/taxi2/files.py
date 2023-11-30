@@ -9,11 +9,10 @@ from itaxotools.spart_parser.main import Spart as SpartParserSpart
 from itaxotools.spart_parser.main import is_path_xml
 
 from .encoding import sanitize
+from .file_types import FileFormat, FileInfo
 from .handlers import FileHandler
 from .partitions import PartitionHandler
 from .trees import Trees
-from .file_types import FileFormat, FileInfo
-
 
 FormatIdentifier = Callable[[Path], bool]
 InfoGetter = Callable[[Path, FileFormat], bool]

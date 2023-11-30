@@ -1,17 +1,15 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from contextlib import contextmanager
 from pathlib import Path
-from typing import Callable, NamedTuple, Literal
+from typing import Callable, Literal, NamedTuple
 
 from Bio.SeqIO.FastaIO import SimpleFastaParser
+
 from itaxotools.spart_parser import Spart as SpartParserSpart
 
-from .encoding import sanitize
 from .handlers import FileHandler, ReadHandle, WriteHandle
-from .sequences import Sequence, Sequences
-from .types import Container, Type
+from .sequences import Sequence
 
 
 class Classification(NamedTuple):
@@ -133,7 +131,7 @@ class Fasta(PartitionHandler):
             for title, _ in SimpleFastaParser(handle):
                 try:
                     individual, subset = title.split(separator, 1)
-                except ValueError as e:
+                except ValueError:
                     print(f'Could not extract partition info from fasta line: {title}')
                     continue
                 yield Classification(individual, subset)

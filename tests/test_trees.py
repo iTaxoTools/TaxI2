@@ -5,8 +5,7 @@ from typing import Callable, NamedTuple
 
 import pytest
 
-from itaxotools.taxi2.trees import (
-    Tree, Trees, NewickTreeHandler)
+from itaxotools.taxi2.trees import Tree, Trees
 
 TEST_DATA_DIR = Path(__file__).parent / Path(__file__).stem
 

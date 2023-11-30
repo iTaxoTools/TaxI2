@@ -4,7 +4,6 @@ from typing import NamedTuple
 
 import matplotlib
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 import seaborn as sns
 
@@ -43,7 +42,7 @@ class HistogramPlotter:
         self.metrics: dict[str, HistogramPoint] = dict()
 
     def add(self, metric: str, value: float, type: ComparisonType):
-        if not metric in self.metrics:
+        if metric not in self.metrics:
             self.metrics[metric] = list()
         point = HistogramPoint(type.label, value)
         self.metrics[metric].append(point)

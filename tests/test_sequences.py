@@ -35,7 +35,7 @@ class ReadTest(NamedTuple):
 
 
 class WriteTest(NamedTuple):
-    fixture: Callable[[], Items]
+    fixture: Callable[[], Sequences]
     output: str
     handler: SequenceHandler
     kwargs: dict = {}

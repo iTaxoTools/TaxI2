@@ -1,21 +1,20 @@
 from __future__ import annotations
 
-from itertools import chain, groupby, product
+from itertools import chain, product
 from math import inf
 from pathlib import Path
-from statistics import mean, median, stdev
 from time import perf_counter
-from typing import Generator, NamedTuple, TextIO, Iterator, Callable, Literal
+from typing import Callable, Generator, Iterator, Literal, NamedTuple, TextIO
 
 from itaxotools.common.utility import AttrDict
 
 from ..align import PairwiseAligner, Scores
-from ..distances import Distance, DistanceHandler, DistanceMetric, Distances, Distance
+from ..distances import Distance, DistanceHandler, DistanceMetric, Distances
 from ..handlers import FileHandler, WriteHandle
 from ..pairs import SequencePairHandler, SequencePairs
-from ..partitions import Partition, PartitionHandler
+from ..partitions import Partition
 from ..plot import ComparisonType, HistogramPlotter
-from ..sequences import SequenceHandler, Sequences
+from ..sequences import Sequences
 from ..statistics import StatisticsCalculator, StatisticsHandler
 
 
@@ -594,11 +593,11 @@ class VersusAll:
         self.create_parents(path)
         with (
             SubsetPairsStatisticsHandler(
-                path / f'pairs.tsv', 'w',
+                path / 'pairs.tsv', 'w',
                 formatter = self.params.format.float,
             ) as pairs_file,
             SubsetIdentityStatisticsHandler(
-                path / f'identity.tsv', 'w',
+                path / 'identity.tsv', 'w',
                 formatter = self.params.format.float,
             ) as identity_file,
         ):
