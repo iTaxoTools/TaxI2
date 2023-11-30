@@ -1,24 +1,25 @@
 # TaxI2
-Calculates genetic differences between DNA sequences
+Calculate genetic differences between DNA sequences
 
-This version (v2.1.0) includes the legacy application, plus the new backend.</br>
-[*You may also be interested in the new GUI*](https://github.com/iTaxoTools/TaxIGui)
+This is a computational backend. For the GUI application, please visit
+[TaxIGui](https://github.com/iTaxoTools/TaxIGui).
 
 
 ### Installation
 Rust is required to compile this module from source.</br>
 [Instructions on the Rust site](https://www.rust-lang.org/tools/install).
 
-Clone and install the latest version (requires Python 3.9 or later):
+Clone and install the latest version (requires Python 3.10.2 or later):
 ```
-git clone https://github.com/iTaxoTools/TaxI2.git
-cd TaxI2
-pip install . -f packages.html
+pip install git+https://github.com/iTaxoTools/itt-common.git
+pip install git+https://github.com/iTaxoTools/SpartParser.git
+pip install git+https://github.com/iTaxoTools/TaxI2.git
 ```
 
-### Executables (legacy)
-Download and run the standalone executable without installing Python.</br>
-[See the latest release here.](https://github.com/iTaxoTools/TaxI2/releases/latest)
+### Executables
+Explore the most recent executables by visiting [the latest TaxIGui release page](https://github.com/iTaxoTools/TaxIGui/releases/latest).
+
+For users seeking the legacy application (v2.0.0), you can find it [here](https://github.com/iTaxoTools/TaxI2/releases/tag/v2.0.0).
 
 
 ### Python API
