@@ -3,9 +3,11 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from itertools import chain
 from pathlib import Path
-from typing import Generator, Generic, Iterator, Literal, Type, TypeVar
+from typing import Generator, Generic, Iterator, Literal, TypeVar
 
 from openpyxl import load_workbook
+
+from .types import Type
 
 Item = TypeVar("Item")
 

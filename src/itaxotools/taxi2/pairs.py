@@ -54,7 +54,7 @@ class Formatted(SequencePairHandler):
         if x == y and x != "-" and y != "-":
             return "|"
         if x == "-" or y == "-":
-            return " "
+            return "-"
         return "."
 
     @classmethod
