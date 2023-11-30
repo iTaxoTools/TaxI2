@@ -54,8 +54,8 @@ Homepage = "https://itaxotools.org/"
 Source = "https://github.com/iTaxoTools/TaxI2"
 
 [[tool.setuptools-rust.ext-modules]]
-target = "itaxotools.taxi2.library.calculate_distances"
-path = "src/itaxotools/taxi2/library/calculate_distances/Cargo.toml"
+target = "itaxotools.taxi2.calculate_distances"
+path = "src/itaxotools/taxi2/calculate_distances/Cargo.toml"
 binding = "PyO3"
 
 [tool.setuptools-git-versioning]
