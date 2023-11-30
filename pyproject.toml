@@ -27,19 +27,16 @@ dependencies = [
     "itaxotools-spart-parser==0.1.2",
     "BioPython>=1.80",
     "alfpy",
-    "appdirs",
     "numpy",
-    "networkx",
     "openpyxl",
     "pandas",
     "seaborn",
-    "scipy",
 ]
 
 [project.optional-dependencies]
 dev = [
     "setuptools-git-versioning",
-    "setuptools_rust",
+    "setuptools-rust",
     "pre-commit",
     "ruff",
     "pytest",
