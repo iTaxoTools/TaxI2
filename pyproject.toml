@@ -43,6 +43,7 @@ dev = [
     "pre-commit",
     "ruff",
     "pytest",
+    "pytest-cov",
     "coverage",
 ]
 
@@ -80,3 +81,13 @@ section-order = [
 
 [tool.ruff.lint.isort.sections]
 pyqt = ["PySide6"]
+
+[tool.coverage.run]
+source = ["itaxotools.taxi2"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "def __repr__",
+    "raise NotImplementedError",
+    "@abstractmethod",
+]
