@@ -1,2 +1,0 @@
-Mean, minimum and maximum intra-genus pairwise uncorrected distance
-Scaphiophryne	0.06823 (0-0.1762)

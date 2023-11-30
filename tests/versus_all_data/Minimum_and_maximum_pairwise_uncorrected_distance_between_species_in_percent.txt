@@ -1,5 +1,0 @@
-Minimum and maximum pairwise uncorrected distance between species
-	Scaphiophryne_brevis	Scaphiophryne_madagascariensis	Scaphiophryne_menabensis
-Scaphiophryne_brevis		14.03-14.68	15.58-17.62
-Scaphiophryne_madagascariensis	14.03-14.68	0-0	4.156-4.432
-Scaphiophryne_menabensis	15.58-17.62	4.156-4.432	0.4405-0.4405

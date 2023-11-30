@@ -1,9 +1,0 @@
-pairwise uncorrected distance between sequences (Ordered by species)
-		Scaphiophryne_brevis	Scaphiophryne_madagascariensis	Scaphiophryne_madagascariensis	Scaphiophryne_madagascariensis	Scaphiophryne_menabensis	Scaphiophryne_menabensis
-		1	2	3	4	5	6
-Scaphiophryne_brevis	1		14.03	14.03	14.68	15.58	17.62
-Scaphiophryne_madagascariensis	2	14.03		0	0	4.156	4.405
-Scaphiophryne_madagascariensis	3	14.03	0		0	4.156	4.405
-Scaphiophryne_madagascariensis	4	14.68	0	0		4.432	4.405
-Scaphiophryne_menabensis	5	15.58	4.156	4.156	4.432		0.4405
-Scaphiophryne_menabensis	6	17.62	4.405	4.405	4.405	0.4405	

@@ -1,3 +1,0 @@
-Mean, minimum and maximum pairwise uncorrected distance between genera
-	Scaphiophryne
-Scaphiophryne	6.823 (0-17.62)

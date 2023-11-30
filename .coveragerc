@@ -1,6 +1,5 @@
 [run]
 omit =
-    conftest.py
     src/itaxotools/taxi2/library/*
     src/itaxotools/taxi2/taxi2.py
     tests/*

@@ -1,4 +1,0 @@
-Mean, minimum and maximum intra-species pairwise uncorrected distance
-Scaphiophryne_brevis	
-Scaphiophryne_madagascariensis	0 (0-0)
-Scaphiophryne_menabensis	0.004405 (0.004405-0.004405)

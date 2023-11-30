@@ -1,5 +1,0 @@
-Mean pairwise uncorrected distance between species
-	Scaphiophryne_brevis	Scaphiophryne_madagascariensis	Scaphiophryne_menabensis
-Scaphiophryne_brevis		0.1424	0.166
-Scaphiophryne_madagascariensis	0.1424	0	0.04327
-Scaphiophryne_menabensis	0.166	0.04327	0.004405
