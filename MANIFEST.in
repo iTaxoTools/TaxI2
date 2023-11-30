@@ -1,12 +1,7 @@
-include pyproject.toml
-
-# Include the README
-include *.md
-
-# Include the license file
+# Include project info
+include README.md
 include LICENSE.txt
-
-# Include setup.py
+include pyproject.toml
 include setup.py
 
 # Recursively include all common resources

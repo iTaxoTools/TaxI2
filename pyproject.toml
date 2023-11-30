@@ -1,4 +1,82 @@
 [build-system]
-requires = ["setuptools>=40.8.0", "wheel", "setuptools_rust"]
+requires = ["setuptools", "wheel", "setuptools-rust", "setuptools-git-versioning"]
 build-backend = "setuptools.build_meta"
 
+[project]
+name = "itaxotools-taxi2"
+dynamic = ["version"]
+description = "Calculation and analysis of pairwise sequence distances"
+readme = "README.md"
+requires-python = ">=3.10.2, <4"
+keywords = []
+authors = [
+    { name = "StefanPatman", email = "stefanpatman91@gmail.com" },
+    { name = "Vladimir Kharchev" },
+]
+classifiers = [
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Development Status :: 5 - Production/Stable",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation :: CPython",
+]
+dependencies = [
+    "itaxotools-common==0.3.2",
+    "itaxotools-spart-parser==0.1.2",
+    "BioPython>=1.80",
+    "alfpy",
+    "appdirs",
+    "numpy",
+    "networkx",
+    "openpyxl",
+    "pandas",
+    "seaborn",
+    "scipy",
+]
+
+[project.optional-dependencies]
+dev = [
+    "setuptools-git-versioning",
+    "setuptools_rust",
+    "pre-commit",
+    "ruff",
+    "pytest",
+    "coverage",
+]
+
+[project.scripts]
+taxi2 = "itaxotools.taxi2.taxi2:main"
+
+[project.urls]
+Homepage = "https://itaxotools.org/"
+Source = "https://github.com/iTaxoTools/TaxI2"
+
+[[tool.setuptools-rust.ext-modules]]
+target = "itaxotools.taxi2.library.calculate_distances"
+path = "src/itaxotools/taxi2/library/calculate_distances/Cargo.toml"
+binding = "PyO3"
+
+[tool.setuptools-git-versioning]
+dirty_template = "{tag}"
+dev_template = "{tag}"
+enabled = true
+
+[tool.ruff]
+ignore-init-module-imports = true
+extend-select = ["I"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["itaxotools"]
+section-order = [
+    "future",
+    "pyqt",
+    "standard-library",
+    "third-party",
+    "first-party",
+    "local-folder",
+]
+
+[tool.ruff.lint.isort.sections]
+pyqt = ["PySide6"]
