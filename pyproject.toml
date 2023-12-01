@@ -37,6 +37,7 @@ dependencies = [
 dev = [
     "setuptools-git-versioning",
     "setuptools-rust",
+    "cibuildwheel",
     "pre-commit",
     "ruff",
     "pytest",
