@@ -16,7 +16,7 @@ jobs:
       CIBW_BEFORE_ALL_LINUX: "curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y"
       CIBW_BEFORE_TEST: "pip install -r requirements-live.txt"
       CIBW_ENVIRONMENT: 'PATH="$PATH:$HOME/.cargo/bin"'
-      CIBW_SKIP: "pp* *-musllinux_i686 *-win32"
+      CIBW_SKIP: "pp* *-manylinux_i686 *-musllinux_i686 *-win32"
       CIBW_ARCHS_MACOS: x86_64
 
     steps:
