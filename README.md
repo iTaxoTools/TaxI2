@@ -1,4 +1,10 @@
 # TaxI2
+
+[![GitHub - Tests](https://github.com/iTaxoTools/TaxI2/actions/workflows/test.yml/badge.svg)](
+    https://github.com/iTaxoTools/TaxI2/actions/workflows/test.yml)
+[![GitHub - Deploy](https://github.com/iTaxoTools/TaxI2/actions/workflows/deploy.yml/badge.svg)](
+    https://github.com/iTaxoTools/TaxI2/actions/workflows/deploy.yml)
+
 Calculate genetic differences between DNA sequences
 
 This is a computational backend. For the GUI application, please visit
