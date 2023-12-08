@@ -51,6 +51,10 @@ taxi2 = "itaxotools.taxi2.taxi2:main"
 Homepage = "https://itaxotools.org/"
 Source = "https://github.com/iTaxoTools/TaxI2"
 
+[tool.setuptools.packages.find]
+namespaces = true
+where = ["src"]
+
 [tool.setuptools-git-versioning]
 dirty_template = "{tag}"
 dev_template = "{tag}"
