@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "wheel", "setuptools-git-versioning"]
+requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -26,7 +26,7 @@ dependencies = [
     "itaxotools-common",
     "itaxotools-spart-parser",
     "itaxotools-calculate-distances",
-    "BioPython>=1.80",
+    "BioPython",
     "alfpy",
     "numpy",
     "openpyxl",
@@ -36,7 +36,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "setuptools-git-versioning",
+    "setuptools-scm",
     "pre-commit",
     "ruff",
     "pytest",
@@ -55,10 +55,7 @@ Source = "https://github.com/iTaxoTools/TaxI2"
 namespaces = true
 where = ["src"]
 
-[tool.setuptools-git-versioning]
-dirty_template = "{tag}"
-dev_template = "{tag}"
-enabled = true
+[tool.setuptools_scm]
 
 [tool.ruff]
 ignore-init-module-imports = true
