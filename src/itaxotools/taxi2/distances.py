@@ -9,7 +9,8 @@ import alfpy.bbc as bbc
 import alfpy.ncd as ncd
 from alfpy.utils.seqrecords import SeqRecords
 
-from . import calculate_distances as calc
+from itaxotools import calculate_distances as calc
+
 from .handlers import FileHandler, ReadHandle, WriteHandle
 from .sequences import Sequence
 from .types import Container, Type

@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "wheel", "setuptools-rust", "setuptools-git-versioning"]
+requires = ["setuptools", "wheel", "setuptools-git-versioning"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -23,8 +23,9 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
 ]
 dependencies = [
-    "itaxotools-common==0.3.2",
-    "itaxotools-spart-parser==0.1.2",
+    "itaxotools-common",
+    "itaxotools-spart-parser",
+    "itaxotools-calculate-distances",
     "BioPython>=1.80",
     "alfpy",
     "numpy",
@@ -36,8 +37,6 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "setuptools-git-versioning",
-    "setuptools-rust",
-    "cibuildwheel",
     "pre-commit",
     "ruff",
     "pytest",
@@ -51,11 +50,6 @@ taxi2 = "itaxotools.taxi2.taxi2:main"
 [project.urls]
 Homepage = "https://itaxotools.org/"
 Source = "https://github.com/iTaxoTools/TaxI2"
-
-[[tool.setuptools-rust.ext-modules]]
-target = "itaxotools.taxi2.calculate_distances"
-path = "src/itaxotools/taxi2/calculate_distances/Cargo.toml"
-binding = "PyO3"
 
 [tool.setuptools-git-versioning]
 dirty_template = "{tag}"
@@ -89,7 +83,3 @@ exclude_lines = [
     "raise NotImplementedError",
     "@abstractmethod",
 ]
-
-[tool.cibuildwheel]
-test-requires = "pytest"
-test-command = "pytest {project}/tests"

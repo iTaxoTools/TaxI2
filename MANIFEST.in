@@ -6,7 +6,3 @@ include setup.py
 
 # Recursively include all common resources
 recursive-include src/itaxotools/**/resources *
-
-# Include extension module
-include src/itaxotools/taxi2/calculate_distances/Cargo.toml
-recursive-include src/itaxotools/taxi2/calculate_distances/src *

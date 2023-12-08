@@ -6,7 +6,8 @@ from warnings import warn
 from Bio.Align import PairwiseAligner as BioPairwiseAligner
 from Bio.Seq import reverse_complement
 
-from . import calculate_distances as calc
+from itaxotools import calculate_distances as calc
+
 from .pairs import SequencePair, SequencePairs
 from .sequences import Sequence
 from .types import Type
