@@ -1,32 +1,40 @@
 # TaxI2
 
-[![GitHub - Tests](https://github.com/iTaxoTools/TaxI2/actions/workflows/test.yml/badge.svg)](
+[![PyPI - Version](https://img.shields.io/pypi/v/itaxotools-taxi2)](
+    https://pypi.org/project/itaxotools-taxi2)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/itaxotools-taxi2)](
+    https://pypi.org/project/itaxotools-taxi2)
+[![PyPI - License](https://img.shields.io/pypi/l/itaxotools-taxi2)](
+    https://pypi.org/project/itaxotools-taxi2)
+[![GitHub - Tests](https://img.shields.io/github/actions/workflow/status/iTaxoTools/TaxI2/test.yml?label=tests)](
     https://github.com/iTaxoTools/TaxI2/actions/workflows/test.yml)
-[![GitHub - Deploy](https://github.com/iTaxoTools/TaxI2/actions/workflows/deploy.yml/badge.svg)](
-    https://github.com/iTaxoTools/TaxI2/actions/workflows/deploy.yml)
 
-Calculate genetic differences between DNA sequences
+Calculate genetic differences between DNA sequences,
 
 This is a computational backend. For the GUI application, please visit
 [TaxIGui](https://github.com/iTaxoTools/TaxIGui).
 
 
-### Installation
-Rust is required to compile this module from source.</br>
-[Instructions on the Rust site](https://www.rust-lang.org/tools/install).
+## Installation
 
-Clone and install the latest version (requires Python 3.10.2 or later):
+TaxI2 is available on PyPI. You can install it through `pip`:
+
 ```
-pip install git+https://github.com/iTaxoTools/itt-common.git
-pip install git+https://github.com/iTaxoTools/SpartParser.git
-pip install git+https://github.com/iTaxoTools/TaxI2.git
+pip install itaxotools-taxi2
 ```
 
-### Executables
-Explore the most recent executables by visiting [the latest TaxIGui release page](https://github.com/iTaxoTools/TaxIGui/releases/latest).
+## Executables
 
-For users seeking the legacy application (v2.0.0), you can find it [here](https://github.com/iTaxoTools/TaxI2/releases/tag/v2.0.0).
+[![Windows](https://img.shields.io/badge/Windows-blue.svg?style=for-the-badge&logo=windows)](
+    https://github.com/iTaxoTools/TaxIGui/releases/latest)
+[![MacOS](https://img.shields.io/badge/macOS-gray.svg?style=for-the-badge&logo=apple)](
+    https://github.com/iTaxoTools/TaxIGui/releases/latest)
 
+Explore the most recent executables by visiting [the latest TaxIGui release page](
+    https://github.com/iTaxoTools/TaxIGui/releases/latest).
 
-### Python API
+For users seeking the legacy application (v2.0.0), you may find it[here](
+    https://github.com/iTaxoTools/TaxI2/releases/tag/v2.0.0).
+
+## Python API
 A new API is exposed with the latest backend. See `scripts/*.py` for some examples.
