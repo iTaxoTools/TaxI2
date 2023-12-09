@@ -6,8 +6,8 @@ on:
       - 'v*'
 
 env:
-  PROJECT_NAME: itaxotools-common
-  ARTIFACT_DISTRIBUTIONS: itaxotools-common-distributions
+  PROJECT_NAME: itaxotools-taxi2
+  ARTIFACT_DISTRIBUTIONS: itaxotools-taxi2-distributions
 
 
 jobs:
