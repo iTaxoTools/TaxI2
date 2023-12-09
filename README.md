@@ -33,7 +33,7 @@ pip install itaxotools-taxi2
 Explore the most recent executables by visiting [the latest TaxIGui release page](
     https://github.com/iTaxoTools/TaxIGui/releases/latest).
 
-For users seeking the legacy application (v2.0.0), you may find it[here](
+For users seeking the legacy application (v2.0.0), you may find it [here](
     https://github.com/iTaxoTools/TaxI2/releases/tag/v2.0.0).
 
 ## Python API

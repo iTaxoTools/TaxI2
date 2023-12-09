@@ -2,7 +2,6 @@
 include README.md
 include LICENSE.txt
 include pyproject.toml
-include setup.py
 
 # Recursively include all common resources
 recursive-include src/itaxotools/**/resources *
