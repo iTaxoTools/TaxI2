@@ -30,7 +30,7 @@ pip install itaxotools-taxi2
 [![MacOS](https://img.shields.io/badge/macOS-gray.svg?style=for-the-badge&logo=apple)](
     https://github.com/iTaxoTools/TaxIGui/releases/latest)
 
-Explore the most recent executables by visiting [the latest TaxIGui release page](
+Download and run the standalone executables without installing Python from [the latest TaxIGui release page](
     https://github.com/iTaxoTools/TaxIGui/releases/latest).
 
 For users seeking the legacy application (v2.0.0), you may find it [here](
