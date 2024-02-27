@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from os.path import getsize
 from pathlib import Path
-from typing import NamedTuple
+from typing import Dict, NamedTuple
 
 import pytest
 
@@ -27,7 +27,7 @@ class IdentifyTest(NamedTuple):
 
 class InfoTest(NamedTuple):
     input: str
-    infos: dict[str, object]
+    infos: Dict[str, object]
 
     @property
     def input_path(self) -> Path:

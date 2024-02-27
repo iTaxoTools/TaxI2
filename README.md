@@ -14,7 +14,6 @@ Calculate genetic differences between DNA sequences,
 This is a computational backend. For the GUI application, please visit
 [TaxIGui](https://github.com/iTaxoTools/TaxIGui).
 
-
 ## Installation
 
 TaxI2 is available on PyPI. You can install it through `pip`:

@@ -1,6 +1,6 @@
 from enum import Enum
 from pathlib import Path
-from typing import NamedTuple
+from typing import Dict, List, NamedTuple
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -34,14 +34,14 @@ class HistogramPoint(NamedTuple):
 
 class HistogramPlotter:
     def __init__(
-        self, formats: list[str] = None, palette=None, binwidth=0.05, binfactor=1.0
+        self, formats: List[str] = None, palette=None, binwidth=0.05, binfactor=1.0
     ):
         self.formats = formats or ["png", "svg", "pdf"]
         self.palette = palette or sns.color_palette()
         self.binwidth = binwidth
         self.binfactor = binfactor
 
-        self.metrics: dict[str, HistogramPoint] = dict()
+        self.metrics: Dict[str, HistogramPoint] = dict()
 
     def add(self, metric: str, value: float, type: ComparisonType):
         if metric not in self.metrics:
@@ -171,8 +171,8 @@ class HistogramPlotter:
         self,
         metric: str,
         df: pd.DataFrame,
-        palette: list[tuple],
-        order: list[str],
+        palette: List[tuple],
+        order: List[str],
         path: Path,
     ):
         g = sns.FacetGrid(
@@ -201,8 +201,8 @@ class HistogramPlotter:
         metric: str,
         df: pd.DataFrame,
         multiple: str,
-        palette: list[tuple],
-        order: list[str],
+        palette: List[tuple],
+        order: List[str],
         path: Path,
     ):
         fig, ax = plt.subplots()
@@ -226,7 +226,7 @@ class HistogramPlotter:
             fig.savefig(path.with_suffix(f".{format}"), transparent=True)
         plt.close(fig)
 
-    def palette_from_types(self, types: list[str]) -> tuple[list[tuple], list[str]]:
+    def palette_from_types(self, types: List[str]) -> tuple[List[tuple], List[str]]:
         """Make sure each type has consistent color among runs"""
         types = sorted([ComparisonType(type) for type in types])
         palette = [self.palette[type.index] for type in types]

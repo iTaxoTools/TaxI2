@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from math import isinf, isnan
 from pathlib import Path
-from typing import Generator, Literal, NamedTuple
+from typing import Generator, List, Literal, NamedTuple
 
 import alfpy.bbc as bbc
 import alfpy.ncd as ncd
@@ -70,7 +70,7 @@ class Linear(DistanceHandler):
                     )
 
     def _iter_write(self) -> WriteHandle[Distance]:
-        self.buffer: list[Distance] = []
+        self.buffer: List[Distance] = []
         self.wrote_headers = False
 
         with FileHandler.Tabfile(self.path, "w") as file:
@@ -87,7 +87,7 @@ class Linear(DistanceHandler):
                 self._write_scores(file, line)
                 return
 
-    def _assemble_line(self) -> Generator[None, Distance, list[Distance]]:
+    def _assemble_line(self) -> Generator[None, Distance, List[Distance]]:
         buffer = self.buffer
         try:
             while True:
@@ -104,7 +104,7 @@ class Linear(DistanceHandler):
         except GeneratorExit:
             return
 
-    def _write_headers(self, file: FileHandler.Tabfile, line: list[Distance]):
+    def _write_headers(self, file: FileHandler.Tabfile, line: List[Distance]):
         if self.wrote_headers:
             return
         metrics = [str(distance.metric) for distance in line]
@@ -112,7 +112,7 @@ class Linear(DistanceHandler):
         file.write(out)
         self.wrote_headers = True
 
-    def _write_scores(self, file: FileHandler.Tabfile, line: list[Distance]):
+    def _write_scores(self, file: FileHandler.Tabfile, line: List[Distance]):
         scores = [self.distanceToText(distance.d) for distance in line]
         out = (line[0].x.id, line[0].y.id, *scores)
         file.write(out)
@@ -133,7 +133,7 @@ class Matrix(DistanceHandler):
                     yield Distance(metric, seqx, Sequence(idy, None), d)
 
     def _iter_write(self) -> WriteHandle[Distance]:
-        self.buffer: list[Distance] = []
+        self.buffer: List[Distance] = []
         self.wrote_headers = False
 
         with FileHandler.Tabfile(self.path, "w") as file:
@@ -150,7 +150,7 @@ class Matrix(DistanceHandler):
                 self._write_scores(file, line)
                 return
 
-    def _assemble_line(self) -> Generator[None, Distance, list[Distance]]:
+    def _assemble_line(self) -> Generator[None, Distance, List[Distance]]:
         buffer = self.buffer
         try:
             while True:
@@ -162,7 +162,7 @@ class Matrix(DistanceHandler):
         except GeneratorExit:
             return
 
-    def _write_headers(self, file: FileHandler.Tabfile, line: list[Distance]):
+    def _write_headers(self, file: FileHandler.Tabfile, line: List[Distance]):
         if self.wrote_headers:
             return
         idys = [distance.y.id for distance in line]
@@ -170,7 +170,7 @@ class Matrix(DistanceHandler):
         file.write(out)
         self.wrote_headers = True
 
-    def _write_scores(self, file: FileHandler.Tabfile, line: list[Distance]):
+    def _write_scores(self, file: FileHandler.Tabfile, line: List[Distance]):
         scores = [self.distanceToText(distance.d) for distance in line]
         out = (line[0].x.id, *scores)
         file.write(out)
@@ -207,8 +207,15 @@ class WithExtras(DistanceHandler.Linear):
 
             metricHeaders = headers[metricIndexStart:]
             metrics = [DistanceMetric.fromLabel(header) for header in metricHeaders]
-            extrasHeaderX = [header.removesuffix(tagX) for header in headers[sliceX]]
-            extrasHeaderY = [header.removesuffix(tagY) for header in headers[sliceY]]
+
+            def removesuffix(s, suffix):
+                if s.endswith(suffix):
+                    return s[: len(s) - len(suffix)]
+                else:
+                    return s
+
+            extrasHeaderX = [removesuffix(header, tagX) for header in headers[sliceX]]
+            extrasHeaderY = [removesuffix(header, tagY) for header in headers[sliceY]]
 
             yield self
 
@@ -242,7 +249,7 @@ class WithExtras(DistanceHandler.Linear):
 
         yield from super()._iter_write()
 
-    def _write_headers(self, file: FileHandler.Tabfile, line: list[Distance]):
+    def _write_headers(self, file: FileHandler.Tabfile, line: List[Distance]):
         if self.wrote_headers:
             return
         idxHeader = self.idxHeader + self.tagX
@@ -254,7 +261,7 @@ class WithExtras(DistanceHandler.Linear):
         file.write(out)
         self.wrote_headers = True
 
-    def _write_scores(self, file: FileHandler.Tabfile, line: list[Distance]):
+    def _write_scores(self, file: FileHandler.Tabfile, line: List[Distance]):
         idx = line[0].x.id
         idy = line[0].y.id
         extrasX = line[0].x.extras.values()

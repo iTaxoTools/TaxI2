@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from itertools import chain
 from pathlib import Path
-from typing import Generator, Generic, Iterator, Literal, TypeVar
+from typing import Generator, Generic, Iterator, Literal, Tuple, TypeVar
 
 from openpyxl import load_workbook
 
@@ -14,7 +14,7 @@ Item = TypeVar("Item")
 ReadHandle: Type[Item] = Iterator[Item]
 WriteHandle: Type[Item] = Generator[None, Item, None]
 
-Row = tuple[str, ...]
+Row = Tuple[str, ...]
 
 
 class _FileHandlerMeta(type(ABC), type(Type)):

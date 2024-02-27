@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Literal, NamedTuple
+from typing import List, Literal, NamedTuple
 
 from .handlers import FileHandler, ReadHandle, WriteHandle
 
@@ -21,7 +21,7 @@ class Tree(NamedTuple):
         return cls(newick)
 
     @classmethod
-    def _process_newick_string(cls, newick: str) -> tuple[bool, list[str]]:
+    def _process_newick_string(cls, newick: str) -> tuple[bool, List[str]]:
         newick = cls._format_newick_string(newick, False, False, False)
         names = set()
 
@@ -90,15 +90,15 @@ class Tree(NamedTuple):
         """Get a formatted newick string"""
         return self._format_newick_string(self.newick, lengths, semicolon, comments)
 
-    def get_node_names(self) -> list[str]:
+    def get_node_names(self) -> List[str]:
         """Get the names of all nodes"""
         _, names = self._process_newick_string(self.newick)
         return names
 
 
-class Trees(list[Tree]):
+class Trees(List[Tree]):
     @classmethod
-    def fromPath(cls, path: Path, *args, **kwargs) -> list[Tree]:
+    def fromPath(cls, path: Path, *args, **kwargs) -> List[Tree]:
         return cls(tree for tree in NewickTreeHandler(path, *args, **kwargs))
 
 

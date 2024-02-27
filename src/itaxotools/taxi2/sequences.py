@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Literal, NamedTuple
+from typing import Dict, List, Literal, NamedTuple
 
 from Bio import SeqIO
 from Bio.SeqIO.FastaIO import SimpleFastaParser
@@ -14,7 +14,7 @@ from .types import Container
 class Sequence(NamedTuple):
     id: str
     seq: str
-    extras: dict[str, str] = dict()
+    extras: Dict[str, str] = dict()
 
     _tr_normalize = str.maketrans("?", "N", "-")
 
@@ -84,7 +84,7 @@ class Fasta(SequenceHandler):
     def _iter_write(
         self,
         write_organism: bool = False,
-        concatenate_extras: list[str] = [],
+        concatenate_extras: List[str] = [],
     ) -> ReadHandle[Sequence]:
         self.concatenate_extras = concatenate_extras
         if write_organism:

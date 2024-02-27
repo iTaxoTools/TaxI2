@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 from pathlib import Path
-from typing import Callable, Literal, NamedTuple
+from typing import Callable, Dict, Literal, NamedTuple
 
 from Bio.SeqIO.FastaIO import SimpleFastaParser
 
@@ -17,7 +17,7 @@ class Classification(NamedTuple):
     subset: str
 
 
-class Partition(dict[str, str]):
+class Partition(Dict[str, str]):
     """Keys are individuals, values are subsets"""
 
     @classmethod

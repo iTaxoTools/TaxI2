@@ -6,7 +6,7 @@ from enum import Enum
 from itertools import accumulate
 from math import inf, isinf
 from pathlib import Path
-from typing import Generator, Literal, NamedTuple
+from typing import Dict, Generator, List, Literal, NamedTuple
 
 from .handlers import FileHandler, ReadHandle, WriteHandle
 from .types import Percentage
@@ -83,10 +83,10 @@ class Statistic(Enum):
         return self.label
 
 
-class Statistics(dict[Statistic, object]):
+class Statistics(dict):
     """Keep Enum order, convert values to the proper type"""
 
-    def __init__(self, stats: dict[Statistic, object]):
+    def __init__(self, stats: Dict[Statistic, object]):
         super().__init__({s: s.type(stats[s]) for s in Statistic if s in stats})
 
     @classmethod
@@ -217,7 +217,7 @@ class StatisticsCalculator:
         }
 
     @staticmethod
-    def _calculate_NL(counts: list[int], arg: int = 50) -> tuple[int, int]:
+    def _calculate_NL(counts: List[int], arg: int = 50) -> tuple[int, int]:
         if not any(counts):
             return NL(0, 0)
         counts = sorted(counts, reverse=True)

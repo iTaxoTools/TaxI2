@@ -3,7 +3,7 @@ from __future__ import annotations
 from itertools import chain, groupby
 from pathlib import Path
 from time import perf_counter
-from typing import Callable, Iterator, Literal, NamedTuple
+from typing import Callable, Iterator, List, Literal, NamedTuple
 
 from itaxotools.common.utility import AttrDict
 
@@ -20,7 +20,7 @@ def multiply(iterator: iter, n: int):
     return (item for item in iterator for i in range(n))
 
 
-def split(source: iter, *funcs: list[Callable]):
+def split(source: iter, *funcs: List[Callable]):
     source = multiply(source, len(funcs))
     return [map(func, source) for func in funcs]
 

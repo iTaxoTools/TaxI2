@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Callable, NamedTuple
+from typing import Callable, List, NamedTuple
 
 import pytest
 from utility import assert_eq_files
@@ -15,7 +15,7 @@ Item = Row
 
 class Items(NamedTuple):
     headers: Item | None
-    items: list[Item]
+    items: List[Item]
 
 
 class ReadTest(NamedTuple):

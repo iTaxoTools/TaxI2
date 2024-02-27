@@ -4,7 +4,16 @@ from itertools import chain, product
 from math import inf
 from pathlib import Path
 from time import perf_counter
-from typing import Callable, Generator, Iterator, Literal, NamedTuple, TextIO
+from typing import (
+    Callable,
+    Dict,
+    Generator,
+    Iterator,
+    List,
+    Literal,
+    NamedTuple,
+    TextIO,
+)
 
 from itaxotools.common.utility import AttrDict
 
@@ -200,7 +209,7 @@ class SubsetMatrixStatisticsHandler(SubsetStatisticsHandler):
         return self.template.format(mean=mean, min=min, max=max)
 
     def _iter_write(self) -> WriteHandle[DistanceStatistics]:
-        self.buffer: list[DistanceStatistics] = []
+        self.buffer: List[DistanceStatistics] = []
         self.wrote_headers = False
 
         with FileHandler.Tabfile(self.path, "w") as file:
@@ -219,7 +228,7 @@ class SubsetMatrixStatisticsHandler(SubsetStatisticsHandler):
 
     def _assemble_line(
         self
-    ) -> Generator[None, DistanceStatistics, list[DistanceStatistics]]:
+    ) -> Generator[None, DistanceStatistics, List[DistanceStatistics]]:
         buffer = self.buffer
         try:
             while True:
@@ -231,7 +240,7 @@ class SubsetMatrixStatisticsHandler(SubsetStatisticsHandler):
         except GeneratorExit:
             return
 
-    def _write_headers(self, file: FileHandler.Tabfile, line: list[DistanceStatistics]):
+    def _write_headers(self, file: FileHandler.Tabfile, line: List[DistanceStatistics]):
         if self.wrote_headers:
             return
         idys = [distance.idy for distance in line]
@@ -240,7 +249,7 @@ class SubsetMatrixStatisticsHandler(SubsetStatisticsHandler):
         file.write(out)
         self.wrote_headers = True
 
-    def _write_scores(self, file: FileHandler.Tabfile, line: list[DistanceStatistics]):
+    def _write_scores(self, file: FileHandler.Tabfile, line: List[DistanceStatistics]):
         scores = [self.statsToText(stats) for stats in line]
         idx = line[0].idx
         if idx is None:
@@ -279,7 +288,7 @@ class SummaryHandler(DistanceHandler.Linear.WithExtras):
     def _open(self, path, mode, *args, **kwargs):
         super()._open(path, mode, tagX=" (query 1)", tagY=" (query 2)", *args, **kwargs)
 
-    def _assemble_line(self) -> Generator[None, SubsetDistance, list[SubsetDistance]]:
+    def _assemble_line(self) -> Generator[None, SubsetDistance, List[SubsetDistance]]:
         buffer = self.buffer
         try:
             while True:
@@ -296,7 +305,7 @@ class SummaryHandler(DistanceHandler.Linear.WithExtras):
         except GeneratorExit:
             return
 
-    def _write_headers(self, file: FileHandler.Tabfile, line: list[SubsetDistance]):
+    def _write_headers(self, file: FileHandler.Tabfile, line: List[SubsetDistance]):
         if self.wrote_headers:
             return
         idxHeader = self.idxHeader + self.tagX
@@ -319,7 +328,7 @@ class SummaryHandler(DistanceHandler.Linear.WithExtras):
         file.write(out)
         self.wrote_headers = True
 
-    def _write_scores(self, file: FileHandler.Tabfile, line: list[SubsetDistance]):
+    def _write_scores(self, file: FileHandler.Tabfile, line: List[SubsetDistance]):
         first = line[0]
         idx = first.distance.x.id
         idy = first.distance.y.id
@@ -392,15 +401,15 @@ class VersusAll:
         self.params.pairs.scores: Scores = None
 
         self.params.distances = AttrDict()
-        self.params.distances.metrics: list[DistanceMetric] = None
+        self.params.distances.metrics: List[DistanceMetric] = None
         self.params.distances.write_linear: bool = True
         self.params.distances.write_matricial: bool = True
 
         self.params.plot = AttrDict()
         self.params.plot.histograms: bool = True
         self.params.plot.binwidth: float = 0.05
-        self.params.plot.formats: list[str] = None
-        self.params.plot.palette: list[tuple] = None
+        self.params.plot.formats: List[str] = None
+        self.params.plot.palette: List[tuple] = None
 
         self.params.format = AttrDict()
         self.params.format.float: str = "{:.4f}"
@@ -645,7 +654,7 @@ class VersusAll:
             self.write_subset_statistics_matricial(aggregators, path / "matricial")
 
     def write_subset_statistics_linear(
-        self, aggregators: dict[str, DistanceAggregator], path: Path
+        self, aggregators: Dict[str, DistanceAggregator], path: Path
     ):
         self.create_parents(path)
         with (
@@ -670,7 +679,7 @@ class VersusAll:
                     pairs_file.write(bunch)
 
     def write_subset_statistics_matricial(
-        self, aggregators: dict[str, DistanceAggregator], path: Path
+        self, aggregators: Dict[str, DistanceAggregator], path: Path
     ):
         self.create_parents(path)
         for metric, aggregator in aggregators.items():

@@ -3,7 +3,7 @@ from __future__ import annotations
 from itertools import groupby
 from pathlib import Path
 from time import perf_counter
-from typing import Callable, NamedTuple
+from typing import Callable, List, NamedTuple
 
 from itaxotools.common.utility import AttrDict
 
@@ -51,7 +51,7 @@ class VersusReference:
 
         self.params.distances = AttrDict()
         self.params.distances.metric: DistanceMetric = None
-        self.params.distances.extra_metrics: list[DistanceMetric] = None
+        self.params.distances.extra_metrics: List[DistanceMetric] = None
         self.params.distances.write_linear: bool = True
         self.params.distances.write_matricial: bool = True
 

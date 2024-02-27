@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import multiprocessing
+from typing import Dict
 from warnings import warn
 
 from Bio.Align import PairwiseAligner as BioPairwiseAligner
@@ -13,7 +14,7 @@ from .sequences import Sequence
 from .types import Type
 
 
-class Scores(dict[str, int]):
+class Scores(Dict[str, int]):
     """Can access keys like attributes"""
 
     defaults = dict(
@@ -26,7 +27,9 @@ class Scores(dict[str, int]):
     )
 
     def __init__(self, **kwargs):
-        super().__init__(self.defaults | kwargs)
+        union_dict = self.defaults.copy()
+        union_dict.update(kwargs)
+        super().__init__(union_dict)
         self.__dict__ = self
 
     def __repr__(self):

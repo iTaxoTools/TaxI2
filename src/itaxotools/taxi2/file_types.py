@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
+from typing import List
 
 from .types import Type
 
@@ -32,7 +33,7 @@ class FileInfo(Type):
 
 @dataclass
 class Tabular(FileInfo):
-    headers: list[str]
+    headers: List[str]
     header_individuals: str | None
     header_sequences: str | None
     header_organism: str | None
@@ -58,7 +59,7 @@ class Fasta(FileInfo):
 
 @dataclass
 class Spart(FileInfo):
-    spartitions: list[str]
+    spartitions: List[str]
     is_matricial: bool
     is_xml: bool
 

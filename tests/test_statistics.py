@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from math import sqrt
 from pathlib import Path
-from typing import Callable, NamedTuple
+from typing import Callable, List, NamedTuple
 
 import pytest
 from utility import assert_eq_files
@@ -32,7 +32,7 @@ class CountTest(NamedTuple):
 class StatisticTest(NamedTuple):
     stat: Statistic
     fixed: object
-    sequences: list[str]
+    sequences: List[str]
     precision: float = 0.00051
 
     def validate(self):
