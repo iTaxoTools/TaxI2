@@ -1,5 +1,5 @@
 alfpy==1.0.6
-biopython==1.81
+biopython==1.84
 cfgv==3.4.0
 colorama==0.4.6
 contourpy==1.2.0

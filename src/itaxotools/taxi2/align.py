@@ -3,8 +3,8 @@ from __future__ import annotations
 import multiprocessing
 from warnings import warn
 
+from Bio.Align import Alignment
 from Bio.Align import PairwiseAligner as BioPairwiseAligner
-from Bio.Seq import reverse_complement
 
 from itaxotools import calculate_distances as calc
 
@@ -73,55 +73,78 @@ class Biopython(PairwiseAligner):
         super().__init__(scores)
         self.aligner = BioPairwiseAligner(**self.scores)
 
-    def _format_pretty(self, alignment):
-        # Adjusted from Bio.Align.PairwiseAlignment._format_pretty
-        seq1 = alignment._convert_sequence_string(alignment.target)
-        if seq1 is None:
-            return alignment._format_generalized()
-        seq2 = alignment._convert_sequence_string(alignment.query)
-        if seq2 is None:
-            return alignment._format_generalized()
-        n2 = len(seq2)
-        aligned_seq1 = ""
-        aligned_seq2 = ""
-        pattern = ""
-        path = alignment.path
-        if path[0][1] > path[-1][1]:  # mapped to reverse strand
-            path = tuple((c1, n2 - c2) for (c1, c2) in path)
-            seq2 = reverse_complement(seq2)
-        end1, end2 = path[0]
+    def _format_pretty(self, alignment: Alignment):
+        # Adjusted from Bio.Align.Alignment._format_generalized
+        seq1, seq2 = alignment.sequences
+        aligned_seq1 = []
+        aligned_seq2 = []
+        pattern = []
+        end1, end2 = alignment.coordinates[:, 0]
         if end1 > 0 or end2 > 0:
-            end = max(end1, end2)
-            aligned_seq1 += " " * (end - end1) + seq1[:end1]
-            aligned_seq2 += " " * (end - end2) + seq2[:end2]
-            pattern += " " * end
+            if end1 <= end2:
+                for c2 in seq2[: end2 - end1]:
+                    s2 = str(c2)
+                    s1 = " " * len(s2)
+                    aligned_seq1.append(s1)
+                    aligned_seq2.append(s2)
+                    pattern.append(s1)
+            else:  # end1 > end2
+                for c1 in seq1[: end1 - end2]:
+                    s1 = str(c1)
+                    s2 = " " * len(s1)
+                    aligned_seq1.append(s1)
+                    aligned_seq2.append(s2)
+                    pattern.append(s2)
         start1 = end1
         start2 = end2
-        for end1, end2 in path[1:]:
+        for end1, end2 in alignment.coordinates[:, 1:].transpose():
             if end1 == start1:
-                gap = end2 - start2
-                aligned_seq1 += "-" * gap
-                aligned_seq2 += seq2[start2:end2]
-                pattern += "-" * gap
+                for c2 in seq2[start2:end2]:
+                    s2 = str(c2)
+                    s1 = "-" * len(s2)
+                    aligned_seq1.append(s1)
+                    aligned_seq2.append(s2)
+                    pattern.append(s1)
+                start2 = end2
             elif end2 == start2:
-                gap = end1 - start1
-                aligned_seq1 += seq1[start1:end1]
-                aligned_seq2 += "-" * gap
-                pattern += "-" * gap
+                for c1 in seq1[start1:end1]:
+                    s1 = str(c1)
+                    s2 = "-" * len(s1)
+                    aligned_seq1.append(s1)
+                    aligned_seq2.append(s2)
+                    pattern.append(s2)
+                start1 = end1
             else:
-                s1 = seq1[start1:end1]
-                s2 = seq2[start2:end2]
-                aligned_seq1 += s1
-                aligned_seq2 += s2
-                for c1, c2 in zip(s1, s2):
+                t1 = seq1[start1:end1]
+                t2 = seq2[start2:end2]
+                if len(t1) != len(t2):
+                    raise ValueError("Unequal step sizes in alignment")
+                for c1, c2 in zip(t1, t2):
+                    s1 = str(c1)
+                    s2 = str(c2)
+                    m1 = len(s1)
+                    m2 = len(s2)
                     if c1 == c2:
-                        pattern += "|"
+                        p = "|"
                     else:
-                        pattern += "."
-            start1 = end1
-            start2 = end2
-        aligned_seq1 += seq1[end1:]
-        aligned_seq2 += seq2[end2:]
+                        p = "."
+                    if m1 < m2:
+                        space = (m2 - m1) * " "
+                        s1 += space
+                        pattern.append(p * m1 + space)
+                    elif m1 > m2:
+                        space = (m1 - m2) * " "
+                        s2 += space
+                        pattern.append(p * m2 + space)
+                    else:
+                        pattern.append(p * m1)
+                    aligned_seq1.append(s1)
+                    aligned_seq2.append(s2)
+                start1 = end1
+                start2 = end2
+        aligned_seq1 = "".join(aligned_seq1)
+        aligned_seq2 = "".join(aligned_seq2)
+        pattern = "".join(pattern)
         return (aligned_seq1, pattern, aligned_seq2)
 
     def align(self, pair: SequencePair) -> SequencePair:

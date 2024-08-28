@@ -26,7 +26,7 @@ dependencies = [
     "itaxotools-common",
     "itaxotools-spart-parser",
     "itaxotools-calculate-distances",
-    "BioPython",
+    "BioPython>=1.84",
     "alfpy",
     "numpy",
     "openpyxl",
