@@ -85,14 +85,15 @@ class Fasta(SequenceHandler):
         self,
         write_organism: bool = False,
         concatenate_extras: list[str] = [],
+        line_width=60,
     ) -> ReadHandle[Sequence]:
         self.concatenate_extras = concatenate_extras
         if write_organism:
-            yield from self._iter_write_organism()
+            yield from self._iter_write_organism(line_width)
         else:
-            yield from self._iter_write_plain()
+            yield from self._iter_write_plain(line_width)
 
-    def _iter_write_organism(self) -> WriteHandle[Sequence]:
+    def _iter_write_organism(self, line_width) -> WriteHandle[Sequence]:
         separator = self.organism_separator
         with open(self.path, "w") as handle:
             try:
@@ -102,22 +103,28 @@ class Fasta(SequenceHandler):
                     if organism := sequence.extras.get(self.organism_tag, None):
                         identifier += separator + organism
                     handle.write(">" + identifier + "\n")
-                    for i in range(0, len(sequence.seq), 60):
-                        handle.write(sequence.seq[i : i + 60] + "\n")
-                    handle.write("\n")
+                    if line_width:
+                        for i in range(0, len(sequence.seq), line_width):
+                            handle.write(sequence.seq[i : i + line_width] + "\n")
+                        handle.write("\n")
+                    else:
+                        handle.write(sequence.seq + "\n")
             except GeneratorExit:
                 return
 
-    def _iter_write_plain(self) -> WriteHandle[Sequence]:
+    def _iter_write_plain(self, line_width) -> WriteHandle[Sequence]:
         with open(self.path, "w") as handle:
             try:
                 while True:
                     sequence = yield
                     identifier = self._get_sequence_identifier(sequence)
                     handle.write(">" + identifier + "\n")
-                    for i in range(0, len(sequence.seq), 60):
-                        handle.write(sequence.seq[i : i + 60] + "\n")
-                    handle.write("\n")
+                    if line_width:
+                        for i in range(0, len(sequence.seq), line_width):
+                            handle.write(sequence.seq[i : i + line_width] + "\n")
+                        handle.write("\n")
+                    else:
+                        handle.write(sequence.seq + "\n")
             except GeneratorExit:
                 return
 
