@@ -11,8 +11,8 @@ from .types import Type
 
 Item = TypeVar("Item")
 
-ReadHandle: Type[Item] = Iterator[Item]
-WriteHandle: Type[Item] = Generator[None, Item, None]
+ReadHandle = Iterator[Item]
+WriteHandle = Generator[None, Item, None]
 
 Row = tuple[str, ...]
 
