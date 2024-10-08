@@ -167,6 +167,12 @@ def test_read_sequences(test: ReadTest) -> None:
         ),
         WriteTest(sequences_simple, "simple.fas", SequenceHandler.Fasta),
         WriteTest(
+            sequences_simple,
+            "simple.width.fas",
+            SequenceHandler.Fasta,
+            dict(line_width=2),
+        ),
+        WriteTest(
             sequences_organism,
             "species.fas",
             SequenceHandler.Fasta,
