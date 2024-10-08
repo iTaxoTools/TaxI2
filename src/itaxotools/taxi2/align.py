@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import multiprocessing
+from typing import Iterator
 from warnings import warn
 
 from Bio.Align import Alignment
@@ -41,7 +42,7 @@ class PairwiseAligner(Type):
     def align(self, pair: SequencePair) -> SequencePair:
         raise NotImplementedError()
 
-    def align_pairs_parallel(self, pairs: SequencePairs) -> SequencePairs:
+    def align_pairs_parallel(self, pairs: SequencePairs) -> Iterator[SequencePair]:
         with multiprocessing.Pool(processes=4, maxtasksperchild=10) as pool:
             for x in pool.imap(self.align, pairs, chunksize=1000):
                 yield x
