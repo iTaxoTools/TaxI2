@@ -364,11 +364,17 @@ def distances_extras() -> Distances:
     )
 
 
+def distances_empty() -> Distances:
+    return Distances([])
+
+
 read_tests = [
     ReadTest(distances_simple, "simple.linear", DistanceHandler.Linear),
     ReadTest(distances_multiple, "multiple.linear", DistanceHandler.Linear),
     ReadTest(distances_missing, "missing.linear", DistanceHandler.Linear),
+    ReadTest(distances_empty, "empty", DistanceHandler.Linear),
     ReadTest(distances_square_unknown, "square.matrix", DistanceHandler.Matrix),
+    ReadTest(distances_empty, "empty", DistanceHandler.Matrix),
     ReadTest(
         distances_square,
         "square.matrix",
@@ -399,6 +405,7 @@ read_tests = [
         DistanceHandler.Linear.WithExtras,
         dict(idxColumn=0, idyColumn=2, tagX="_x", tagY="_y"),
     ),
+    ReadTest(distances_empty, "empty", DistanceHandler.Linear.WithExtras),
 ]
 
 
@@ -422,6 +429,12 @@ write_tests = [
         dict(formatter="{:.1f}"),
     ),
     WriteTest(
+        distances_empty,
+        "empty",
+        DistanceHandler.Linear,
+        dict(formatter="{:.1f}"),
+    ),
+    WriteTest(
         distances_square,
         "square.matrix",
         DistanceHandler.Matrix,
@@ -436,6 +449,12 @@ write_tests = [
     WriteTest(
         distances_missing,
         "missing.matrix",
+        DistanceHandler.Matrix,
+        dict(formatter="{:.1f}"),
+    ),
+    WriteTest(
+        distances_empty,
+        "empty",
         DistanceHandler.Matrix,
         dict(formatter="{:.1f}"),
     ),
@@ -471,6 +490,12 @@ write_tests = [
             formatter="{:.2e}",
             missing="nan",
         ),
+    ),
+    WriteTest(
+        distances_empty,
+        "empty",
+        DistanceHandler.Linear.WithExtras,
+        dict(formatter="{:.1f}"),
     ),
 ]
 

@@ -59,6 +59,9 @@ class DistanceHandler(FileHandler[Distance]):
 class Linear(DistanceHandler):
     def _iter_read(self) -> ReadHandle[Distance]:
         with FileHandler.Tabfile(self.path, "r", has_headers=True) as file:
+            if file.headers is None:
+                yield self
+                return
             metrics = [DistanceMetric.fromLabel(label) for label in file.headers[2:]]
             yield self
             for row in file:
@@ -83,6 +86,8 @@ class Linear(DistanceHandler):
                     self._write_scores(file, line)
             except GeneratorExit:
                 line = self.buffer
+                if not line:
+                    return
                 self._write_headers(file, line)
                 self._write_scores(file, line)
                 return
@@ -123,6 +128,9 @@ class Matrix(DistanceHandler):
         metric = metric or DistanceMetric.Unknown()
 
         with FileHandler.Tabfile(self.path, "r", has_headers=True) as file:
+            if file.headers is None:
+                yield self
+                return
             idys = file.headers[1:]
             yield self
             for row in file:
@@ -146,6 +154,8 @@ class Matrix(DistanceHandler):
                     self._write_scores(file, line)
             except GeneratorExit:
                 line = self.buffer
+                if not line:
+                    return
                 self._write_headers(file, line)
                 self._write_scores(file, line)
                 return
@@ -187,6 +197,9 @@ class WithExtras(DistanceHandler.Linear):
         idyColumn: int = 1,
     ) -> ReadHandle[Distance]:
         with FileHandler.Tabfile(self.path, "r", has_headers=True) as file:
+            if file.headers is None:
+                yield self
+                return
             headers = file.headers
 
             if idxHeader and idyHeader:
