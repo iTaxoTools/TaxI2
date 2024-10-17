@@ -5,6 +5,7 @@ from typing import Literal, NamedTuple
 
 from Bio import SeqIO
 from Bio.SeqIO.FastaIO import SimpleFastaParser
+from Bio.SeqIO.QualityIO import FastqGeneralIterator
 
 from .encoding import sanitize
 from .handlers import FileHandler, ReadHandle, WriteHandle
@@ -131,6 +132,29 @@ class Fasta(SequenceHandler):
     def _get_sequence_identifier(self, sequence: Sequence) -> str:
         extras = (sequence.extras[tag] for tag in self.concatenate_extras)
         return "_".join((sequence.id, *extras))
+
+
+class Ali(SequenceHandler):
+    def _iter_read(self) -> ReadHandle[Sequence]:
+        with open(self.path, "r") as handle:
+            yield self
+            handle = (line for line in handle if not line.startswith("#"))
+            for data in SimpleFastaParser(handle):
+                yield Sequence(*data)
+
+    def _iter_write(self, *args, **kwargs) -> WriteHandle[Sequence]:
+        raise NotImplementedError()
+
+
+class FastQ(SequenceHandler):
+    def _iter_read(self) -> ReadHandle[Sequence]:
+        with open(self.path, "r") as handle:
+            yield self
+            for title, sequence, quality in FastqGeneralIterator(handle):
+                yield Sequence(title, sequence, extras=dict(quality=quality))
+
+    def _iter_write(self, *args, **kwargs) -> WriteHandle[Sequence]:
+        raise NotImplementedError()
 
 
 class Genbank(SequenceHandler):

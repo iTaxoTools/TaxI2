@@ -101,6 +101,16 @@ def sequences_alleles() -> Sequences:
     )
 
 
+def sequences_quality() -> Sequences:
+    return Sequences(
+        [
+            Sequence("id1", "ATC", {"quality": "!''"}),
+            Sequence("id2", "ATG", {"quality": "(*)"}),
+            Sequence("id3", "ATA", {"quality": "CF>"}),
+        ]
+    )
+
+
 def sequences_empty() -> Sequences:
     return Sequences([])
 
@@ -109,10 +119,12 @@ def sequences_empty() -> Sequences:
     "test",
     [
         ReadTest(sequences_simple, "simple.fas", SequenceHandler.Fasta),
+        ReadTest(sequences_simple, "simple.ali", SequenceHandler.Ali),
         ReadTest(sequences_simple, "simple.multi.fas", SequenceHandler.Fasta),
         ReadTest(sequences_simple, "simple.gbk", SequenceHandler.Genbank),
         ReadTest(sequences_simple, "simple.tsv", SequenceHandler.Tabfile),
         ReadTest(sequences_simple, "simple.xlsx", SequenceHandler.Excel),
+        ReadTest(sequences_quality, "quality.fq", SequenceHandler.FastQ),
         ReadTest(
             sequences_headers,
             "headers.tsv",
