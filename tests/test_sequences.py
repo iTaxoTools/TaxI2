@@ -155,6 +155,9 @@ def sequences_empty() -> Sequences:
             SequenceHandler.Fasta,
             dict(parse_organism=True, organism_separator="."),
         ),
+        ReadTest(sequences_empty, "empty", SequenceHandler.Fasta),
+        ReadTest(sequences_empty, "empty", SequenceHandler.FastQ),
+        ReadTest(sequences_empty, "empty", SequenceHandler.Ali),
         ReadTest(
             sequences_empty,
             "empty.tsv",
