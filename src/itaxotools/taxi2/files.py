@@ -36,10 +36,46 @@ def get_info(path: Path, format: FileFormat = None):
     return info_getter[format](path, format)
 
 
+@identifier(FileFormat.Ali)
+def is_ali(path: Path) -> bool:
+    with path.open() as file:
+        infos = False
+        for line in file:
+            if not line.strip():
+                continue
+            if line.startswith("#"):
+                infos = True
+                continue
+            if line.startswith(">"):
+                return bool(infos)
+    return False
+
+
 @identifier(FileFormat.Fasta)
 def is_fasta(path: Path) -> bool:
     with path.open() as file:
-        return bool(file.read(1) == ">")
+        for line in file:
+            if not line.strip():
+                continue
+            if line.startswith(";"):
+                continue
+            if line.startswith(">"):
+                return True
+    return False
+
+
+@identifier(FileFormat.FastQ)
+def is_fastq(path: Path) -> bool:
+    with open(path, "r") as file:
+        id = False
+        for line in file:
+            if not line.strip():
+                continue
+            if line.startswith("@"):
+                id = True
+            if line.startswith("+"):
+                return bool(id)
+    return False
 
 
 @identifier(FileFormat.Tabfile)

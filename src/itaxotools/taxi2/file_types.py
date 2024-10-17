@@ -8,7 +8,9 @@ from .types import Type
 
 
 class FileFormat(Enum):
+    Ali = "Ali", ".ali"
     Fasta = "Fasta", ".fas"
+    FastQ = "FastQ", ".fq"
     Tabfile = "Tabfile", ".tsv"
     Spart = "Spart", ".spart"
     Excel = "Excel", ".xlsx"
