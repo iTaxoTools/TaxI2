@@ -247,6 +247,11 @@ def items_empty() -> Items:
             FileHandler.Tabfile,
             dict(columns=["header_1", "header_3"], get_all_columns=True),
         ),
+        ReadTest(
+            items_simple_plain_all,
+            "skip.tsv",
+            FileHandler.Tabfile,
+        ),
         ReadTest(items_simple_plain_all, "simple.xlsx", FileHandler.Excel),
         ReadTest(
             items_simple_plain_0_2,

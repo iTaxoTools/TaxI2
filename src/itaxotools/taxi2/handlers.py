@@ -213,7 +213,7 @@ class Tabfile(Tabular, FileHandler):
             for line in file:
                 line = line[:-1]
                 if not line:
-                    break
+                    continue
                 yield tuple(line.split("\t"))
 
     def _iter_write_rows(self) -> WriteHandle[Row]:
@@ -237,7 +237,7 @@ class Excel(Tabular, FileHandler):
                 while row and row[-1] is None:
                     del row[-1]
                 if not row:
-                    break
+                    continue
                 yield tuple(x if x else "" for x in row)
         finally:
             wb.close()
